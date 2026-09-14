@@ -24,3 +24,6 @@ public/brand/
 
 # TypeScript
 *.tsbuildinfo
+
+# Next.js regenerates this on dev, build and typegen
+next-env.d.ts

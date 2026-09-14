@@ -4,7 +4,8 @@ type LogoVariant = "primary" | "reversed" | "symbol" | "symbolReversed";
 
 type LogoProps = {
   variant?: LogoVariant;
-  priority?: boolean;
+  /** Preload logos that sit above the fold, such as the site header's. */
+  preload?: boolean;
   className?: string;
 };
 
@@ -40,7 +41,7 @@ const logoAssets: Record<
 
 export function Logo({
   variant = "primary",
-  priority = false,
+  preload = false,
   className,
 }: LogoProps) {
   const asset = logoAssets[variant];
@@ -51,7 +52,7 @@ export function Logo({
       alt={asset.alt}
       width={asset.width}
       height={asset.height}
-      priority={priority}
+      preload={preload}
       className={className}
     />
   );

@@ -16,7 +16,7 @@ export function FaqList({ items }: FaqListProps) {
       {items.map((item) => (
         <details
           key={item.question}
-          className="group rounded-card border border-farm-border bg-white px-5 py-4 open:shadow-[var(--shadow-card)]"
+          className="group rounded-card border border-farm-border bg-white px-5 py-4 open:shadow-card"
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[0.95rem] font-medium text-farm-green-950 [&::-webkit-details-marker]:hidden">
             {item.question}
@@ -27,7 +27,7 @@ export function FaqList({ items }: FaqListProps) {
               <Icon name="plus" size={18} />
             </span>
           </summary>
-          <p className="mt-3 text-sm leading-7 text-farm-muted">{item.answer}</p>
+          <p className="mt-3 type-body-sm text-farm-muted">{item.answer}</p>
         </details>
       ))}
     </div>

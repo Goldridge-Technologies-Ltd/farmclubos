@@ -25,7 +25,7 @@ export function NewsletterSignup() {
 
   return (
     <div>
-      <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-white">
+      <h3 className="type-overline text-white">
         Stay Updated
       </h3>
       <p className="mt-4 text-sm leading-6 text-white/64">
@@ -56,7 +56,7 @@ export function NewsletterSignup() {
         <p
           id="newsletter-status"
           role={status === "idle" ? undefined : "status"}
-          className="mt-3 text-xs leading-5 text-white/58"
+          className="mt-3 type-caption text-white/58"
         >
           {status === "invalid" ? (
             <span className="text-farm-gold-400">

@@ -36,7 +36,7 @@ export default function InvestorsPage() {
               <p className="text-sm font-semibold">
                 {content.hero.vision.title}
               </p>
-              <p className="mt-1.5 text-xs leading-5 text-white/68">
+              <p className="mt-1.5 type-caption text-white/68">
                 {content.hero.vision.statement}
               </p>
             </div>
@@ -47,7 +47,7 @@ export default function InvestorsPage() {
       {/* Problem → Platform → Impact */}
       <section
         id="opportunity"
-        className="section-padding scroll-mt-24 bg-white"
+        className="section-padding bg-white"
       >
         <div className="site-container">
           <SectionIntro
@@ -85,7 +85,7 @@ export default function InvestorsPage() {
             <h2 className="mt-3 text-[1.55rem] leading-tight text-farm-green-950 sm:text-[1.85rem]">
               {content.thesis.heading}
             </h2>
-            <p className="mt-4 text-sm leading-7 text-farm-muted">
+            <p className="mt-4 type-body-sm text-farm-muted">
               {content.thesis.statement}
             </p>
             <BulletList items={content.opportunity.tensions} className="mt-6" />
@@ -96,7 +96,7 @@ export default function InvestorsPage() {
             <h2 className="mt-3 text-[1.55rem] leading-tight text-farm-green-950 sm:text-[1.85rem]">
               {content.model.heading}
             </h2>
-            <p className="mt-4 text-sm leading-7 text-farm-muted">
+            <p className="mt-4 type-body-sm text-farm-muted">
               {content.model.description}
             </p>
             <BulletList
@@ -137,7 +137,7 @@ export default function InvestorsPage() {
                 <h3 className="mt-1 text-[0.95rem] text-farm-green-950">
                   {pillar.title}
                 </h3>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {pillar.description}
                 </p>
               </li>
@@ -195,7 +195,7 @@ export default function InvestorsPage() {
                     <p className="text-sm font-semibold text-farm-green-950">
                       {item.title}
                     </p>
-                    <p className="mt-0.5 text-xs leading-5 text-farm-muted">
+                    <p className="mt-0.5 type-caption text-farm-muted">
                       {item.description}
                     </p>
                   </div>

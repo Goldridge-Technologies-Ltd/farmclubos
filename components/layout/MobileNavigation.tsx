@@ -69,7 +69,7 @@ export function MobileNavigation() {
           <div
             ref={panelRef}
             id="mobile-navigation"
-            className="fixed inset-x-0 top-[4.75rem] z-50 max-h-[calc(100dvh-4.75rem)] overflow-y-auto border-b border-farm-border bg-white shadow-[var(--shadow-raised)]"
+            className="fixed inset-x-0 top-[4.75rem] z-50 max-h-[calc(100dvh-4.75rem)] overflow-y-auto border-b border-farm-border bg-white shadow-raised"
           >
             <nav aria-label="Primary" className="site-container py-5">
               <ul className="grid">

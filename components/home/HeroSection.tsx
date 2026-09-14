@@ -14,7 +14,7 @@ export function HeroSection({ content }: HeroSectionProps) {
         src={content.image.src}
         alt={content.image.alt}
         fill
-        priority
+        preload
         sizes="100vw"
         className="object-cover object-[68%_center]"
       />
@@ -25,9 +25,7 @@ export function HeroSection({ content }: HeroSectionProps) {
           <p className="text-sm font-semibold tracking-wide text-farm-gold-400">
             {content.eyebrow}
           </p>
-          <h1 className="mt-3 text-[2.15rem] leading-[1.06] text-white sm:text-[3rem] lg:text-[3.75rem]">
-            {content.heading}
-          </h1>
+          <h1 className="mt-3 type-display text-white">{content.heading}</h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-white/85 sm:text-lg">
             {content.description}
           </p>
@@ -46,7 +44,7 @@ export function HeroSection({ content }: HeroSectionProps) {
         </div>
 
         {/* Mission card, floated over the lower-right of the photograph. */}
-        <div className="mt-12 max-w-sm rounded-card bg-white/97 p-5 shadow-[var(--shadow-float)] backdrop-blur-sm lg:absolute lg:right-[max(2rem,calc(50vw-600px))] lg:bottom-10 lg:mt-0">
+        <div className="mt-12 max-w-sm rounded-card bg-white/97 p-5 shadow-float backdrop-blur-sm lg:absolute lg:right-[max(2rem,calc(50vw-600px))] lg:bottom-10 lg:mt-0">
           <div className="flex gap-3.5">
             <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-farm-green-50 text-farm-green-700">
               <Icon name="leaf" size={19} />

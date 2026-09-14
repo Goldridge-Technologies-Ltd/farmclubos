@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { CtaBand } from "@/components/ui/CtaBand";
 import { FeatureCard } from "@/components/ui/FeatureCard";
@@ -47,7 +48,7 @@ export default function PlatformPage() {
                   <Icon name={item.icon} size={25} />
                 </span>
                 <h3 className="mt-4 text-base">{item.title}</h3>
-                <p className="mt-2 text-xs leading-5 text-white/62">
+                <p className="mt-2 type-caption text-white/62">
                   {item.description}
                 </p>
               </li>
@@ -59,16 +60,16 @@ export default function PlatformPage() {
       {/* Journey */}
       <section
         id="how-it-works"
-        className="section-padding scroll-mt-24 bg-white"
+        className="section-padding bg-white"
       >
         <div className="site-container">
           <div className="rounded-band border border-farm-border bg-farm-cream-50 px-6 py-11 sm:px-9 lg:grid lg:grid-cols-[0.72fr_2fr] lg:items-center lg:gap-10">
             <div>
               <SectionLabel>{content.journey.eyebrow}</SectionLabel>
-              <h2 className="mt-3 text-[1.6rem] leading-tight text-farm-green-950 sm:text-[1.9rem]">
+              <h2 className="mt-3 type-h2-panel text-farm-green-950">
                 {content.journey.heading}
               </h2>
-              <p className="mt-4 text-sm leading-7 text-farm-muted">
+              <p className="mt-4 type-body-sm text-farm-muted">
                 {content.journey.description}
               </p>
               <ButtonLink href={content.journey.action.href} className="mt-7">
@@ -87,7 +88,7 @@ export default function PlatformPage() {
       {/* Modules */}
       <section
         id="modules"
-        className="section-padding scroll-mt-24 bg-farm-cream-50"
+        className="section-padding bg-farm-cream-50"
       >
         <div className="site-container">
           <SectionIntro
@@ -127,7 +128,7 @@ export default function PlatformPage() {
       {/* Who we serve */}
       <section
         id="who-we-serve"
-        className="section-padding scroll-mt-24 bg-white"
+        className="section-padding bg-white"
       >
         <div className="site-container">
           <SectionIntro
@@ -170,17 +171,14 @@ export default function PlatformPage() {
               <h2 className="mt-3 text-[1.6rem] leading-tight sm:text-[2rem]">
                 {content.physicalBridge.heading}
               </h2>
-              <p className="mt-4 text-[0.95rem] leading-7 text-white/72">
+              <p className="mt-4 type-body text-white/72">
                 {content.physicalBridge.description}
               </p>
               <ul className="mt-7 flex flex-wrap gap-2.5">
                 {content.physicalBridge.flow.map((item) => (
-                  <li
-                    key={item}
-                    className="rounded-full border border-white/20 px-4 py-1.5 text-sm text-white/85"
-                  >
+                  <Badge key={item} as="li" size="md" tone="dark">
                     {item}
-                  </li>
+                  </Badge>
                 ))}
               </ul>
             </div>

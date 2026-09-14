@@ -12,7 +12,7 @@ export function SiteHeader() {
           aria-label="FARMCLUB OS home"
           className="block w-44 shrink-0 sm:w-[13.5rem]"
         >
-          <Logo variant="primary" priority />
+          <Logo variant="primary" preload />
         </Link>
         <DesktopNavigation />
         <MobileNavigation />

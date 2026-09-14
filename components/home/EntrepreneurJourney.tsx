@@ -8,7 +8,7 @@ type EntrepreneurJourneyProps = {
 
 export function EntrepreneurJourney({ content }: EntrepreneurJourneyProps) {
   return (
-    <section id="how-it-works" className="scroll-mt-24 bg-white pb-6">
+    <section id="how-it-works" className="bg-white pb-6">
       <div className="site-container">
         <div className="rounded-band bg-farm-cream-50 px-5 py-12 sm:px-10 sm:py-14">
           <div className="text-center">

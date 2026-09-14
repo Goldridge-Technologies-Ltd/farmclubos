@@ -49,6 +49,7 @@ npm run build
 
 ## Project Notes
 
+- The design system is documented in `docs/design-system.md` and rendered at `/design-system`.
 - Official brand assets live in `public/brand`.
 - Website photography lives in `public/images`.
 - Reference screenshots live in `public/references` and are for visual direction only.

@@ -33,7 +33,7 @@ export function CapabilityStrip({ content }: CapabilityStripProps) {
               </span>
               <div className="min-w-0">
                 <p className="text-sm leading-5 font-semibold">{item.title}</p>
-                <p className="mt-1 text-xs leading-5 text-white/58">
+                <p className="mt-1 type-caption text-white/58">
                   {item.description}
                 </p>
               </div>

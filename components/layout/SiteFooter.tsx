@@ -42,7 +42,7 @@ export function SiteFooter() {
 
           {footerColumns.map((column) => (
             <nav key={column.title} aria-label={column.title}>
-              <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-white">
+              <h3 className="type-overline text-white">
                 {column.title}
               </h3>
               <ul className="mt-4 grid gap-2.5">
@@ -62,7 +62,7 @@ export function SiteFooter() {
 
           <div className="grid gap-8">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-white">
+              <h3 className="type-overline text-white">
                 Contact Us
               </h3>
               <ul className="mt-4 grid gap-3 text-sm text-white/64">

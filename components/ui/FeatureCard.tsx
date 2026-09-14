@@ -21,6 +21,10 @@ type FeatureCardProps = {
   imageSizes?: string;
   /** Centred cards are used in icon grids; left-aligned in content grids. */
   align?: "left" | "center";
+  /**
+   * Adds an arrow link pinned to the bottom of the card, so links line up
+   * across a row. Give every card in a grid a link, or none.
+   */
   href?: string;
   linkLabel?: string;
   className?: string;
@@ -76,7 +80,12 @@ export function FeatureCard({
       >
         {showIcon && icon ? <IconDisc name={icon} tone={tone} /> : null}
         {label ? (
-          <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-farm-gold-600">
+          // Green-700 rather than gold-600: small label text needs 4.5:1.
+          <p
+            className={[showIcon ? "mt-5" : "", "type-overline text-farm-green-700"]
+              .filter(Boolean)
+              .join(" ")}
+          >
             {label}
           </p>
         ) : null}
@@ -90,19 +99,22 @@ export function FeatureCard({
         >
           {title}
         </h3>
-        <p className="mt-2.5 text-sm leading-7 text-farm-muted">{description}</p>
+        <p className="mt-2.5 type-body-sm text-farm-muted">{description}</p>
         {href ? (
-          <Link
-            href={href}
-            className="group/link mt-5 inline-flex items-center gap-2 text-sm font-semibold text-farm-green-800 transition-colors hover:text-farm-green-950"
-          >
-            {linkLabel}
-            <Icon
-              name="arrow-right"
-              size={16}
-              className="transition-transform duration-200 group-hover/link:translate-x-1"
-            />
-          </Link>
+          <div className="mt-auto flex pt-5">
+            <Link
+              href={href}
+              className="group/link inline-flex items-center gap-2 text-sm font-semibold text-farm-green-800 transition-colors hover:text-farm-green-950 active:text-farm-green-950"
+            >
+              {linkLabel}
+              <span className="sr-only">: {title}</span>
+              <Icon
+                name="arrow-right"
+                size={16}
+                className="transition-transform duration-200 group-hover/link:translate-x-1"
+              />
+            </Link>
+          </div>
         ) : null}
       </div>
     </article>

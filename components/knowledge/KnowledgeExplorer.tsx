@@ -88,7 +88,7 @@ export function KnowledgeExplorer({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search collections, guides and topics"
             aria-describedby="knowledge-search-status"
-            className="min-h-12 w-full rounded-button border border-farm-border-strong bg-white pr-4 pl-11 text-sm text-farm-charcoal placeholder:text-farm-muted focus:border-farm-green-700 focus:outline-none"
+            className="min-h-12 w-full rounded-button border border-farm-border-strong bg-white pr-4 pl-11 text-sm text-farm-charcoal placeholder:text-farm-muted focus:border-farm-green-700"
           />
         </div>
       </form>

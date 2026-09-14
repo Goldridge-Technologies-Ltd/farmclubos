@@ -23,7 +23,7 @@ export function HubsSection({ content }: HubsSectionProps) {
             <h2 className="mt-3 text-[1.8rem] leading-[1.15] sm:text-[2.15rem]">
               {content.heading}
             </h2>
-            <p className="mt-5 text-[0.95rem] leading-7 text-white/72">
+            <p className="mt-5 type-body text-white/72">
               {content.description}
             </p>
             <ButtonLink
@@ -61,7 +61,7 @@ export function HubsSection({ content }: HubsSectionProps) {
                 <p className="text-sm font-semibold text-white">
                   {content.imageCaption.title}
                 </p>
-                <p className="mt-1 text-xs leading-5 text-white/70">
+                <p className="mt-1 type-caption text-white/70">
                   {content.imageCaption.description}
                 </p>
                 <ButtonLink
@@ -82,7 +82,7 @@ export function HubsSection({ content }: HubsSectionProps) {
                   </span>
                   <div>
                     <p className="text-sm font-semibold">{capability.title}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-white/62">
+                    <p className="mt-0.5 type-caption text-white/62">
                       {capability.description}
                     </p>
                   </div>

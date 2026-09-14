@@ -200,7 +200,7 @@ export const homePageContent: HomePageContent = {
     action: { label: "Explore Our Hubs", href: "/hubs" },
     image: {
       src: "/images/home/experience-innovation-hub.png",
-      alt: "FARMCLUB OS Experience & Innovation Hub overview: the Lagos Training Hub's hydroponics and aquaponics learning lab, showing a facilitator and learners at a crop health dashboard beside the nutrient system.",
+      alt: "FARMCLUB OS Experience & Innovation Hub overview: a hydroponics and aquaponics learning lab, showing a facilitator and learners at a crop health dashboard beside the nutrient system.",
     },
     imageCaption: {
       title: "The Experience & Innovation Hub",

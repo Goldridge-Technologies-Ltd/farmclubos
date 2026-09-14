@@ -32,10 +32,10 @@ export default function HubsPage() {
       {/* Capability areas */}
       <section
         id="capabilities"
-        className="scroll-mt-24 bg-white pt-10 pb-4 lg:pt-12"
+        className="bg-white pt-10 pb-4 lg:pt-12"
       >
         <div className="site-container">
-          <ul className="grid gap-y-9 rounded-panel border border-farm-border bg-white px-6 py-10 shadow-[var(--shadow-card)] sm:grid-cols-2 sm:px-8 lg:grid-cols-5 lg:gap-y-0">
+          <ul className="grid gap-y-9 rounded-panel border border-farm-border bg-white px-6 py-10 shadow-card sm:grid-cols-2 sm:px-8 lg:grid-cols-5 lg:gap-y-0">
             {content.capabilityAreas.items.map((item, index) => (
               <li
                 key={item.title}
@@ -52,7 +52,7 @@ export default function HubsPage() {
                 <h2 className="mt-4 text-base text-farm-green-950">
                   {item.title}
                 </h2>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {item.description}
                 </p>
               </li>
@@ -70,7 +70,7 @@ export default function HubsPage() {
               <h2 className="mt-3 text-[1.7rem] leading-tight text-farm-green-950 sm:text-[2rem]">
                 {content.offer.heading}
               </h2>
-              <p className="mt-4 text-[0.95rem] leading-7 text-farm-muted">
+              <p className="mt-4 type-body text-farm-muted">
                 {content.offer.description}
               </p>
               <BulletList items={content.offer.facilities} className="mt-7" />
@@ -121,7 +121,7 @@ export default function HubsPage() {
                 <h3 className="mt-4 text-[0.95rem] text-farm-green-950">
                   {stage.title}
                 </h3>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {stage.description}
                 </p>
               </li>

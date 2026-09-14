@@ -71,7 +71,7 @@ export default function AboutPage() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-white/64">
+                    <p className="mt-1 type-caption text-white/64">
                       {item.description}
                     </p>
                   </div>
@@ -93,12 +93,12 @@ export default function AboutPage() {
             {content.caseForChange.paragraphs.map((paragraph) => (
               <p
                 key={paragraph}
-                className="mt-5 text-[0.95rem] leading-7 text-farm-muted"
+                className="mt-5 type-body text-farm-muted"
               >
                 {paragraph}
               </p>
             ))}
-            <p className="mt-5 text-[0.95rem] leading-7 text-farm-muted">
+            <p className="mt-5 type-body text-farm-muted">
               {content.caseForChange.organisingIdea}
             </p>
             <ButtonLink
@@ -126,7 +126,7 @@ export default function AboutPage() {
       {/* Commitment to change */}
       <section
         id="commitment"
-        className="section-padding scroll-mt-24 bg-farm-cream-50"
+        className="section-padding bg-farm-cream-50"
       >
         <div className="site-container">
           <SectionIntro
@@ -168,7 +168,7 @@ export default function AboutPage() {
               <h2 className="text-[1.5rem] leading-snug text-farm-green-950 sm:text-[1.85rem]">
                 {content.stewardship.heading}
               </h2>
-              <p className="mt-4 text-[0.95rem] leading-7 text-farm-muted">
+              <p className="mt-4 type-body text-farm-muted">
                 {content.stewardship.description}
               </p>
             </div>

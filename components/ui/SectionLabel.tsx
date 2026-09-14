@@ -20,7 +20,7 @@ export function SectionLabel({
   return (
     <p
       className={[
-        "text-xs font-bold uppercase tracking-[0.16em]",
+        "type-eyebrow",
         toneClass,
         className,
       ]

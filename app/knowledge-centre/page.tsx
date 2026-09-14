@@ -33,10 +33,10 @@ export default function KnowledgeCentrePage() {
       {/* Collections */}
       <section
         id="collections"
-        className="scroll-mt-24 bg-white pt-10 pb-4 lg:pt-12"
+        className="bg-white pt-10 pb-4 lg:pt-12"
       >
         <div className="site-container">
-          <ul className="grid gap-y-9 rounded-panel border border-farm-border bg-white px-6 py-10 shadow-[var(--shadow-card)] sm:grid-cols-2 sm:px-8 lg:grid-cols-6 lg:gap-y-0">
+          <ul className="grid gap-y-9 rounded-panel border border-farm-border bg-white px-6 py-10 shadow-card sm:grid-cols-2 sm:px-8 lg:grid-cols-6 lg:gap-y-0">
             {content.categories.items.map((item, index) => (
               <li
                 key={item.title}
@@ -53,7 +53,7 @@ export default function KnowledgeCentrePage() {
                 <h2 className="mt-4 text-[0.95rem] text-farm-green-950">
                   {item.title}
                 </h2>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {item.description}
                 </p>
               </li>
@@ -71,7 +71,7 @@ export default function KnowledgeCentrePage() {
               <h2 className="mt-3 text-[1.6rem] leading-tight text-farm-green-950 sm:text-[1.95rem]">
                 {content.libraryState.heading}
               </h2>
-              <p className="mt-4 text-[0.95rem] leading-7 text-farm-muted">
+              <p className="mt-4 type-body text-farm-muted">
                 {content.libraryState.description}
               </p>
             </div>
@@ -79,7 +79,7 @@ export default function KnowledgeCentrePage() {
               <span className="mt-0.5 shrink-0 text-farm-gold-600">
                 <Icon name="report" size={22} />
               </span>
-              <p className="text-sm leading-7 text-farm-muted">
+              <p className="type-body-sm text-farm-muted">
                 {content.libraryState.note}
               </p>
             </div>
@@ -90,15 +90,15 @@ export default function KnowledgeCentrePage() {
       {/* Learning paths */}
       <section
         id="learning-paths"
-        className="section-padding scroll-mt-24 bg-farm-cream-50 pt-0"
+        className="section-padding bg-farm-cream-50 pt-0"
       >
         <div className="site-container grid gap-10 lg:grid-cols-[0.72fr_2fr] lg:gap-10">
           <div>
             <SectionLabel>{content.pathways.eyebrow}</SectionLabel>
-            <h2 className="mt-3 text-[1.6rem] leading-tight text-farm-green-950 sm:text-[1.9rem]">
+            <h2 className="mt-3 type-h2-panel text-farm-green-950">
               {content.pathways.heading}
             </h2>
-            <p className="mt-4 text-sm leading-7 text-farm-muted">
+            <p className="mt-4 type-body-sm text-farm-muted">
               {content.pathways.description}
             </p>
             <ButtonLink href={content.pathways.action.href} className="mt-7">
@@ -115,14 +115,14 @@ export default function KnowledgeCentrePage() {
                 <h3 className="mt-5 text-base text-farm-green-950">
                   {path.title}
                 </h3>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {path.description}
                 </p>
                 <ul className="mt-4 grid gap-2 border-t border-farm-border pt-4">
                   {path.topics.map((topic) => (
                     <li
                       key={topic}
-                      className="text-xs leading-5 text-farm-charcoal"
+                      className="type-caption text-farm-charcoal"
                     >
                       {topic}
                     </li>

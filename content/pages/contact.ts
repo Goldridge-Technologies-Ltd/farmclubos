@@ -5,7 +5,7 @@ export type ContactPageContent = {
   hero: { eyebrow: string; heading: string; description: string; image: ImageAsset; categories: string[] };
   enquiryTypes: string[];
   pathways: { eyebrow: string; heading: string; items: IconItem[] };
-  form: { privacyNote: string; integrationNote: string };
+  form: { privacyNote: string; integrationNote: string; requiredNote: string };
   faqs: FaqItem[];
   partnership: { heading: string; description: string };
 };
@@ -37,6 +37,7 @@ export const contactPageContent: ContactPageContent = {
   form: {
     privacyNote: "Do not include confidential, financial, identity or other sensitive information in this interim form.",
     integrationNote: "Online delivery is not connected yet. Reviewing the form only checks that your message is complete on this device.",
+    requiredNote: "Fields marked * are required.",
   },
   /*
     Answers are drawn from the About and Platform pages so the FAQ never states

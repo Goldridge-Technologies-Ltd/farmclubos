@@ -41,7 +41,7 @@ export function LegalNotice({
               <span className="mt-0.5 shrink-0 text-farm-green-700">
                 <Icon name="check" size={20} />
               </span>
-              <p className="text-sm leading-7 text-farm-charcoal">{point}</p>
+              <p className="type-body-sm text-farm-charcoal">{point}</p>
             </li>
           ))}
         </ul>

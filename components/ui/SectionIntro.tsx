@@ -35,7 +35,7 @@ export function SectionIntro({
       ) : null}
       <h2
         className={[
-          "text-[1.75rem] leading-[1.18] sm:text-[2.1rem] lg:text-[2.4rem]",
+          "type-h2",
           eyebrow ? "mt-3" : "",
           isDark ? "text-white" : "text-farm-green-950",
         ]
@@ -47,7 +47,7 @@ export function SectionIntro({
       {description ? (
         <p
           className={[
-            "mt-4 text-[0.975rem] leading-7 sm:text-base",
+            "mt-4 type-intro",
             isDark ? "text-white/72" : "text-farm-muted",
           ].join(" ")}
         >

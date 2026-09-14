@@ -35,10 +35,11 @@ export default function ContactPage() {
           <ContactFormShell
             enquiryTypes={content.enquiryTypes}
             integrationNote={content.form.integrationNote}
+            requiredNote={content.form.requiredNote}
           />
 
           <div className="rounded-panel bg-farm-cream-50 p-6 sm:p-8">
-            <h2 className="text-[1.35rem] text-farm-green-950">
+            <h2 className="type-title text-farm-green-950">
               Other Ways to Reach Us
             </h2>
             <ul className="mt-6 grid gap-6">
@@ -105,7 +106,7 @@ export default function ContactPage() {
                 <h3 className="mt-4 text-[0.95rem] text-farm-green-950">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-xs leading-5 text-farm-muted">
+                <p className="mt-2 type-caption text-farm-muted">
                   {item.description}
                 </p>
               </article>
@@ -153,7 +154,7 @@ export default function ContactPage() {
               <Icon name="handshake" size={26} />
             </span>
             <div>
-              <h2 className="text-[1.35rem] text-farm-green-950">
+              <h2 className="type-title text-farm-green-950">
                 {content.partnership.heading}
               </h2>
               <p className="mt-2 text-sm leading-6 text-farm-muted">

@@ -10,14 +10,14 @@ type PlatformEcosystemProps = {
 
 export function PlatformEcosystem({ content }: PlatformEcosystemProps) {
   return (
-    <section id="ecosystem" className="section-padding scroll-mt-24 bg-white">
+    <section id="ecosystem" className="section-padding bg-white">
       <div className="site-container grid gap-12 lg:grid-cols-[0.66fr_1.34fr] lg:items-center lg:gap-8">
         <div className="max-w-md">
           <SectionLabel>{content.eyebrow}</SectionLabel>
           <h2 className="mt-3 text-[1.9rem] leading-[1.15] text-farm-green-950 sm:text-[2.3rem]">
             {content.heading}
           </h2>
-          <p className="mt-5 text-[0.95rem] leading-7 text-farm-muted">
+          <p className="mt-5 type-body text-farm-muted">
             {content.description}
           </p>
           <BulletList items={content.bullets} className="mt-7" />

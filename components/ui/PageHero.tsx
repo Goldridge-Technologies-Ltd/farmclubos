@@ -37,11 +37,7 @@ export function PageHero({
     primaryAction || secondaryAction ? (
       <div className="mt-8 flex flex-wrap gap-3.5">
         {primaryAction ? (
-          <ButtonLink
-            href={primaryAction.href}
-            size="lg"
-            variant={variant === "overlay" ? "primary" : "primary"}
-          >
+          <ButtonLink href={primaryAction.href} size="lg" variant="primary">
             {primaryAction.label}
           </ButtonLink>
         ) : null}
@@ -66,7 +62,7 @@ export function PageHero({
             src={image.src}
             alt={image.alt}
             fill
-            priority
+            preload
             sizes="58vw"
             className={`object-cover ${imagePosition}`}
           />
@@ -76,10 +72,11 @@ export function PageHero({
         <div className="site-container relative grid min-h-[clamp(24rem,36vw,32rem)] items-center py-12 lg:py-16">
           <div className="max-w-xl">
             <SectionLabel>{eyebrow}</SectionLabel>
+            {/* Legacy size: differs slightly from type-h1 (see docs/design-system.md). */}
             <h1 className="mt-3 text-[2.1rem] leading-[1.1] text-farm-green-950 sm:text-[2.75rem] lg:text-[3.1rem]">
               {heading}
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-farm-muted">
+            <p className="mt-5 max-w-lg type-lead text-farm-muted">
               {description}
             </p>
             {actions}
@@ -107,7 +104,7 @@ export function PageHero({
         src={image.src}
         alt={image.alt}
         fill
-        priority
+        preload
         sizes="100vw"
         className={`object-cover ${imagePosition}`}
       />
@@ -116,10 +113,8 @@ export function PageHero({
       <div className="site-container relative flex min-h-[clamp(24rem,36vw,32rem)] flex-col justify-center py-14 lg:py-16">
         <div className="max-w-xl animate-rise lg:max-w-2xl">
           <SectionLabel tone="dark">{eyebrow}</SectionLabel>
-          <h1 className="mt-3 text-[2.1rem] leading-[1.08] text-white sm:text-[2.75rem] lg:text-[3.25rem]">
-            {heading}
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/85">
+          <h1 className="mt-3 type-h1 text-white">{heading}</h1>
+          <p className="mt-5 max-w-xl type-lead text-white/85">
             {description}
           </p>
           {actions}

@@ -56,7 +56,7 @@ export function IconDisc({
   return (
     <span
       className={[
-        "inline-flex items-center justify-center rounded-full bg-white p-2.5 shadow-[0_10px_30px_rgb(5_42_25_/_10%)]",
+        "inline-flex items-center justify-center rounded-full bg-white p-2.5 shadow-halo",
         className,
       ]
         .filter(Boolean)

@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Icon } from "@/components/ui/Icon";
+import { Button } from "@/components/ui/Button";
+import { fieldClass } from "@/components/ui/form-classes";
 
 type ContactFormShellProps = {
   enquiryTypes: string[];
   integrationNote?: string;
+  /** Legend for the asterisk on required fields. */
+  requiredNote?: string;
 };
 
 type FieldName =
@@ -24,18 +27,18 @@ type FormStatus = "idle" | "reviewing" | "invalid" | "reviewed";
   (see docs/project-brief.md), so the form validates on the device and says so
   plainly rather than implying a message was sent.
 */
-const fieldClass =
-  "min-h-12 w-full rounded-button border border-farm-border-strong bg-white px-3.5 text-sm text-farm-charcoal placeholder:text-farm-muted focus:border-farm-green-700 focus:outline-none";
-
 export function ContactFormShell({
   enquiryTypes,
   integrationNote = "Online delivery is not connected yet. Nothing entered here will be sent or stored.",
+  requiredNote = "Fields marked * are required.",
 }: ContactFormShellProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [status, setStatus] = useState<FormStatus>("idle");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Enter in a text field still submits while the button is busy.
+    if (status === "reviewing") return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const nextErrors: FormErrors = {};
@@ -72,13 +75,17 @@ export function ContactFormShell({
       noValidate
       onSubmit={handleSubmit}
     >
-      <h2 className="text-[1.35rem] text-farm-green-950">Send Us a Message</h2>
+      <h2 className="type-title text-farm-green-950">Send Us a Message</h2>
       <p className="mt-2 text-sm leading-6 text-farm-muted">
         Fill in the form and our team will get back to you as soon as possible.
       </p>
+      <p className="mt-1 type-caption text-farm-muted">{requiredNote}</p>
 
       <div className="mt-6 grid gap-4">
-        <FormStatusMessage status={status} integrationNote={integrationNote} />
+        {/* One live region that stays mounted, so each status change is announced. */}
+        <div role="status">
+          <FormStatusMessage status={status} integrationNote={integrationNote} />
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" name="name" error={errors.name} required>
@@ -88,6 +95,7 @@ export function ContactFormShell({
               name="name"
               autoComplete="name"
               placeholder="Full Name"
+              required
               aria-invalid={Boolean(errors.name)}
               aria-describedby={errors.name ? "name-error" : undefined}
             />
@@ -99,6 +107,7 @@ export function ContactFormShell({
               name="email"
               autoComplete="email"
               placeholder="Email Address"
+              required
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "email-error" : undefined}
             />
@@ -125,6 +134,7 @@ export function ContactFormShell({
             className={fieldClass}
             name="enquiryType"
             defaultValue=""
+            required
             aria-invalid={Boolean(errors.enquiryType)}
             aria-describedby={
               errors.enquiryType ? "enquiryType-error" : undefined
@@ -146,6 +156,7 @@ export function ContactFormShell({
             className={`${fieldClass} min-h-36 py-3 leading-6`}
             name="message"
             placeholder="Message"
+            required
             aria-invalid={Boolean(errors.message)}
             aria-describedby={errors.message ? "message-error" : undefined}
           />
@@ -157,18 +168,23 @@ export function ContactFormShell({
               className="mt-1 h-4.5 w-4.5 shrink-0 accent-farm-green-800"
               type="checkbox"
               name="consent"
+              required
               aria-invalid={Boolean(errors.consent)}
               aria-describedby={errors.consent ? "consent-error" : undefined}
             />
             <span>
               I understand that this interim form validates my message on this
               device but does not send or store it.
+              <span aria-hidden="true" className="text-farm-green-700">
+                {" "}
+                *
+              </span>
             </span>
           </label>
           {errors.consent ? (
             <p
               id="consent-error"
-              className="mt-2 text-sm font-semibold text-red-700"
+              className="mt-2 text-sm font-semibold text-farm-danger"
               role="alert"
             >
               {errors.consent}
@@ -176,23 +192,18 @@ export function ContactFormShell({
           ) : null}
         </div>
 
-        <button
-          type="submit"
-          disabled={status === "reviewing"}
-          className="group inline-flex min-h-12 w-fit items-center justify-center gap-2.5 rounded-button bg-farm-green-800 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-farm-green-900 disabled:cursor-wait disabled:opacity-70"
-        >
+        <Button type="submit" busy={status === "reviewing"} className="w-fit">
           {status === "reviewing" ? "Checking…" : "Review Message"}
-          <Icon
-            name="arrow-right"
-            size={18}
-            className="transition-transform duration-200 group-hover:translate-x-1"
-          />
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
 
+/*
+  The error sits outside the label so screen readers announce it once (through
+  aria-describedby) rather than again as part of the label.
+*/
 function Field({
   label,
   name,
@@ -207,22 +218,29 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="grid gap-1.5">
-      <span className="text-xs font-semibold text-farm-green-950">
-        {label}
-        {required ? <span className="text-farm-gold-600"> *</span> : null}
-      </span>
-      {children}
+    <div className="grid gap-1.5">
+      <label className="grid gap-1.5">
+        <span className="text-xs font-semibold text-farm-green-950">
+          {label}
+          {required ? (
+            <span aria-hidden="true" className="text-farm-green-700">
+              {" "}
+              *
+            </span>
+          ) : null}
+        </span>
+        {children}
+      </label>
       {error ? (
         <span
           id={`${name}-error`}
-          className="text-sm font-semibold text-red-700"
+          className="text-sm font-semibold text-farm-danger"
           role="alert"
         >
           {error}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }
 
@@ -235,15 +253,14 @@ function FormStatusMessage({
 }) {
   if (status === "idle")
     return (
-      <p className="rounded-button border border-farm-border bg-farm-cream-50 p-3.5 text-xs leading-6 text-farm-muted">
+      <p className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-xs leading-6 text-farm-muted">
         {integrationNote}
       </p>
     );
   if (status === "invalid")
     return (
       <p
-        className="rounded-button border border-red-300 bg-red-50 p-3.5 text-sm font-semibold text-red-800"
-        role="alert"
+        className="rounded-button border border-farm-danger-border bg-farm-danger-surface p-3.5 text-sm font-semibold text-farm-danger-strong"
       >
         Review the highlighted fields. Nothing has been sent.
       </p>
@@ -251,16 +268,14 @@ function FormStatusMessage({
   if (status === "reviewing")
     return (
       <p
-        className="rounded-button border border-farm-border bg-farm-cream-50 p-3.5 text-sm font-semibold text-farm-green-950"
-        role="status"
+        className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-sm font-semibold text-farm-info"
       >
         Checking your message locally…
       </p>
     );
   return (
     <div
-      className="rounded-button border border-farm-green-700 bg-farm-green-100 p-3.5"
-      role="status"
+      className="rounded-button border border-farm-success bg-farm-success-surface p-3.5"
     >
       <p className="text-sm font-semibold text-farm-green-950">
         Your enquiry is complete.

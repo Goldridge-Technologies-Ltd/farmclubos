@@ -37,16 +37,13 @@ export function CtaBand({
             <div>
               {eyebrow ? <SectionLabel tone="dark">{eyebrow}</SectionLabel> : null}
               <h2
-                className={[
-                  "text-[1.5rem] leading-snug sm:text-[1.8rem]",
-                  eyebrow ? "mt-2.5" : "",
-                ]
+                className={["type-h2-band", eyebrow ? "mt-2.5" : ""]
                   .filter(Boolean)
                   .join(" ")}
               >
                 {heading}
               </h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-white/70">
+              <p className="mt-3 max-w-xl type-body-sm text-white/70">
                 {description}
               </p>
             </div>
@@ -68,7 +65,7 @@ export function CtaBand({
               ) : null}
             </div>
             {note ? (
-              <p className="mt-3.5 max-w-xs text-xs leading-5 text-white/55 lg:ml-auto">
+              <p className="mt-3.5 max-w-xs type-caption text-white/55 lg:ml-auto">
                 {note}
               </p>
             ) : null}

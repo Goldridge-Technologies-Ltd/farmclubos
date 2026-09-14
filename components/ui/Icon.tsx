@@ -6,59 +6,63 @@ import type { SVGProps } from "react";
   social links are the only filled glyphs.
 */
 
-export type IconName =
+/** Every icon name, in display order. /design-system renders this list. */
+export const iconNames = [
   // ecosystem + capability
-  | "learn"
-  | "innovate"
-  | "enterprise"
-  | "connect"
-  | "market"
-  | "finance"
-  | "impact"
-  | "build"
-  | "grow"
-  | "join"
+  "learn",
+  "innovate",
+  "enterprise",
+  "connect",
+  "market",
+  "finance",
+  "impact",
+  "build",
+  "grow",
+  "join",
   // page furniture
-  | "target"
-  | "eye"
-  | "values"
-  | "check"
-  | "arrow-right"
-  | "arrow-left"
-  | "play"
-  | "handshake"
-  | "globe"
-  | "leaf"
-  | "research"
-  | "platform"
-  | "rocket"
-  | "report"
-  | "video"
-  | "search"
-  | "book"
-  | "community"
-  | "support"
-  | "governance"
-  | "secure"
-  | "calendar"
-  | "sustainability"
+  "target",
+  "eye",
+  "values",
+  "check",
+  "arrow-right",
+  "arrow-left",
+  "play",
+  "handshake",
+  "globe",
+  "leaf",
+  "research",
+  "platform",
+  "rocket",
+  "report",
+  "video",
+  "search",
+  "book",
+  "community",
+  "support",
+  "governance",
+  "secure",
+  "calendar",
+  "sustainability",
   // contact
-  | "mail"
-  | "phone"
-  | "location"
-  | "clock"
+  "mail",
+  "phone",
+  "location",
+  "clock",
   // controls
-  | "menu"
-  | "close"
-  | "plus"
-  | "minus"
-  | "chevron-down"
+  "menu",
+  "close",
+  "plus",
+  "minus",
+  "chevron-down",
   // brands
-  | "linkedin"
-  | "x"
-  | "facebook"
-  | "instagram"
-  | "youtube";
+  "linkedin",
+  "x",
+  "facebook",
+  "instagram",
+  "youtube",
+] as const;
+
+export type IconName = (typeof iconNames)[number];
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;

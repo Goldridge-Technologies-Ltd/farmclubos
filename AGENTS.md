@@ -52,6 +52,24 @@ Never:
 
 Rebuild every layout with HTML, CSS and React components.
 
+References guide composition and hierarchy only. For colours, type, spacing
+and components, the design system below takes precedence.
+
+## Design System
+
+The design system is documented in `docs/design-system.md` and rendered live at
+`/design-system` (`app/design-system/page.tsx`). Tokens and type roles live in
+`app/globals.css`.
+
+- Read `docs/design-system.md` before any UI work.
+- Build new pages from its section patterns and components, starting with a
+  brief from `docs/screens/_template.md`.
+- Use only its tokens and `type-*` roles: no hex values or new arbitrary text
+  sizes in class names.
+- When adding a token, role, component or pattern, update `app/globals.css`,
+  `docs/design-system.md` and `/design-system` together.
+- The external "UI Specification Manual" sheets are not canonical.
+
 ## Brand Assets
 
 Use official logo files from:

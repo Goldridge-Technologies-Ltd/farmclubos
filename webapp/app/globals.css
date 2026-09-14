@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@import "@farmclub/design-system/theme.css";
+
+/*
+  Web app styles. Tokens, element defaults and type roles come from the shared
+  design system imported above (packages/design-system/styles/theme.css). Add
+  app-only CSS here sparingly; a pattern the site could also use belongs in
+  the shared package instead.
+*/

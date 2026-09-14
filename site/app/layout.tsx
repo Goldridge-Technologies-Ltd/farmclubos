@@ -1,27 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Poppins } from "next/font/google";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { fontVariables } from "@farmclub/design-system/fonts";
 import "./globals.css";
-
-/*
-  The brand stack is Aptos / Avenir Next / Montserrat / Inter. Aptos is not
-  available as a webfont, so the site self-hosts the two faces that match the
-  reference artwork: a geometric display face for headings and a grotesque for
-  interface and body copy.
-*/
-const display = Poppins({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-farm-display",
-  display: "swap",
-});
-
-const sans = Inter({
-  subsets: ["latin"],
-  variable: "--font-farm-sans",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://farmclub-os.com"),
@@ -58,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" className={fontVariables}>
       <body>
         <a
           href="#main-content"

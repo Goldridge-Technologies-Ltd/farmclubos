@@ -1,4 +1,4 @@
-import type { IconName } from "@/components/ui/Icon";
+import type { IconName } from "@farmclub/design-system/Icon";
 
 export type HomeAction = { label: string; href: string };
 export type ImageAsset = { src: string; alt: string };

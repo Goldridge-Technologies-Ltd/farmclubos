@@ -1,9 +1,9 @@
-import type { IconName } from "@/components/ui/Icon";
+import type { IconName } from "@farmclub/design-system/Icon";
 
 /*
   Shared organisation details used by the footer and the contact page.
   The contact values are taken from the approved design references in
-  /public/references. Update them here and every surface follows.
+  docs/references. Update them here and every surface follows.
 */
 
 export const siteContact = {

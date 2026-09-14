@@ -1,4 +1,4 @@
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 
 type BulletListProps = {
   items: string[];

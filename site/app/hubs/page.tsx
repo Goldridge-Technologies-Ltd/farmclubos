@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { BulletList } from "@/components/ui/BulletList";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { CtaBand } from "@/components/ui/CtaBand";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 import { PageHero } from "@/components/ui/PageHero";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { hubsPageContent as content } from "@/content/pages/hubs";
 
 export const metadata: Metadata = {

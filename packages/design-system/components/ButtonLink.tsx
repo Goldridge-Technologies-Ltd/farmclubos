@@ -6,11 +6,11 @@ import {
   buttonSizeClasses,
   buttonVariants,
   textButtonBaseClass,
-} from "@/components/ui/button-classes";
-import type { ButtonSize, ButtonVariant } from "@/components/ui/button-classes";
-import { Icon } from "@/components/ui/Icon";
+} from "./button-classes";
+import type { ButtonSize, ButtonVariant } from "./button-classes";
+import { Icon } from "./Icon";
 
-export type { ButtonVariant } from "@/components/ui/button-classes";
+export type { ButtonVariant } from "./button-classes";
 
 type ButtonLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {

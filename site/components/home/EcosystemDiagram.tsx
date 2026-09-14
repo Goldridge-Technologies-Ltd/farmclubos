@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { EcosystemNode } from "@/content/pages/home";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 
 type EcosystemDiagramProps = {
   core: { title: string; suffix: string };

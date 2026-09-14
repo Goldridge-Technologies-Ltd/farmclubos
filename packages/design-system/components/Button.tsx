@@ -5,12 +5,12 @@ import {
   buttonBaseClass,
   buttonSizeClasses,
   buttonVariants,
-} from "@/components/ui/button-classes";
+} from "./button-classes";
 import type {
   ActionButtonVariant,
   ButtonSize,
-} from "@/components/ui/button-classes";
-import { Icon } from "@/components/ui/Icon";
+} from "./button-classes";
+import { Icon } from "./Icon";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;

@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@farmclub/design-system/Badge";
 import { BulletList } from "@/components/ui/BulletList";
-import { Button } from "@/components/ui/Button";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Button } from "@farmclub/design-system/Button";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { ContactFormShell } from "@/components/ui/ContactFormShell";
 import { CtaBand } from "@/components/ui/CtaBand";
 import { FaqList } from "@/components/ui/FaqList";
 import { FeatureCard } from "@/components/ui/FeatureCard";
-import { fieldClass } from "@/components/ui/form-classes";
-import { Icon, iconNames } from "@/components/ui/Icon";
-import { IconDisc } from "@/components/ui/IconDisc";
-import type { DiscTone } from "@/components/ui/IconDisc";
-import { Logo } from "@/components/ui/Logo";
+import { fieldClass } from "@farmclub/design-system/form-classes";
+import { Icon, iconNames } from "@farmclub/design-system/Icon";
+import { IconDisc } from "@farmclub/design-system/IconDisc";
+import type { DiscTone } from "@farmclub/design-system/IconDisc";
+import { Logo } from "@farmclub/design-system/Logo";
 import { PageHero } from "@/components/ui/PageHero";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { StepJourney } from "@/components/ui/StepJourney";
 import { aboutPageContent } from "@/content/pages/about";
 import { contactPageContent } from "@/content/pages/contact";
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 /*
   The live counterpart to docs/design-system.md. Token names and values below
-  mirror app/globals.css; change all three together.
+  mirror packages/design-system/styles/theme.css; change all three together.
 */
 
 type Swatch = { name: string; className: string; value: string; use: string };

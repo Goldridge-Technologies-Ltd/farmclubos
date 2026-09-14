@@ -1,7 +1,7 @@
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { Icon } from "@/components/ui/Icon";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import type { IconName } from "@/components/ui/Icon";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
+import { Icon } from "@farmclub/design-system/Icon";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
+import type { IconName } from "@farmclub/design-system/Icon";
 import type { HomeAction } from "@/content/pages/home";
 
 type CtaBandProps = {

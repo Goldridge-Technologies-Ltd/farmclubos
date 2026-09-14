@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 
 type Status = "idle" | "invalid" | "unavailable";
 
 /*
-  The newsletter service is not connected yet (see docs/project-brief.md).
+  The newsletter service is not connected yet (see docs/site/project-brief.md).
   Rather than silently discarding an address, the form validates locally and
   tells the visitor plainly that subscriptions are not live, pointing them at
   an address that does reach the team.

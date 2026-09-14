@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { primaryNavigationAction, siteNavigation } from "@/lib/navigation";
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { Icon } from "@/components/ui/Icon";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
+import { Icon } from "@farmclub/design-system/Icon";
 
 export function MobileNavigation() {
   const pathname = usePathname();

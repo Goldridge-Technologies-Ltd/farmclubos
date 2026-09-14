@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 /*
-  One icon family for the whole site: 24x24 grid, stroked line art, drawn with
+  One icon family for every FARMCLUB OS app: 24x24 grid, stroked line art, drawn with
   currentColor so an icon inherits the colour of its container. Brand marks for
   social links are the only filled glyphs.
 */

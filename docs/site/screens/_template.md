@@ -1,6 +1,6 @@
 # Screen brief: <Page name>
 
-> Copy this file to `docs/screens/<route>.md` and fill it in before writing code, then keep it up to date. Every section must name a pattern (`docs/design-system.md` §11) or a component (§10).
+> Copy this file to `docs/site/screens/<route>.md` and fill it in before writing code, then keep it up to date. Every section must name a pattern (`docs/site/design-patterns.md` §4) or a component (§3 there, or `docs/design-system.md` §10). Paths are relative to `site/`.
 
 ## Summary
 
@@ -16,7 +16,7 @@
 | # | Section | Pattern or component | Surface | Content keys |
 |---|---|---|---|---|
 | 1 | Hero | `PageHero` overlay / split | Photo / white | `hero` |
-| 2 | <name> | §11.x <pattern> | white / cream-50 / green-950 | `<key>` |
+| 2 | <name> | §4.x <pattern> | white / cream-50 / green-950 | `<key>` |
 | n | Closing | `CtaBand` | green-950 | `cta` |
 
 **Rhythm check:** no two dark bands next to each other, and the section before `CtaBand` is light.
@@ -51,9 +51,9 @@ None expected. If any are needed, give for each:
 
 ## Done
 
-- [ ] `npm run lint`, `npm run type-check` and `npm run build` pass
+- [ ] `npm run lint`, `npm run type-check` and `npm run build` pass from the repository root
 - [ ] Viewed at 375 / 768 / 1024 / 1440
 - [ ] Keyboard pass: visible focus, logical order
 - [ ] One `h1`, no skipped heading levels
 - [ ] Only design-system tokens and `type-*` roles: no new `text-[…]` sizes or hex values
-- [ ] `docs/design-system.md` and `/design-system` updated if anything new was added
+- [ ] `docs/site/design-patterns.md` (or `docs/design-system.md` for shared additions) and `/design-system` updated if anything new was added

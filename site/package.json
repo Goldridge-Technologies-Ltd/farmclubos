@@ -1,15 +1,19 @@
 {
-  "name": "farmclub-os",
+  "name": "@farmclub/site",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync-brand": "node ../packages/design-system/scripts/sync-brand.mjs",
+    "predev": "npm run sync-brand",
     "dev": "next dev --turbopack",
+    "prebuild": "npm run sync-brand",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@farmclub/design-system": "0.1.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

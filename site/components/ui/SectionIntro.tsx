@@ -1,4 +1,4 @@
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 
 type SectionIntroProps = {
   eyebrow?: string;

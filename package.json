@@ -1,0 +1,16 @@
+{
+  "name": "farmclub-os-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "site",
+    "webapp"
+  ],
+  "scripts": {
+    "dev:site": "npm run dev --workspace site",
+    "dev:webapp": "npm run dev --workspace webapp",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}

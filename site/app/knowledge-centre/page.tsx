@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { CtaBand } from "@/components/ui/CtaBand";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 import { KnowledgeExplorer } from "@/components/knowledge/KnowledgeExplorer";
 import { PageHero } from "@/components/ui/PageHero";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { knowledgePageContent as content } from "@/content/pages/knowledge";
 
 export const metadata: Metadata = {

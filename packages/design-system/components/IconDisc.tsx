@@ -1,5 +1,5 @@
-import { Icon } from "@/components/ui/Icon";
-import type { IconName } from "@/components/ui/Icon";
+import { Icon } from "./Icon";
+import type { IconName } from "./Icon";
 
 export type DiscTone = "green" | "gold" | "pale" | "outline" | "dark";
 
@@ -26,7 +26,7 @@ const sizeClasses = {
   lg: { box: "h-[4.5rem] w-[4.5rem]", icon: 30 },
 } as const;
 
-/** A circular icon container — the site's primary icon treatment. */
+/** A circular icon container — the primary icon treatment. */
 export function IconDisc({
   name,
   tone = "green",

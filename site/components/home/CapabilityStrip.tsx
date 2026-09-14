@@ -1,5 +1,5 @@
 import type { HomePageContent } from "@/content/pages/home";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 
 type CapabilityStripProps = {
   content: HomePageContent["capabilities"];

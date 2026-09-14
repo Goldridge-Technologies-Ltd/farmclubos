@@ -1,5 +1,5 @@
 import type { HomePageContent } from "@/content/pages/home";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { StepJourney } from "@/components/ui/StepJourney";
 
 type EntrepreneurJourneyProps = {

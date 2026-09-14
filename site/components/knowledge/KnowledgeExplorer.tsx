@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Icon } from "@/components/ui/Icon";
-import { IconDisc } from "@/components/ui/IconDisc";
+import { Icon } from "@farmclub/design-system/Icon";
+import { IconDisc } from "@farmclub/design-system/IconDisc";
 import type { IconItem } from "@/content/pages/home";
 import type { LearningPath } from "@/content/pages/knowledge";
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DesktopNavigation } from "@/components/layout/DesktopNavigation";
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
-import { Logo } from "@/components/ui/Logo";
+import { Logo } from "@farmclub/design-system/Logo";
 
 export function SiteHeader() {
   return (

@@ -1,0 +1,39 @@
+{
+  "name": "@farmclub/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FARMCLUB OS design tokens, type roles, fonts, brand assets and core UI primitives, shared by every app.",
+  "exports": {
+    "./theme.css": "./styles/theme.css",
+    "./fonts": "./fonts.ts",
+    "./Badge": "./components/Badge.tsx",
+    "./Button": "./components/Button.tsx",
+    "./ButtonLink": "./components/ButtonLink.tsx",
+    "./button-classes": "./components/button-classes.ts",
+    "./form-classes": "./components/form-classes.ts",
+    "./Icon": "./components/Icon.tsx",
+    "./IconDisc": "./components/IconDisc.tsx",
+    "./Logo": "./components/Logo.tsx",
+    "./SectionLabel": "./components/SectionLabel.tsx"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.0",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
-import { IconDisc } from "@/components/ui/IconDisc";
-import type { DiscTone } from "@/components/ui/IconDisc";
-import type { IconName } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
+import { IconDisc } from "@farmclub/design-system/IconDisc";
+import type { DiscTone } from "@farmclub/design-system/IconDisc";
+import type { IconName } from "@farmclub/design-system/Icon";
 import type { ImageAsset } from "@/content/pages/home";
 
 type FeatureCardProps = {

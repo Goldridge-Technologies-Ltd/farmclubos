@@ -1,8 +1,8 @@
 import type { HomePageContent } from "@/content/pages/home";
 import { BulletList } from "@/components/ui/BulletList";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { EcosystemDiagram } from "@/components/home/EcosystemDiagram";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 
 type PlatformEcosystemProps = {
   content: HomePageContent["ecosystem"];

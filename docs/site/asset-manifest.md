@@ -1,7 +1,7 @@
 
 # FARMCLUB OS Asset Manifest
 
-Every asset in `/public`, what it is for and where it is used.
+Every asset the website serves from `site/public`, what it is for and where it is used.
 
 Paths and dimensions below are the files as they exist on disk. When you add,
 replace or remove an asset, update this file in the same change.
@@ -24,6 +24,11 @@ is itself an infographic.
 ---
 
 ## Brand Assets
+
+The brand files live in `packages/design-system/brand/`, shared by every app.
+`npm run dev` and `npm run build` copy them to `site/public/brand/`
+(gitignored), so they are served at the `/brand/…` paths below. Edit the
+originals, never the copies.
 
 ### /brand/primary-logo-horizontal.svg
 
@@ -70,7 +75,8 @@ the same file in production.
 
 ## Design References
 
-The files in `/public/references` are visual references only.
+The files in `docs/references` are visual references only. They sit outside
+every app, so they are never served.
 
 They must not be rendered directly in the website.
 They must not be used as page backgrounds.

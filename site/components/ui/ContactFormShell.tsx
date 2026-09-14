@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "@/components/ui/Button";
-import { fieldClass } from "@/components/ui/form-classes";
+import { Button } from "@farmclub/design-system/Button";
+import { fieldClass } from "@farmclub/design-system/form-classes";
 
 type ContactFormShellProps = {
   enquiryTypes: string[];
@@ -24,7 +24,7 @@ type FormStatus = "idle" | "reviewing" | "invalid" | "reviewed";
 
 /*
   Presentation only has changed here. There is still no delivery integration
-  (see docs/project-brief.md), so the form validates on the device and says so
+  (see docs/site/project-brief.md), so the form validates on the device and says so
   plainly rather than implying a message was sent.
 */
 export function ContactFormShell({

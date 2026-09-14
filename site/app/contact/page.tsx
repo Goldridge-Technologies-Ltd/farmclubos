@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { BulletList } from "@/components/ui/BulletList";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { ContactFormShell } from "@/components/ui/ContactFormShell";
 import { FaqList } from "@/components/ui/FaqList";
-import { Icon } from "@/components/ui/Icon";
-import { IconDisc } from "@/components/ui/IconDisc";
+import { Icon } from "@farmclub/design-system/Icon";
+import { IconDisc } from "@farmclub/design-system/IconDisc";
 import { PageHero } from "@/components/ui/PageHero";
 import { contactPageContent as content } from "@/content/pages/contact";
 import { activeSocialLinks, siteContact } from "@/lib/site";

@@ -18,3 +18,9 @@ node_modules/
 # System files
 .DS_Store
 Thumbs.db
+# Brand assets copied from packages/design-system/brand by each app's
+# predev/prebuild script. Edit the originals, never these copies.
+public/brand/
+
+# TypeScript
+*.tsbuildinfo

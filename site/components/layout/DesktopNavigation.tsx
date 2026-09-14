@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { primaryNavigationAction, siteNavigation } from "@/lib/navigation";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 
 export function DesktopNavigation() {
   const pathname = usePathname();

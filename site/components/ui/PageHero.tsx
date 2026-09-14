@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import type { HomeAction, ImageAsset } from "@/content/pages/home";
 
 type PageHeroProps = {
@@ -72,7 +72,7 @@ export function PageHero({
         <div className="site-container relative grid min-h-[clamp(24rem,36vw,32rem)] items-center py-12 lg:py-16">
           <div className="max-w-xl">
             <SectionLabel>{eyebrow}</SectionLabel>
-            {/* Legacy size: differs slightly from type-h1 (see docs/design-system.md). */}
+            {/* Legacy size: differs slightly from type-h1 (see docs/site/design-patterns.md). */}
             <h1 className="mt-3 text-[2.1rem] leading-[1.1] text-farm-green-950 sm:text-[2.75rem] lg:text-[3.1rem]">
               {heading}
             </h1>

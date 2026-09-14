@@ -1,0 +1,292 @@
+/*
+  FARMCLUB OS design system: the single source of truth for colour, radius,
+  elevation, motion, element defaults and type roles in every FARMCLUB OS app.
+  docs/design-system.md explains when to use each one; change the two together
+  and keep the site's /design-system page in step.
+
+  Each app imports it straight after Tailwind in its global stylesheet:
+
+    @import "tailwindcss";
+    @import "@farmclub/design-system/theme.css";
+
+  Colour values were sampled from the approved artwork in docs/references.
+  `static` emits every token as a CSS variable, so plain CSS in an app can rely
+  on them whether or not a utility uses them.
+*/
+
+/* Apps reach this package through node_modules, which Tailwind skips when it
+   scans for class names, so point it at the shared components explicitly. */
+@source "../components";
+
+@theme static {
+  /* Brand-only palette. Tailwind's default colours are switched off so an
+     off-brand class such as `bg-blue-500` generates nothing. */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
+  /* The same goes for Tailwind's default radius, shadow, easing and animation
+     scales: only the named FARMCLUB OS values below compile. */
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --ease-*: initial;
+  --animate-*: initial;
+
+  /* Greens -------------------------------------------------------------- */
+  --color-farm-green-950: #052a19; /* deepest band: final CTA, headings */
+  --color-farm-green-900: #06331f; /* dark sections, footer, capability band */
+  --color-farm-green-800: #0a4a2d; /* primary buttons */
+  --color-farm-green-700: #0b6a3e; /* mid green: icon discs, accents */
+  --color-farm-green-600: #178452;
+  --color-farm-green-100: #e4ede6; /* tint surfaces */
+  --color-farm-green-50: #ecf1e9; /* pale discs behind step icons */
+
+  /* Golds --------------------------------------------------------------- */
+  --color-farm-gold-600: #cd8e19; /* deep amber icon discs, eyebrows */
+  --color-farm-gold-500: #ddae39; /* gold buttons, outer focus ring */
+  --color-farm-gold-400: #edbb59; /* eyebrow text on dark, hover */
+
+  /* Neutrals ------------------------------------------------------------ */
+  --color-farm-cream-100: #f4f5f1; /* light section background */
+  --color-farm-cream-50: #f9f9f7; /* panel background */
+  --color-farm-charcoal: #14231c; /* body text */
+  --color-farm-muted: #5d6b64; /* secondary text */
+  --color-farm-border: #e2e8e3;
+  --color-farm-border-strong: #cfdad2;
+
+  /* Status -------------------------------------------------------------- */
+  --color-farm-danger: oklch(50.5% 0.213 27.518); /* error text */
+  --color-farm-danger-strong: oklch(44.4% 0.177 26.899); /* error banner text */
+  --color-farm-danger-border: oklch(80.8% 0.114 19.571);
+  --color-farm-danger-surface: oklch(97.1% 0.013 17.38);
+  --color-farm-success: var(--color-farm-green-700);
+  --color-farm-success-surface: var(--color-farm-green-100);
+  --color-farm-info: var(--color-farm-green-950);
+  --color-farm-info-border: var(--color-farm-border);
+  --color-farm-info-surface: var(--color-farm-cream-50);
+  --color-farm-warning: #7a4f08; /* warning text, darkened from gold-600 */
+  --color-farm-warning-surface: #fbf3e2;
+
+  /* Radii --------------------------------------------------------------- */
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-panel: 18px;
+  --radius-band: 20px;
+
+  /* Elevation ----------------------------------------------------------- */
+  --shadow-card: 0 1px 2px rgb(5 42 25 / 4%), 0 10px 28px rgb(5 42 25 / 6%);
+  --shadow-raised: 0 18px 44px rgb(5 42 25 / 12%);
+  --shadow-float: 0 24px 60px rgb(5 42 25 / 18%);
+  --shadow-halo: 0 10px 30px rgb(5 42 25 / 10%);
+
+  /* Motion -------------------------------------------------------------- */
+  --ease-farm: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Every transition-* utility uses ease-farm unless it names another curve. */
+  --default-transition-timing-function: var(--ease-farm);
+  --animate-rise: farm-rise 620ms var(--ease-farm) both;
+
+  @keyframes farm-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* The variables come from fonts.ts (`fontVariables` on <html>). */
+@theme inline {
+  --font-sans: var(--font-farm-sans), "Segoe UI", Arial, sans-serif;
+  --font-display: var(--font-farm-display), var(--font-farm-sans), "Segoe UI",
+    Arial, sans-serif;
+}
+
+/*
+  Element defaults live in @layer base so that Tailwind utilities, which sit in
+  the later `utilities` layer, always win. Unlayered rules would beat every
+  utility in the cascade — an `a { color: inherit }` outside a layer silently
+  defeats `text-white` on every link.
+*/
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: var(--color-farm-charcoal);
+    font-family: var(--font-farm-sans), "Segoe UI", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-farm-display), var(--font-farm-sans), "Segoe UI",
+      Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  ::selection {
+    background: var(--color-farm-gold-400);
+    color: var(--color-farm-green-950);
+  }
+
+  /* Two-tone ring: the deep-green inner ring carries the contrast on light
+     surfaces, the gold outer ring on deep-green bands. */
+  :focus-visible {
+    outline: 3px solid var(--color-farm-gold-500);
+    outline-offset: 3px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 3px var(--color-farm-green-950);
+  }
+}
+
+/* Type roles -------------------------------------------------------------- */
+
+/*
+  Each role reproduces a shipped text style exactly (see docs/design-system.md).
+  Use a role on its own: never combine it with text-*, leading-* or tracking-*
+  size utilities. A style that needs a different size is a new role.
+*/
+@utility type-display {
+  font-size: 2.15rem;
+  line-height: 1.06;
+  @variant sm {
+    font-size: 3rem;
+  }
+  @variant lg {
+    font-size: 3.75rem;
+  }
+}
+
+@utility type-h1 {
+  font-size: 2.1rem;
+  line-height: 1.08;
+  @variant sm {
+    font-size: 2.75rem;
+  }
+  @variant lg {
+    font-size: 3.25rem;
+  }
+}
+
+@utility type-h2 {
+  font-size: 1.75rem;
+  line-height: 1.18;
+  @variant sm {
+    font-size: 2.1rem;
+  }
+  @variant lg {
+    font-size: 2.4rem;
+  }
+}
+
+@utility type-h2-panel {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  @variant sm {
+    font-size: 1.9rem;
+  }
+}
+
+@utility type-h2-band {
+  font-size: 1.5rem;
+  line-height: 1.375;
+  @variant sm {
+    font-size: 1.8rem;
+  }
+}
+
+/* The line height reads Tailwind's own variable: a literal calc(1 / 0.75) is
+   minified to 1.33333, which shifts the text below by a sub-pixel per line. */
+@utility type-eyebrow {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@utility type-overline {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@utility type-lead {
+  font-size: 1rem;
+  line-height: 1.75rem;
+}
+
+@utility type-intro {
+  font-size: 0.975rem;
+  line-height: 1.75rem;
+  @variant sm {
+    font-size: 1rem;
+  }
+}
+
+@utility type-title {
+  font-size: 1.35rem;
+  line-height: 1.65;
+}
+
+@utility type-body {
+  font-size: 0.95rem;
+  line-height: 1.75rem;
+}
+
+@utility type-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.75rem;
+}
+
+@utility type-caption {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+/* Motion ---------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

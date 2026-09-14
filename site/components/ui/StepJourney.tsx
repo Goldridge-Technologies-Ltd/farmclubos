@@ -1,4 +1,4 @@
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 import type { IconItem } from "@/content/pages/home";
 
 type StepJourneyProps = {

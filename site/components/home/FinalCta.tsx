@@ -1,6 +1,6 @@
 import type { HomePageContent } from "@/content/pages/home";
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { Icon } from "@/components/ui/Icon";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
+import { Icon } from "@farmclub/design-system/Icon";
 import { siteContact } from "@/lib/site";
 
 type FinalCtaProps = {

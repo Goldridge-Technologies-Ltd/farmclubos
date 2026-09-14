@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Logo } from "@/components/ui/Logo";
-import { Icon } from "@/components/ui/Icon";
+import { Logo } from "@farmclub/design-system/Logo";
+import { Icon } from "@farmclub/design-system/Icon";
 import { NewsletterSignup } from "@/components/layout/NewsletterSignup";
 import { activeSocialLinks, footerColumns, siteContact } from "@/lib/site";
 

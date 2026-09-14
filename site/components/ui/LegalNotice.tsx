@@ -1,6 +1,6 @@
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { Icon } from "@/components/ui/Icon";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
+import { Icon } from "@farmclub/design-system/Icon";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { siteContact } from "@/lib/site";
 
 type LegalNoticeProps = {

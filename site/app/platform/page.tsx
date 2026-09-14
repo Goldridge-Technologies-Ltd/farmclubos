@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Badge } from "@/components/ui/Badge";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Badge } from "@farmclub/design-system/Badge";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { CtaBand } from "@/components/ui/CtaBand";
 import { FeatureCard } from "@/components/ui/FeatureCard";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 import { PageHero } from "@/components/ui/PageHero";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { StepJourney } from "@/components/ui/StepJourney";
 import { platformPageContent as content } from "@/content/pages/platform";
 

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { BulletList } from "@/components/ui/BulletList";
 import { CtaBand } from "@/components/ui/CtaBand";
-import { Icon } from "@/components/ui/Icon";
+import { Icon } from "@farmclub/design-system/Icon";
 import { PageHero } from "@/components/ui/PageHero";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SectionLabel } from "@farmclub/design-system/SectionLabel";
 import { investorsPageContent as content } from "@/content/pages/investors";
 
 export const metadata: Metadata = {

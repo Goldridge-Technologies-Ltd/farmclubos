@@ -93,6 +93,19 @@ All application code lives in `src/`. Config files (`next.config.ts`,
   and font imports. Set page titles and descriptions with the Metadata API.
 - Don't put business logic in the webapp that belongs in `api/`; the webapp
   calls the API through `src/lib/api/client.ts`.
+- The API wraps every response in `{ success, data, meta }`, and failures in
+  `{ success, error }`. Unwrap that once in `src/lib/api/client.ts` so the rest
+  of the app works with plain data.
+
+## Testing
+
+- Test sparingly, and only where a test earns its place: logic that can break
+  silently, such as form validation, permission-dependent rendering or data
+  shaping in `src/lib/`. Don't test markup, styling or wiring, and don't
+  retest shared components already covered in `packages/design-system/`.
+- Jest with React Testing Library is the setup, added when the first case
+  appears. Do not introduce Vitest or a second runner.
+- Test behaviour through the rendered UI rather than implementation details.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

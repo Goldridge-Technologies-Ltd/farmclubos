@@ -21,8 +21,11 @@ This is an npm-workspaces monorepo holding every FARMCLUB OS codebase.
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI primitives shared by the apps | `docs/design-system.md` |
 | `docs/` | Shared docs: design system, content rules, reference artwork | |
 | `docs/site/` | Website docs: brief, page notes, asset manifest, screen briefs, section patterns | |
+| `docs/guides/` | Developer guides, starting with the local development setup | |
 
 Read the `AGENTS.md` of the app you are changing as well as this file.
+Branch, commit and pull-request rules are in `CONTRIBUTING.md`; environment
+setup is in `docs/guides/local-dev.md`.
 
 - Install once from the repository root with `npm install`. Add a dependency
   to one workspace with `npm install <package> --workspace <site|webapp>`.
@@ -179,12 +182,33 @@ Keep the typing practical and easy to maintain.
 - Keep content data typed but readable.
 - Run TypeScript checking before completing substantial tasks.
 
+## Testing
+
+We work test-first, with Jest as the only test runner. Do not add Vitest or a
+second runner.
+
+- **`api/`:** write the failing spec before the implementation for services,
+  guards, pipes, interceptors and anything else carrying business rules.
+  Controllers, DTOs and module wiring need their spec filled in within the
+  same change. Keep the `*.spec.ts` files the Nest CLI generates beside their
+  source file, and never delete one to make a build pass.
+- **`webapp/`:** test sparingly, and only where a test earns its place — logic
+  that can break silently, such as form validation, permission-dependent
+  rendering or data shaping in `src/lib/`. Not markup, styling or wiring.
+- **`site/`:** no unit tests; it is static marketing. Check it in the browser.
+- **`packages/design-system/`:** test a primitive only once it carries logic
+  rather than styling alone.
+
+A feature is not done until its tests pass. `CONTRIBUTING.md` has the
+commands.
+
 ## Development Quality
 
 Before completing any substantial task, from the repository root:
 
 - Run linting: `npm run lint`
 - Run TypeScript checking: `npm run type-check`
+- Run the tests: `npm test`
 - Run the production build: `npm run build`
 - Fix errors
 - Inspect responsive behaviour

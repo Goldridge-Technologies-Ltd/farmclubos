@@ -17,7 +17,7 @@ This is an npm-workspaces monorepo holding every FARMCLUB OS codebase.
 |---|---|---|
 | `site/` | The official public website (Next.js, static-first) | `site/AGENTS.md` |
 | `webapp/` | The authenticated FARMCLUB OS web app (Next.js) | `webapp/AGENTS.md` |
-| `api/` | The backend API (not started; add it to the root `workspaces` when it gets a `package.json`) | |
+| `api/` | The backend API (NestJS; not scaffolded yet, add it to the root `workspaces` when it gets a `package.json`) | `api/AGENTS.md` |
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI primitives shared by the apps | `docs/design-system.md` |
 | `docs/` | Shared docs: design system, content rules, reference artwork | |
 | `docs/site/` | Website docs: brief, page notes, asset manifest, screen briefs, section patterns | |
@@ -32,12 +32,16 @@ Read the `AGENTS.md` of the app you are changing as well as this file.
   (port 3001).
 - Keep Next.js, React, Tailwind CSS and TypeScript on the same versions in
   every workspace, and upgrade them together.
+- Keep changes scoped to the app you are working in. When a change crosses
+  apps, such as an API contract that `webapp/` consumes, update both sides in
+  the same change.
 
 ## Technical Direction
 
 Use:
 
-- Next.js App Router
+- Next.js App Router for `site/` and `webapp/`
+- NestJS for `api/`
 - TypeScript
 - Tailwind CSS with the shared FARMCLUB OS theme
 - React Server Components by default

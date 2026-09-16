@@ -27,3 +27,6 @@ public/brand/
 
 # Next.js regenerates this on dev, build and typegen
 next-env.d.ts
+
+# Session memory from the remember skill — local only
+memory.md

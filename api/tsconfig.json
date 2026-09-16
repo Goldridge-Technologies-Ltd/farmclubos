@@ -30,6 +30,6 @@
     // make every other workspace's @types ambient in the API.
     "types": ["node", "jest"]
   },
-  "include": ["src/**/*", "test/**/*", "prisma.config.ts"],
+  "include": ["src/**/*", "test/**/*", "prisma.config.ts", "prisma/seed.ts"],
   "exclude": ["node_modules", "dist"]
 }

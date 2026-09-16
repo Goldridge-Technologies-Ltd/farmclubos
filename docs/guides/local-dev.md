@@ -34,10 +34,11 @@ npm install <package> --workspace webapp
 |---|---|---|
 | Website | `npm run dev:site` | http://localhost:3000 |
 | Web app | `npm run dev:webapp` | http://localhost:3001 |
-| API | not scaffolded yet | — |
+| API | `npm run dev:api` | http://localhost:3002 |
 
-Both front ends can run at once. The live design-system reference is at
-http://localhost:3000/design-system.
+All three can run at once. The live design-system reference is at
+http://localhost:3000/design-system, and the API's Swagger UI — available
+outside production only — is at http://localhost:3002/api/docs.
 
 Each front end copies the brand files from `packages/design-system/brand` into
 its own `public/brand` when `dev` or `build` runs. Those copies are
@@ -46,6 +47,13 @@ gitignored — edit the originals. To refresh them by hand:
 ```bash
 npm run sync-brand --workspace webapp
 ```
+
+### The API is an ESM package
+
+NestJS 12 ships ESM only, so `api/` sets `"type": "module"`. Relative imports
+carry an explicit `.js` extension, type-only imports must use `import type`,
+and Jest runs with `NODE_OPTIONS=--experimental-vm-modules` on Node 22 (the npm
+scripts pass it). `api/AGENTS.md` has the detail.
 
 ## Checks
 
@@ -78,7 +86,14 @@ one exists and fill in your own values.
 
 | Variable | Where | What it is |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `webapp/.env.local` | Base URL of the API. Read in the browser, so it holds no secrets and is fixed at build time. |
+| `NODE_ENV` | `api/.env` | `development`, `test` or `production`. Defaults to `development`. |
+| `PORT` | `api/.env` | Port the API listens on. Defaults to `3002`. |
+| `API_GLOBAL_PREFIX` | `api/.env` | Path prefix for every route except the health probes. Defaults to `api`. |
+| `CORS_ORIGINS` | `api/.env` | Comma-separated browser origins allowed to call the API directly. Defaults to the two local front ends. |
+
+The API validates its environment at boot, so a missing or malformed variable
+stops the process on startup rather than failing on the first request that
+needs it. Every variable lives in `api/src/config/env.validation.ts`.
 
 Server-side secrets are read only in server code (`import "server-only"` in
 the webapp, `ConfigService` in the API). Add each new variable to this table
@@ -86,12 +101,10 @@ in the same change that introduces it.
 
 ## Not set up yet
 
-These arrive when `api/` is scaffolded, and this guide should be updated in
-the same change:
+These arrive in later steps, and this guide is updated in the same change:
 
-- The NestJS API, its `start:dev` script and its port
 - PostgreSQL and Prisma, including how to run migrations and seed data
-- The API's environment variables, such as the database connection string
+- `docker-compose.yml` for a local Postgres, and the Supabase alternative
 - The webapp's `src/lib/api/client.ts` and the API base URL it reads
 
 ## Troubleshooting

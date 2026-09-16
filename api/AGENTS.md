@@ -7,10 +7,26 @@ Paths below are relative to `api/` unless they start with `docs/` or
 ## Project
 
 `api/` is the FARMCLUB OS backend API: a NestJS 12 project on the Express
-adapter, serving `webapp/`.
+adapter, serving `webapp/`. It runs on port 3002; start it from the repository
+root with `npm run dev:api`.
 
-It is not scaffolded yet — the folder holds only its instructions. When it is
-created, give it a `package.json` and add it to the root `workspaces`.
+## ESM
+
+NestJS 12 ships ESM only, so `api/` is an ESM package (`"type": "module"`).
+Three consequences that are easy to trip over:
+
+- **Relative imports carry an explicit `.js` extension** — `./health.service.js`,
+  even though the file on disk is `.ts`. `nodenext` resolution requires it.
+- **A type-only import must use `import type`.** Each file is transpiled in
+  isolation, so a plain `import { SomeType }` becomes a real runtime import and
+  fails at load. The `consistent-type-imports` lint rule catches this.
+- **Jest needs `NODE_OPTIONS=--experimental-vm-modules`** (already in the npm
+  scripts) on Node 22, and `jest` is not a global in ESM — import it from
+  `@jest/globals` in any spec that uses `jest.fn()` or `jest.spyOn()`.
+
+`tsconfig.json` sets `types: ["node", "jest"]` explicitly, because
+`node_modules` is hoisted to the repository root and the default would make
+every other workspace's `@types` ambient in the API.
 
 ## Design
 

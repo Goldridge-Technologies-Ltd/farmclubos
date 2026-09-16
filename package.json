@@ -3,12 +3,14 @@
   "private": true,
   "workspaces": [
     "packages/*",
+    "api",
     "site",
     "webapp"
   ],
   "scripts": {
     "dev:site": "npm run dev --workspace site",
     "dev:webapp": "npm run dev --workspace webapp",
+    "dev:api": "npm run dev --workspace api",
     "lint": "npm run lint --workspaces --if-present",
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

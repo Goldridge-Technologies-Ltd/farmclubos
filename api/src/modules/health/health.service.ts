@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../lib/database/prisma.service.js";
 
 export type LivenessResult = {
   status: "ok";
@@ -15,23 +16,24 @@ export type ReadinessResult = {
 
 @Injectable()
 export class HealthService {
+  constructor(private readonly prisma: PrismaService) {}
+
   /** Is the process up? Used by the container and load-balancer probes. */
   checkLiveness(): LivenessResult {
     return { status: "ok", uptime: Math.floor(process.uptime()) };
   }
 
   /*
-    Can the process serve traffic? Its dependency checks are registered as they
-    arrive — the database lands with the Prisma module.
+    Can the process serve traffic? Every dependency it cannot work without is
+    checked here; more are registered as they arrive.
   */
   async checkReadiness(): Promise<ReadinessResult> {
-    const checks: Record<string, ReadinessCheck> = {};
+    const checks: Record<string, ReadinessCheck> = {
+      database: (await this.prisma.isReachable()) ? "ok" : "down",
+    };
 
     const degraded = Object.values(checks).some((check) => check === "down");
 
-    return Promise.resolve({
-      status: degraded ? "degraded" : "ok",
-      checks,
-    });
+    return { status: degraded ? "degraded" : "ok", checks };
   }
 }

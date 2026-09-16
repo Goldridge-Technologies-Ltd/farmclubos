@@ -4,6 +4,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { ResponseTransformInterceptor } from "./common/interceptors/response-transform.interceptor.js";
 import { validate } from "./config/env.validation.js";
+import { PrismaModule } from "./lib/database/prisma.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 
 @Module({
@@ -14,6 +15,7 @@ import { HealthModule } from "./modules/health/health.module.js";
       surfacing as a runtime failure later.
     */
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate }),
+    PrismaModule,
     HealthModule,
   ],
   providers: [

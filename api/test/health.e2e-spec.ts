@@ -1,5 +1,5 @@
-import type { INestApplication} from "@nestjs/common";
-import { ValidationPipe } from "@nestjs/common";
+import { Global, Module, ValidationPipe } from "@nestjs/common";
+import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AllExceptionsFilter } from "../src/common/filters/all-exceptions.filter.js";
@@ -8,6 +8,7 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "../src/common/http/api-response.js";
+import { PrismaService } from "../src/lib/database/prisma.service.js";
 import { HealthModule } from "../src/modules/health/health.module.js";
 
 /** supertest types `body` as `any`; name the contract we are asserting. */
@@ -18,12 +19,26 @@ const asFailure = (body: unknown) => body as ApiErrorResponse;
   Covers the endpoint contract end to end: status, the response envelope and
   the error case, exactly as a client would see them.
 */
+/*
+  The database is stubbed: this spec covers the HTTP contract — status, the
+  response envelope and the error case — not connectivity. It mirrors the
+  production wiring, where PrismaModule is @Global().
+*/
+@Global()
+@Module({
+  providers: [
+    { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(true) } },
+  ],
+  exports: [PrismaService],
+})
+class StubPrismaModule {}
+
 describe("Health (e2e)", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [HealthModule],
+      imports: [StubPrismaModule, HealthModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
@@ -65,7 +80,10 @@ describe("Health (e2e)", () => {
       .get("/health/ready")
       .expect(200);
 
-    expect(asSuccess(response.body).data).toEqual({ status: "ok", checks: {} });
+    expect(asSuccess(response.body).data).toEqual({
+      status: "ok",
+      checks: { database: "ok" },
+    });
   });
 
   it("an unknown route returns the failure envelope", async () => {

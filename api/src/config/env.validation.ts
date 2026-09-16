@@ -2,6 +2,7 @@ import { Type, plainToInstance } from "class-transformer";
 import {
   IsEnum,
   IsInt,
+  IsOptional,
   IsString,
   Max,
   Min,
@@ -38,6 +39,26 @@ export class EnvironmentVariables {
   /** Comma-separated browser origins allowed to call the API directly. */
   @IsString()
   CORS_ORIGINS = "http://localhost:3000,http://localhost:3001";
+
+  /** The connection the running application uses, through the pg adapter. */
+  @IsString()
+  @MinLength(1)
+  DATABASE_URL: string;
+
+  /**
+   * The connection the Prisma CLI uses for migrations, when it differs from
+   * DATABASE_URL. Migrations run DDL and take advisory locks, so they need a
+   * direct or session connection rather than a transaction pooler.
+   */
+  @IsOptional()
+  @IsString()
+  DIRECT_URL?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  DATABASE_POOL_MAX = 10;
 }
 
 /**

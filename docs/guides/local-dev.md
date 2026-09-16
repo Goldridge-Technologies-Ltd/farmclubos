@@ -90,6 +90,9 @@ one exists and fill in your own values.
 | `PORT` | `api/.env` | Port the API listens on. Defaults to `4000`. |
 | `API_GLOBAL_PREFIX` | `api/.env` | Path prefix for every route except the health probes. Defaults to `api`. |
 | `CORS_ORIGINS` | `api/.env` | Comma-separated browser origins allowed to call the API directly. Defaults to the two local front ends. |
+| `DATABASE_URL` | `api/.env` | PostgreSQL connection the running API uses. **Required** — the API will not boot without it. |
+| `DIRECT_URL` | `api/.env` | Optional. The connection the Prisma CLI uses for migrations, when it differs from `DATABASE_URL`. |
+| `DATABASE_POOL_MAX` | `api/.env` | Connections held open by the pg pool. Defaults to `10`. |
 
 The API validates its environment at boot, so a missing or malformed variable
 stops the process on startup rather than failing on the first request that
@@ -99,12 +102,67 @@ Server-side secrets are read only in server code (`import "server-only"` in
 the webapp, `ConfigService` in the API). Add each new variable to this table
 in the same change that introduces it.
 
+## Database
+
+The API uses PostgreSQL through Prisma 7. Either backend works, and only
+`DATABASE_URL` changes between them.
+
+**Supabase (what the project uses today).** Take the connection string from the
+project's **Connect** dialog, **Session pooler** row — port 5432. That one
+string serves both the running API and migrations. The transaction pooler
+(port 6543) is runtime-only: migrations run DDL and take advisory locks, which
+it cannot carry, so set `DIRECT_URL` to the session URL if you use it.
+
+**Local Postgres**, for working offline or to match a VPS deployment:
+
+```bash
+docker compose up -d postgres
+# then in api/.env:
+# DATABASE_URL=postgresql://farmclub:farmclub@localhost:5432/farmclub
+```
+
+Commands, all from the repository root:
+
+```bash
+npm run db:migrate --workspace api    # create and apply a migration
+npm run db:deploy  --workspace api    # apply pending migrations (deployment)
+npm run db:status  --workspace api    # what is applied, what is pending
+npm run db:seed    --workspace api    # seed the Academy catalogue
+npm run db:studio  --workspace api    # browse the data
+```
+
+`prisma generate` writes the client into `api/src/generated/prisma`, which is
+gitignored. `type-check` and `prebuild` run it first, so a fresh clone works
+before anything is generated — and it needs no database connection.
+
+### Row-level security
+
+Supabase serves the `public` schema over HTTPS through PostgREST, so a table
+created by Prisma with RLS off is readable by anyone holding the project's anon
+key, without ever touching the API. The `enable_row_level_security` migration
+turns RLS on for every table with **no policies** and revokes the `anon` and
+`authenticated` grants. The API is unaffected — it connects as the table owner,
+which bypasses RLS — and so does the Supabase Studio table editor.
+
+**A new table needs the same treatment in a follow-up migration.**
+
+## Known issues
+
+- **`npm audit` reports 4 high-severity advisories** (`mysql2`,
+  `deepmerge-ts`). Both reach us only through the Prisma **CLI**, which is a
+  devDependency, so neither ships to production. Neither code path is
+  reachable: `mysql2` is only used when targeting MySQL, and `deepmerge-ts`
+  merges our own `prisma.config.ts`. `npm audit fix --force` would downgrade to
+  Prisma 6, a breaking change. `overrides` do not take effect on npm 10.9.4
+  here, and forcing the patched versions breaks the CLI. Revisit when Prisma
+  bumps its pins.
+
 ## Not set up yet
 
 These arrive in later steps, and this guide is updated in the same change:
 
-- PostgreSQL and Prisma, including how to run migrations and seed data
-- `docker-compose.yml` for a local Postgres, and the Supabase alternative
+- The API's authentication variables, including the JWT signing secrets
+- Transactional email, and the SMTP variables behind it
 - The webapp's `src/lib/api/client.ts` and the API base URL it reads
 
 ## Troubleshooting

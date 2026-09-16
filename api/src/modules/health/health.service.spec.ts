@@ -1,12 +1,20 @@
+import { jest } from "@jest/globals";
 import { Test } from "@nestjs/testing";
+import { PrismaService } from "../../lib/database/prisma.service.js";
 import { HealthService } from "./health.service.js";
 
 describe("HealthService", () => {
   let service: HealthService;
+  let prisma: { isReachable: jest.Mock<() => Promise<boolean>> };
 
   beforeEach(async () => {
+    prisma = { isReachable: jest.fn<() => Promise<boolean>>() };
+
     const moduleRef = await Test.createTestingModule({
-      providers: [HealthService],
+      providers: [
+        HealthService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
 
     service = moduleRef.get(HealthService);
@@ -23,10 +31,21 @@ describe("HealthService", () => {
   });
 
   describe("checkReadiness", () => {
-    it("reports ok while no dependency check is registered", async () => {
+    it("reports ok when the database answers", async () => {
+      prisma.isReachable.mockResolvedValue(true);
+
       await expect(service.checkReadiness()).resolves.toEqual({
         status: "ok",
-        checks: {},
+        checks: { database: "ok" },
+      });
+    });
+
+    it("reports degraded when the database is unreachable", async () => {
+      prisma.isReachable.mockResolvedValue(false);
+
+      await expect(service.checkReadiness()).resolves.toEqual({
+        status: "degraded",
+        checks: { database: "down" },
       });
     });
   });

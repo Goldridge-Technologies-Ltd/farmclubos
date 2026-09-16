@@ -34,6 +34,34 @@ The API has no app UI, so `docs/design-system.md` applies only to what the API
 renders for users, such as email templates in `src/lib/mail/`: use its colour
 tokens, type roles and tone there.
 
+## Database
+
+Prisma 7 with PostgreSQL. `prisma/schema.prisma` holds no connection details:
+the CLI reads its URL from `prisma.config.ts`, and the application passes its
+own to the `@prisma/adapter-pg` driver adapter in `src/lib/database/`. So one
+schema serves a local Postgres and Supabase alike, and only environment
+variables differ.
+
+- **Every tenant-scoped query filters on the institution from the access
+  token.** Never look a row up by id alone. An ownership check belongs in the
+  service (`findFirst({ where: { id, institutionId } })`), and a miss throws
+  `NotFoundException`, not `ForbiddenException`, so an id is never confirmed to
+  someone who should not see it.
+- **`AssessmentOption.isCorrect` never appears in a DTO** that a learner can
+  reach. Grading happens in the service.
+- **A new table needs row-level security.** Supabase serves `public` over HTTPS
+  through PostgREST, so a table created without RLS is readable by anyone with
+  the project's anon key. Follow the pattern in the
+  `enable_row_level_security` migration: enable RLS, add no policy, and revoke
+  from `anon` and `authenticated`. The API connects as the owner, which
+  bypasses RLS, so it is unaffected.
+- `src/generated/prisma` is generated and gitignored. `type-check` and
+  `prebuild` run `prisma generate` first, so a fresh clone works.
+- Columns that would read as real platform figures if seeded —
+  `Pathway.estimatedHours`, `Lesson.durationMinutes`, `Cohort.capacity`,
+  `ExperienceSite.capacity`, `ReportSnapshot.payload` — stay null in every
+  seed, and no `Institution` or `ExperienceSite` is ever seeded.
+
 ## Domain and planning
 
 - Model the database around the business domain — the real entities and how

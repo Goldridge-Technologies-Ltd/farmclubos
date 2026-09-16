@@ -7,7 +7,7 @@ Paths below are relative to `api/` unless they start with `docs/` or
 ## Project
 
 `api/` is the FARMCLUB OS backend API: a NestJS 12 project on the Express
-adapter, serving `webapp/`. It runs on port 3002; start it from the repository
+adapter, serving `webapp/`. It runs on port 4000; start it from the repository
 root with `npm run dev:api`.
 
 ## ESM

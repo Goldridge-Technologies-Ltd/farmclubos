@@ -34,11 +34,11 @@ npm install <package> --workspace webapp
 |---|---|---|
 | Website | `npm run dev:site` | http://localhost:3000 |
 | Web app | `npm run dev:webapp` | http://localhost:3001 |
-| API | `npm run dev:api` | http://localhost:3002 |
+| API | `npm run dev:api` | http://localhost:4000 |
 
 All three can run at once. The live design-system reference is at
 http://localhost:3000/design-system, and the API's Swagger UI — available
-outside production only — is at http://localhost:3002/api/docs.
+outside production only — is at http://localhost:4000/api/docs.
 
 Each front end copies the brand files from `packages/design-system/brand` into
 its own `public/brand` when `dev` or `build` runs. Those copies are
@@ -87,7 +87,7 @@ one exists and fill in your own values.
 | Variable | Where | What it is |
 |---|---|---|
 | `NODE_ENV` | `api/.env` | `development`, `test` or `production`. Defaults to `development`. |
-| `PORT` | `api/.env` | Port the API listens on. Defaults to `3002`. |
+| `PORT` | `api/.env` | Port the API listens on. Defaults to `4000`. |
 | `API_GLOBAL_PREFIX` | `api/.env` | Path prefix for every route except the health probes. Defaults to `api`. |
 | `CORS_ORIGINS` | `api/.env` | Comma-separated browser origins allowed to call the API directly. Defaults to the two local front ends. |
 

@@ -5,14 +5,14 @@ describe("validate", () => {
     const config = validate({});
 
     expect(config.NODE_ENV).toBe(NodeEnv.Development);
-    expect(config.PORT).toBe(3002);
+    expect(config.PORT).toBe(4000);
     expect(config.API_GLOBAL_PREFIX).toBe("api");
   });
 
   it("coerces PORT from the string the environment always provides", () => {
-    const config = validate({ PORT: "4000" });
+    const config = validate({ PORT: "5005" });
 
-    expect(config.PORT).toBe(4000);
+    expect(config.PORT).toBe(5005);
   });
 
   it("rejects a NODE_ENV outside the known set", () => {

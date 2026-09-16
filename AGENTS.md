@@ -17,7 +17,7 @@ This is an npm-workspaces monorepo holding every FARMCLUB OS codebase.
 |---|---|---|
 | `site/` | The official public website (Next.js, static-first) | `site/AGENTS.md` |
 | `webapp/` | The authenticated FARMCLUB OS web app (Next.js) | `webapp/AGENTS.md` |
-| `api/` | The backend API (NestJS 12, ESM, port 3002) | `api/AGENTS.md` |
+| `api/` | The backend API (NestJS 12, ESM, port 4000) | `api/AGENTS.md` |
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI primitives shared by the apps | `docs/design-system.md` |
 | `docs/` | Shared docs: design system, content rules, reference artwork | |
 | `docs/site/` | Website docs: brief, page notes, asset manifest, screen briefs, section patterns | |
@@ -32,7 +32,7 @@ setup is in `docs/guides/local-dev.md`.
 - There is one lockfile, at the root. Turbopack uses it to find the
   repository root; a second lockfile inside an app breaks shared imports.
 - Run an app with `npm run dev:site` (port 3000), `npm run dev:webapp`
-  (port 3001) or `npm run dev:api` (port 3002).
+  (port 3001) or `npm run dev:api` (port 4000).
 - Keep Next.js, React, Tailwind CSS and TypeScript on the same versions in
   every workspace, and upgrade them together.
 - Keep changes scoped to the app you are working in. When a change crosses

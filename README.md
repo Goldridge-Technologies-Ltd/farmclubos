@@ -28,7 +28,7 @@ Run an app:
 ```bash
 npm run dev:site     # http://localhost:3000
 npm run dev:webapp   # http://localhost:3001
-npm run dev:api      # http://localhost:3002
+npm run dev:api      # http://localhost:4000
 ```
 
 The site's live design-system reference is at

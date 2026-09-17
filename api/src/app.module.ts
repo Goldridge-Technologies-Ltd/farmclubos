@@ -5,6 +5,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { ResponseTransformInterceptor } from "./common/interceptors/response-transform.interceptor.js";
 import { validate } from "./config/env.validation.js";
 import { PrismaModule } from "./lib/database/prisma.module.js";
+import { MailModule } from "./lib/mail/mail.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 
 @Module({
@@ -16,6 +17,7 @@ import { HealthModule } from "./modules/health/health.module.js";
     */
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate }),
     PrismaModule,
+    MailModule,
     HealthModule,
   ],
   providers: [

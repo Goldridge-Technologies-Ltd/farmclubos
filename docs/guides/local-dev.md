@@ -93,6 +93,13 @@ one exists and fill in your own values.
 | `DATABASE_URL` | `api/.env` | PostgreSQL connection the running API uses. **Required** — the API will not boot without it. |
 | `DIRECT_URL` | `api/.env` | Optional. The connection the Prisma CLI uses for migrations, when it differs from `DATABASE_URL`. |
 | `DATABASE_POOL_MAX` | `api/.env` | Connections held open by the pg pool. Defaults to `10`. |
+| `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
+| `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
+| `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
+| `SMTP_HOST` | `api/.env` | Required when `MAIL_DRIVER=smtp`. |
+| `SMTP_PORT` | `api/.env` | Defaults to `587`. |
+| `SMTP_USER`, `SMTP_PASSWORD` | `api/.env` | Optional; omit both for an SMTP server without authentication, such as Mailpit. |
+| `SMTP_SECURE` | `api/.env` | `true` for implicit TLS (usually port 465); `false` (default) upgrades with STARTTLS. |
 
 The API validates its environment at boot, so a missing or malformed variable
 stops the process on startup rather than failing on the first request that
@@ -162,7 +169,6 @@ which bypasses RLS — and so does the Supabase Studio table editor.
 These arrive in later steps, and this guide is updated in the same change:
 
 - The API's authentication variables, including the JWT signing secrets
-- Transactional email, and the SMTP variables behind it
 - The webapp's `src/lib/api/client.ts` and the API base URL it reads
 
 ## Troubleshooting

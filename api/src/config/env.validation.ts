@@ -1,12 +1,15 @@
-import { Type, plainToInstance } from "class-transformer";
+import { Transform, Type, plainToInstance } from "class-transformer";
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
+  IsUrl,
   Max,
   Min,
   MinLength,
+  ValidateIf,
   validateSync,
 } from "class-validator";
 
@@ -15,6 +18,16 @@ export enum NodeEnv {
   Test = "test",
   Production = "production",
 }
+
+export enum MailDriver {
+  /** Writes each email, links included, to the server log. Development only. */
+  Log = "log",
+  Smtp = "smtp",
+}
+
+/** Environment strings "true"/"false" are both truthy, so parse explicitly. */
+const toBoolean = ({ value }: { value: unknown }) =>
+  value === true || value === "true" || value === "1";
 
 /*
   The shape of the environment, validated once at boot so a missing or
@@ -59,6 +72,41 @@ export class EnvironmentVariables {
   @Min(1)
   @Max(100)
   DATABASE_POOL_MAX = 10;
+
+  /** Where links in emails point: the web app, never the API. */
+  @IsUrl({ require_tld: false, require_protocol: true })
+  WEBAPP_URL = "http://localhost:3001";
+
+  @IsEnum(MailDriver)
+  MAIL_DRIVER: MailDriver = MailDriver.Log;
+
+  @IsString()
+  @MinLength(3)
+  MAIL_FROM = "FARMCLUB OS <no-reply@farmclubos.com>";
+
+  @ValidateIf((env: EnvironmentVariables) => env.MAIL_DRIVER === MailDriver.Smtp)
+  @IsString()
+  @MinLength(1)
+  SMTP_HOST?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  SMTP_PORT = 587;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASSWORD?: string;
+
+  /** true for implicit TLS (usually port 465); false upgrades with STARTTLS. */
+  @Transform(toBoolean)
+  @IsBoolean()
+  SMTP_SECURE = false;
 }
 
 /**
@@ -79,6 +127,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
       .join("; ");
 
     throw new Error(`Invalid environment configuration: ${detail}`);
+  }
+
+  // Rules that span variables, which the per-field decorators cannot express.
+  if (
+    validated.NODE_ENV === NodeEnv.Production &&
+    validated.MAIL_DRIVER === MailDriver.Log
+  ) {
+    throw new Error(
+      "Invalid environment configuration: MAIL_DRIVER must not be log in " +
+        "production, where it would write invite and reset links to the logs",
+    );
   }
 
   return validated;

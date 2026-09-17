@@ -374,6 +374,7 @@ export class AuthService {
       to: record.user.email,
       userId: record.userId,
       firstName: record.user.firstName,
+      signedOut: "everywhere",
       forgotPasswordUrl: webappLink(
         this.config.getOrThrow<string>("WEBAPP_URL"),
         "forgot-password",

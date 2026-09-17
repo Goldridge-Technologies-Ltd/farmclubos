@@ -8,6 +8,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
 import { InvitesModule } from "./modules/invites/invites.module.js";
+import { UsersModule } from "./modules/users/users.module.js";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { InvitesModule } from "./modules/invites/invites.module.js";
     HealthModule,
     InstitutionsModule,
     InvitesModule,
+    UsersModule,
   ],
   providers: globalProviders,
 })

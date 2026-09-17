@@ -79,14 +79,25 @@ describe("renderPasswordReset", () => {
 });
 
 describe("renderPasswordChanged", () => {
+  const base = { firstName: "Tunde", forgotPasswordUrl: "http://localhost:3001/forgot-password" };
+
   it("tells the person what happened and where to go if it was not them", () => {
-    const email = renderPasswordChanged({
-      firstName: "Tunde",
-      forgotPasswordUrl: "http://localhost:3001/forgot-password",
-    });
+    const email = renderPasswordChanged({ ...base, signedOut: "everywhere" });
 
     expect(email.subject).toBe("Your FARMCLUB OS password was changed");
-    expect(email.text).toContain("signed out on every device");
     expect(email.html).toContain('href="http://localhost:3001/forgot-password"');
+  });
+
+  it("after a reset, says every device was signed out", () => {
+    expect(renderPasswordChanged({ ...base, signedOut: "everywhere" }).text).toContain(
+      "signed out on every device",
+    );
+  });
+
+  it("after a change from settings, says only the other devices were signed out", () => {
+    const email = renderPasswordChanged({ ...base, signedOut: "other-devices" });
+
+    expect(email.text).toContain("signed out on your other devices");
+    expect(email.text).not.toContain("every device");
   });
 });

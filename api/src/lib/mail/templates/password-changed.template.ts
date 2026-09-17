@@ -4,6 +4,11 @@ import type { RenderedEmail } from "./rendered-email.js";
 export type PasswordChangedEmailInput = {
   firstName: string;
   forgotPasswordUrl: string;
+  /**
+   * A reset signs out every device; a change made from settings keeps the
+   * device it was made on.
+   */
+  signedOut: "everywhere" | "other-devices";
 };
 
 export function renderPasswordChanged(
@@ -14,7 +19,9 @@ export function renderPasswordChanged(
     heading: "Your password was changed",
     paragraphs: [
       `Hi ${input.firstName},`,
-      "The password for your FARMCLUB OS account was just changed, and you have been signed out on every device.",
+      input.signedOut === "everywhere"
+        ? "The password for your FARMCLUB OS account was just changed, and you have been signed out on every device."
+        : "The password for your FARMCLUB OS account was just changed, and you have been signed out on your other devices.",
     ],
     action: { label: "Reset your password", url: input.forgotPasswordUrl },
     footnotes: [

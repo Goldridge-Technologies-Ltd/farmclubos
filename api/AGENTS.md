@@ -62,6 +62,28 @@ variables differ.
   `ExperienceSite.capacity`, `ReportSnapshot.payload` — stay null in every
   seed, and no `Institution` or `ExperienceSite` is ever seeded.
 
+## Authentication and authorisation
+
+- **Secure by default.** `JwtAuthGuard` is global: every route needs a valid
+  bearer access token unless it is marked `@Public()`. Forgetting the decorator
+  fails closed.
+- **Roles are coarse; records are checked in the service.**
+  `@PlatformRoles()` and `@InstitutionRoles()` are checked by the global
+  `RolesGuard`. `@InstitutionRoles()` only knows the *active* institution in the
+  token, so a route naming an institution in its path checks access to that
+  institution in the service.
+- **Access tokens can be up to `ACCESS_TOKEN_TTL_SECONDS` stale.** They are
+  verified without a database lookup. When a change must take effect at once —
+  a suspended membership, a deactivated account — check the database.
+- Read the caller with `@CurrentUser()` and the session details with
+  `@ClientInfo()`. Never read `request.user` or headers directly.
+- Refresh, invite and password-reset tokens are opaque and only ever stored as
+  a SHA-256 hash (`TokenService.hashToken`). Never store, log or return a raw
+  token.
+- Document every route with `@ApiEnvelope()` and `@ApiErrors()` from
+  `src/common/decorators/api-envelope.decorator.ts`, so Swagger shows the real
+  `{ success, message, data, meta }` shape.
+
 ## Domain and planning
 
 - Model the database around the business domain — the real entities and how

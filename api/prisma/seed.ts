@@ -11,6 +11,9 @@
       otherwise creep in;
     - writes no progress, attempt or credential rows.
 
+  With SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD set, it also creates the first
+  platform admin (see seedPlatformAdmin below). Outside that, it writes no user.
+
   What it does create is structure that is real and already agreed: three
   pathways, their modules in order, one placeholder lesson per module and one
   assessment shell per module. Lessons and assessments stay
@@ -20,9 +23,14 @@
   It is idempotent: every row is upserted by its natural key, so running it
   again updates rather than duplicates.
 */
+import { hash } from "@node-rs/argon2";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
+import {
+  ARGON2_OPTIONS,
+  PASSWORD_MIN_LENGTH,
+} from "../src/modules/auth/password.constants.js";
 
 type ModuleSeed = {
   slug: string;
@@ -343,6 +351,8 @@ async function main(): Promise<void> {
       }
     }
 
+    await seedPlatformAdmin(prisma);
+
     const [pathways, modules, lessons, assessments, questions] =
       await Promise.all([
         prisma.pathway.count(),
@@ -359,6 +369,56 @@ async function main(): Promise<void> {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+/*
+  The first platform admin. Someone has to be able to sign in before anyone can
+  be invited, so the seed creates one from the environment — never from a
+  committed credential, and never in production, where the first admin is
+  created deliberately.
+
+  An existing account keeps its password: re-running the seed must not undo a
+  password changed since. It only makes sure the role is PLATFORM_ADMIN.
+*/
+async function seedPlatformAdmin(prisma: PrismaClient): Promise<void> {
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    console.log("Skipped the platform admin: SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are not set.");
+    return;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed a platform admin in production.");
+  }
+
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    throw new Error(`SEED_ADMIN_PASSWORD must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+
+  if (existing) {
+    await prisma.user.update({
+      where: { email },
+      data: { platformRole: "PLATFORM_ADMIN", deactivatedAt: null },
+    });
+    console.log(`Platform admin ${email} already exists; its password was left unchanged.`);
+    return;
+  }
+
+  await prisma.user.create({
+    data: {
+      email,
+      passwordHash: await hash(password, ARGON2_OPTIONS),
+      firstName: process.env.SEED_ADMIN_FIRST_NAME?.trim() || "Platform",
+      lastName: process.env.SEED_ADMIN_LAST_NAME?.trim() || "Administrator",
+      platformRole: "PLATFORM_ADMIN",
+      emailVerifiedAt: new Date(),
+    },
+  });
+  console.log(`Created platform admin ${email}.`);
 }
 
 /** Replaces the starter quiz's questions so re-running never duplicates them. */

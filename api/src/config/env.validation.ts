@@ -73,6 +73,49 @@ export class EnvironmentVariables {
   @Max(100)
   DATABASE_POOL_MAX = 10;
 
+  /** Signs access tokens (HS256). Generate with `openssl rand -base64 32`. */
+  @IsString()
+  @MinLength(32)
+  JWT_ACCESS_SECRET: string;
+
+  /**
+   * Keys the HMAC that derives each rotated refresh token from the last one.
+   * Refresh tokens are opaque rather than JWTs; this secret is what makes their
+   * rotation deterministic. Must differ from JWT_ACCESS_SECRET.
+   */
+  @IsString()
+  @MinLength(32)
+  JWT_REFRESH_SECRET: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(60)
+  @Max(3600)
+  ACCESS_TOKEN_TTL_SECONDS = 900;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  REFRESH_TOKEN_TTL_DAYS = 30;
+
+  /**
+   * How long a just-rotated refresh token is still honoured. Concurrent
+   * requests (prefetching, parallel renders) can present the same token twice;
+   * without this window the second looks like theft and signs the user out.
+   */
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(120)
+  REFRESH_REUSE_GRACE_SECONDS = 30;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(5)
+  @Max(1440)
+  PASSWORD_RESET_TTL_MINUTES = 60;
+
   /** Where links in emails point: the web app, never the API. */
   @IsUrl({ require_tld: false, require_protocol: true })
   WEBAPP_URL = "http://localhost:3001";
@@ -130,6 +173,13 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   }
 
   // Rules that span variables, which the per-field decorators cannot express.
+  if (validated.JWT_ACCESS_SECRET === validated.JWT_REFRESH_SECRET) {
+    throw new Error(
+      "Invalid environment configuration: JWT_ACCESS_SECRET and " +
+        "JWT_REFRESH_SECRET must differ, so one leaking does not expose both",
+    );
+  }
+
   if (
     validated.NODE_ENV === NodeEnv.Production &&
     validated.MAIL_DRIVER === MailDriver.Log

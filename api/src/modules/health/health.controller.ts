@@ -1,9 +1,12 @@
 import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
+import { Public } from "../../common/decorators/public.decorator.js";
 import { HealthService } from "./health.service.js";
 import type { LivenessResult, ReadinessResult } from "./health.service.js";
 
+// Probes run before anyone signs in: a load balancer has no token.
+@Public()
 @ApiTags("health")
 @Controller("health")
 export class HealthController {

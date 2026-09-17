@@ -1,11 +1,10 @@
-import { Module, ValidationPipe } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
-import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
-import { ResponseTransformInterceptor } from "./common/interceptors/response-transform.interceptor.js";
+import { globalProviders } from "./app.providers.js";
 import { validate } from "./config/env.validation.js";
 import { PrismaModule } from "./lib/database/prisma.module.js";
 import { MailModule } from "./lib/mail/mail.module.js";
+import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 
 @Module({
@@ -18,22 +17,9 @@ import { HealthModule } from "./modules/health/health.module.js";
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate }),
     PrismaModule,
     MailModule,
+    AuthModule,
     HealthModule,
   ],
-  providers: [
-    {
-      // Every request body, query and param is validated against its DTO.
-      provide: APP_PIPE,
-      useFactory: () =>
-        new ValidationPipe({
-          whitelist: true,
-          forbidNonWhitelisted: true,
-          transform: true,
-          transformOptions: { enableImplicitConversion: true },
-        }),
-    },
-    { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },
-    { provide: APP_FILTER, useClass: AllExceptionsFilter },
-  ],
+  providers: globalProviders,
 })
 export class AppModule {}

@@ -8,6 +8,15 @@ NestJS 12 project. Express adapter.
 - Model the database around the business domain (the real entities and how they relate), not around individual screens. Shape responses for the webapp in DTOs, not in the Prisma schema.
 - Before building a feature, agree what it does (the plan from `/architect`). The schema and endpoints must cover every field and flow in that plan, and the webapp screens are built from the same plan.
 
+## Authentication
+
+- Every route needs a bearer access token unless it is `@Public()`; the global `JwtAuthGuard` fails closed.
+- `@PlatformRoles()` / `@InstitutionRoles()` are coarse. `@InstitutionRoles()` only knows the active institution in the token, so check access to a specific institution or record in the service.
+- Access tokens can be up to `ACCESS_TOKEN_TTL_SECONDS` stale; check the database when a change must take effect at once.
+- Use `@CurrentUser()` and `@ClientInfo()`, never `request.user` or headers directly.
+- Opaque tokens (refresh, invite, reset) are only ever stored as a SHA-256 hash. Never store, log or return a raw token.
+- Document every route with `@ApiEnvelope()` and `@ApiErrors()`.
+
 ## Role
 
 You are a senior NestJS developer. Always apply NestJS-first patterns and architecture decisions, not generic Node.js approaches.

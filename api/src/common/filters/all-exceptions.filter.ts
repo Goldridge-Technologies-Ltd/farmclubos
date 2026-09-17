@@ -36,12 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = http.getResponse<Response>();
     const request = http.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const { code, message, details } = describe(exception, status);
+    const { status, body } = toErrorResponse(exception, request);
 
     // Anything at 500 is our bug, not the caller's: log it with the stack, and
     // tell the caller nothing about our internals.
@@ -52,20 +47,40 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
-    const body: ApiErrorResponse = {
+    response.status(status).json(body);
+  }
+}
+
+/**
+ * The status and failure envelope for any exception. Exported so the fallback
+ * not-found handler in app.setup.ts, which runs outside Nest's filters, sends
+ * exactly the same shape.
+ */
+export function toErrorResponse(
+  exception: unknown,
+  request: Request | undefined,
+): { status: number; body: ApiErrorResponse } {
+  const status =
+    exception instanceof HttpException
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
+
+  const { code, message, details } = describe(exception, status);
+
+  return {
+    status,
+    body: {
       success: false,
       error: { code, message, ...(details === undefined ? {} : { details }) },
       meta: {
-        // The status we are about to send. Not response.statusCode: that is
-        // still Express's default of 200 until response.status() runs below.
+        // The status about to be sent. Not response.statusCode: that is still
+        // Express's default of 200 until response.status() runs.
         statusCode: status,
         requestId: readRequestId(request),
         timestamp: new Date().toISOString(),
       },
-    };
-
-    response.status(status).json(body);
-  }
+    },
+  };
 }
 
 function describe(

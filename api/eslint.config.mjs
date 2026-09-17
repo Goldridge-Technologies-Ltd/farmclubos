@@ -28,13 +28,15 @@ export default tseslint.config(
     },
   },
   {
-    // Jest's matcher helpers (expect.any, expect.objectContaining) are typed
-    // `any` by design, so the unsafe-* rules fire on every assertion.
+    // Jest's matcher helpers (expect.any, expect.objectContaining) and Nest's
+    // INestApplication.getHttpServer() are typed `any` by design, so the
+    // unsafe-* rules fire on every assertion and every supertest call.
     files: ["**/*.spec.ts", "**/*.e2e-spec.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
       // Specs read decorator metadata off a method reference
       // (`reflector.get(KEY, Controller.prototype.handler)`), the way Nest's
       // context.getHandler() does. The method is never called, so `this`

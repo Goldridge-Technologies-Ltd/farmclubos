@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import { Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
 import { CUSTOM_MESSAGE_KEY } from "../../common/decorators/custom-message.decorator.js";
+import { IS_PUBLIC_KEY } from "../../common/decorators/public.decorator.js";
 import { HealthController } from "./health.controller.js";
 import { HealthService } from "./health.service.js";
 
@@ -28,6 +29,10 @@ describe("HealthController", () => {
     service.checkLiveness.mockReturnValue({ status: "ok", uptime: 12 });
 
     expect(controller.getLiveness()).toEqual({ status: "ok", uptime: 12 });
+  });
+
+  it("is public, because a load balancer probing it has no token", () => {
+    expect(new Reflector().get(IS_PUBLIC_KEY, HealthController)).toBe(true);
   });
 
   describe("response messages", () => {

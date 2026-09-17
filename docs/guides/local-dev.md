@@ -93,6 +93,13 @@ one exists and fill in your own values.
 | `DATABASE_URL` | `api/.env` | PostgreSQL connection the running API uses. **Required** — the API will not boot without it. |
 | `DIRECT_URL` | `api/.env` | Optional. The connection the Prisma CLI uses for migrations, when it differs from `DATABASE_URL`. |
 | `DATABASE_POOL_MAX` | `api/.env` | Connections held open by the pg pool. Defaults to `10`. |
+| `JWT_ACCESS_SECRET` | `api/.env` | **Required**, 32+ characters. Signs access tokens. Generate with `openssl rand -base64 32`. |
+| `JWT_REFRESH_SECRET` | `api/.env` | **Required**, 32+ characters, and different from `JWT_ACCESS_SECRET`. Keys the HMAC that derives each rotated refresh token. |
+| `ACCESS_TOKEN_TTL_SECONDS` | `api/.env` | Access token lifetime. Defaults to `900` (15 minutes). Anything a token carries, such as the institution role, can be this stale. |
+| `REFRESH_TOKEN_TTL_DAYS` | `api/.env` | How long a session lasts without use. Defaults to `30`. |
+| `REFRESH_REUSE_GRACE_SECONDS` | `api/.env` | How long a just-rotated refresh token is still honoured, so concurrent requests are not mistaken for theft. Defaults to `30`. |
+| `PASSWORD_RESET_TTL_MINUTES` | `api/.env` | Reset link lifetime. Defaults to `60`. |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; see below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
 | `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
@@ -142,6 +149,19 @@ npm run db:studio  --workspace api    # browse the data
 gitignored. `type-check` and `prebuild` run it first, so a fresh clone works
 before anything is generated — and it needs no database connection.
 
+### Your first platform admin
+
+Nobody can be invited until someone can sign in, so the seed creates the first
+platform admin from `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` (10 characters
+or more). Add both to `api/.env`, then:
+
+```bash
+npm run db:seed --workspace api
+```
+
+Sign in with `POST /api/auth/login`. The seed refuses to create an admin in
+production, and re-running it never changes an existing account's password.
+
 ### Row-level security
 
 Supabase serves the `public` schema over HTTPS through PostgREST, so a table
@@ -168,8 +188,20 @@ which bypasses RLS — and so does the Supabase Studio table editor.
 
 These arrive in later steps, and this guide is updated in the same change:
 
-- The API's authentication variables, including the JWT signing secrets
 - The webapp's `src/lib/api/client.ts` and the API base URL it reads
+
+## Testing the API in Swagger
+
+Open http://localhost:4000/api/docs. Every route needs a bearer access token
+unless it is public — the API is secure by default.
+
+1. Call `POST /api/auth/login` and copy `data.accessToken` from the response.
+2. Click **Authorize** and paste the token.
+3. Protected routes now work until the token expires (15 minutes by default);
+   call `POST /api/auth/refresh` with `data.refreshToken` for a new pair.
+
+Swagger talks to the API directly. The web app never does: it holds the tokens
+in its own httpOnly cookies and calls the API server-to-server.
 
 ## Troubleshooting
 

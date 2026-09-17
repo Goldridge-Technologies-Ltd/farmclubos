@@ -1,60 +1,38 @@
-import { Global, Module, ValidationPipe } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { AllExceptionsFilter } from "../src/common/filters/all-exceptions.filter.js";
-import { ResponseTransformInterceptor } from "../src/common/interceptors/response-transform.interceptor.js";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "../src/common/http/api-response.js";
 import { PrismaService } from "../src/lib/database/prisma.service.js";
 import { HealthModule } from "../src/modules/health/health.module.js";
+import { createTestApp } from "./support/create-test-app.js";
 
 /** supertest types `body` as `any`; name the contract we are asserting. */
 const asSuccess = <T>(body: unknown) => body as ApiSuccessResponse<T>;
 const asFailure = (body: unknown) => body as ApiErrorResponse;
 
 /*
-  Covers the endpoint contract end to end: status, the response envelope and
-  the error case, exactly as a client would see them.
+  Runs through the real request pipeline, including the global JwtAuthGuard,
+  so it also proves the probes stay reachable without a token.
 */
-/*
-  The database is stubbed: this spec covers the HTTP contract — status, the
-  response envelope and the error case — not connectivity. It mirrors the
-  production wiring, where PrismaModule is @Global().
-*/
-@Global()
-@Module({
-  providers: [
-    { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(true) } },
-  ],
-  exports: [PrismaService],
-})
-class StubPrismaModule {}
-
 describe("Health (e2e)", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [StubPrismaModule, HealthModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    app.useGlobalInterceptors(new ResponseTransformInterceptor(app.get(Reflector)));
-    app.useGlobalFilters(new AllExceptionsFilter());
-
-    await app.init();
+    ({ app } = await createTestApp({
+      imports: [HealthModule],
+      overrides: [
+        { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(true) } },
+      ],
+    }));
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it("GET /health returns the success envelope", async () => {
+  it("GET /health answers without a token, in the success envelope", async () => {
     const response = await request(app.getHttpServer()).get("/health").expect(200);
 
     expect(asSuccess(response.body)).toMatchObject({
@@ -79,9 +57,7 @@ describe("Health (e2e)", () => {
   });
 
   it("GET /health/ready reports every dependency check", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/health/ready")
-      .expect(200);
+    const response = await request(app.getHttpServer()).get("/health/ready").expect(200);
 
     expect(asSuccess(response.body)).toMatchObject({
       success: true,
@@ -91,17 +67,23 @@ describe("Health (e2e)", () => {
     });
   });
 
-  it("an unknown route returns the failure envelope", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/health/does-not-exist")
-      .expect(404);
+  /*
+    Nest only mounts its not-found handler under the global prefix, so without
+    a fallback these fell through to Express's HTML 404 page.
+  */
+  it.each(["/api/does-not-exist", "/health/does-not-exist", "/does-not-exist"])(
+    "an unknown route (%s) returns the JSON failure envelope, not an HTML page",
+    async (route) => {
+      const response = await request(app.getHttpServer())
+        .get(route)
+        .expect("content-type", /application\/json/)
+        .expect(404);
 
-    // meta.statusCode must match the status actually sent, not Express's
-    // default of 200: this is the case that regressed.
-    expect(asFailure(response.body)).toMatchObject({
-      success: false,
-      error: { code: "NOT_FOUND", message: expect.any(String) },
-      meta: { statusCode: 404, requestId: expect.any(String) },
-    });
-  });
+      expect(asFailure(response.body)).toMatchObject({
+        success: false,
+        error: { code: "NOT_FOUND", message: `Cannot GET ${route}` },
+        meta: { statusCode: 404, requestId: expect.any(String) },
+      });
+    },
+  );
 });

@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
+import { applyGlobalPrefix, applyNotFoundFallback } from "./app.setup.js";
 import { NodeEnv } from "./config/env.validation.js";
 
 async function bootstrap(): Promise<void> {
@@ -14,9 +15,7 @@ async function bootstrap(): Promise<void> {
   const port = config.getOrThrow<number>("PORT");
   const prefix = config.getOrThrow<string>("API_GLOBAL_PREFIX");
 
-  // Probes stay at the root so a load balancer or container healthcheck does
-  // not have to know the API's version prefix.
-  app.setGlobalPrefix(prefix, { exclude: ["health", "health/ready"] });
+  applyGlobalPrefix(app, prefix);
 
   app.enableCors({
     origin: config
@@ -46,6 +45,11 @@ async function bootstrap(): Promise<void> {
 
     SwaggerModule.setup(`${prefix}/docs`, app, document);
   }
+
+  // Initialise explicitly so the fallback lands after every route, including
+  // Swagger's, then listen.
+  await app.init();
+  applyNotFoundFallback(app);
 
   await app.listen(port);
 

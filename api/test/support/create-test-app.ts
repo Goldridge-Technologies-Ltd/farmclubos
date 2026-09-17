@@ -14,6 +14,7 @@ import { applyGlobalPrefix, applyNotFoundFallback } from "../../src/app.setup.js
 import { ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER } from "../../src/common/auth/access-token.js";
 import type { AccessTokenClaims } from "../../src/common/auth/access-token.js";
 import { PrismaService } from "../../src/lib/database/prisma.service.js";
+import { MailService } from "../../src/lib/mail/mail.service.js";
 
 export const TEST_ENV = {
   NODE_ENV: "test",
@@ -37,24 +38,29 @@ type TestAppOptions = {
 /**
  * Builds an app with the real request pipeline — validation, guards,
  * envelope, error filter and route prefix — around the modules under test.
- * The database is always stubbed: these specs cover HTTP contracts.
+ * The database and mail are always stubbed: these specs cover HTTP contracts.
  */
 export async function createTestApp({ imports, overrides = [] }: TestAppOptions): Promise<{
   app: INestApplication;
   signAccessToken: (claims: Partial<AccessTokenClaims>) => Promise<string>;
 }> {
+  // Mirrors the app's @Global() infrastructure modules. Replace either with a
+  // richer stub through `overrides`.
   @Global()
   @Module({
-    providers: [{ provide: PrismaService, useValue: {} } satisfies Provider],
-    exports: [PrismaService],
+    providers: [
+      { provide: PrismaService, useValue: {} } satisfies Provider,
+      { provide: MailService, useValue: {} } satisfies Provider,
+    ],
+    exports: [PrismaService, MailService],
   })
-  class StubPrismaModule {}
+  class StubInfrastructureModule {}
 
   let builder = Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, load: [() => TEST_ENV] }),
       JwtModule.register({ global: true, secret: TEST_ENV.JWT_ACCESS_SECRET }),
-      StubPrismaModule,
+      StubInfrastructureModule,
       ...imports,
     ],
     providers: globalProviders,

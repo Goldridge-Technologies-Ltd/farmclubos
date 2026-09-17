@@ -116,6 +116,13 @@ export class EnvironmentVariables {
   @Max(1440)
   PASSWORD_RESET_TTL_MINUTES = 60;
 
+  /** How long an invitation link stays usable. Defaults to seven days. */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(720)
+  INVITE_TTL_HOURS = 168;
+
   /** Where links in emails point: the web app, never the API. */
   @IsUrl({ require_tld: false, require_protocol: true })
   WEBAPP_URL = "http://localhost:3001";

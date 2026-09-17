@@ -13,6 +13,7 @@ NestJS 12 project. Express adapter.
 - Every route needs a bearer access token unless it is `@Public()`; the global `JwtAuthGuard` fails closed.
 - `@PlatformRoles()` / `@InstitutionRoles()` are coarse. `@InstitutionRoles()` only knows the active institution in the token, so check access to a specific institution or record in the service.
 - Access tokens can be up to `ACCESS_TOKEN_TTL_SECONDS` stale; check the database when a change must take effect at once.
+- Routes acting inside an institution check access with `InstitutionAccessService` (database-backed; 404 for non-members, 403 for members without the role).
 - Use `@CurrentUser()` and `@ClientInfo()`, never `request.user` or headers directly.
 - Opaque tokens (refresh, invite, reset) are only ever stored as a SHA-256 hash. Never store, log or return a raw token.
 - Document every route with `@ApiEnvelope()` and `@ApiErrors()`.

@@ -57,6 +57,10 @@ describe("renderInvite", () => {
   it("states when the invitation expires", () => {
     expect(renderInvite(base).text).toContain("expires in 7 days");
   });
+
+  it("says 'day', not 'days', for a one-day invitation", () => {
+    expect(renderInvite({ ...base, expiresInDays: 1 }).text).toContain("expires in 1 day ");
+  });
 });
 
 describe("renderPasswordReset", () => {

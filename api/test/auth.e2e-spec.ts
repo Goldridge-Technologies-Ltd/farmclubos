@@ -7,7 +7,6 @@ import type {
 } from "../src/common/http/api-response.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { AuthService } from "../src/modules/auth/auth.service.js";
-import { MailService } from "../src/lib/mail/mail.service.js";
 import { createTestApp } from "./support/create-test-app.js";
 
 const asSuccess = <T>(body: unknown) => body as ApiSuccessResponse<T>;
@@ -38,7 +37,6 @@ describe("Auth (e2e)", () => {
       imports: [AuthModule],
       overrides: [
         { provide: AuthService, useValue: auth },
-        { provide: MailService, useValue: {} },
       ],
     }));
   });

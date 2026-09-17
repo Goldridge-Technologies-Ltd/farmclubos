@@ -6,6 +6,8 @@ import { PrismaModule } from "./lib/database/prisma.module.js";
 import { MailModule } from "./lib/mail/mail.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
+import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
+import { InvitesModule } from "./modules/invites/invites.module.js";
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { HealthModule } from "./modules/health/health.module.js";
     MailModule,
     AuthModule,
     HealthModule,
+    InstitutionsModule,
+    InvitesModule,
   ],
   providers: globalProviders,
 })

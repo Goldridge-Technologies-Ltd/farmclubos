@@ -53,6 +53,7 @@ describe("validate", () => {
       expect(config.REFRESH_TOKEN_TTL_DAYS).toBe(30);
       expect(config.REFRESH_REUSE_GRACE_SECONDS).toBe(30);
       expect(config.PASSWORD_RESET_TTL_MINUTES).toBe(60);
+      expect(config.INVITE_TTL_HOURS).toBe(168);
     });
 
     it.each(["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"])(

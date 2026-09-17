@@ -28,7 +28,7 @@ export function renderInvite(input: InviteEmailInput): RenderedEmail {
     ],
     action: { label: "Accept invitation", url: input.acceptUrl },
     footnotes: [
-      `This invitation expires in ${input.expiresInDays} days and can be used once.`,
+      `This invitation expires in ${input.expiresInDays} ${input.expiresInDays === 1 ? "day" : "days"} and can be used once.`,
       "If you were not expecting it, you can ignore this email.",
     ],
   };

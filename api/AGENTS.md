@@ -75,6 +75,11 @@ variables differ.
 - **Access tokens can be up to `ACCESS_TOKEN_TTL_SECONDS` stale.** They are
   verified without a database lookup. When a change must take effect at once —
   a suspended membership, a deactivated account — check the database.
+- **Any route acting inside an institution checks access through
+  `InstitutionAccessService`** (`assertCanView`, `assertCanManage`), exported
+  by `InstitutionsModule`. It reads memberships from the database, so a
+  suspension takes effect at once, and it answers 404 to a non-member and 403
+  to a member who lacks the role.
 - Read the caller with `@CurrentUser()` and the session details with
   `@ClientInfo()`. Never read `request.user` or headers directly.
 - Refresh, invite and password-reset tokens are opaque and only ever stored as

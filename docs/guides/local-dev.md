@@ -99,6 +99,7 @@ one exists and fill in your own values.
 | `REFRESH_TOKEN_TTL_DAYS` | `api/.env` | How long a session lasts without use. Defaults to `30`. |
 | `REFRESH_REUSE_GRACE_SECONDS` | `api/.env` | How long a just-rotated refresh token is still honoured, so concurrent requests are not mistaken for theft. Defaults to `30`. |
 | `PASSWORD_RESET_TTL_MINUTES` | `api/.env` | Reset link lifetime. Defaults to `60`. |
+| `INVITE_TTL_HOURS` | `api/.env` | Invitation link lifetime. Defaults to `168` (seven days). |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; see below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
@@ -202,6 +203,22 @@ unless it is public — the API is secure by default.
 
 Swagger talks to the API directly. The web app never does: it holds the tokens
 in its own httpOnly cookies and calls the API server-to-server.
+
+### Onboarding an institution, end to end
+
+1. Sign in as the platform admin and authorise Swagger with the access token.
+2. `POST /api/institutions` creates the institution.
+3. `POST /api/institutions/{institutionId}/invites` with `role:
+   INSTITUTION_ADMIN` invites its first admin.
+4. With `MAIL_DRIVER=log`, the invitation email — link included — prints in the
+   terminal running `npm run dev:api`. Copy the `token` from its
+   `accept-invite?token=…` link.
+5. `POST /api/invites/lookup` with that token shows what the invitee will see;
+   `POST /api/invites/accept` creates their account and signs them in.
+6. Authorise as the new institution admin to invite learners the same way.
+
+An invitee who already has an account signs in and calls `POST
+/api/invites/join` instead; `lookup` reports `accountExists: true` for them.
 
 ## Troubleshooting
 

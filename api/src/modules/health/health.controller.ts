@@ -1,5 +1,6 @@
 import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { HealthService } from "./health.service.js";
 import type { LivenessResult, ReadinessResult } from "./health.service.js";
 
@@ -10,6 +11,7 @@ export class HealthController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @CustomMessage("API is running")
   @ApiOperation({
     summary: "Liveness probe",
     description: "Reports that the API process is running.",
@@ -21,6 +23,9 @@ export class HealthController {
 
   @Get("ready")
   @HttpCode(HttpStatus.OK)
+  // Neutral on purpose: the decorator is static, and data.status may be
+  // "degraded", so the message must not claim the API is ready.
+  @CustomMessage("Readiness checks completed")
   @ApiOperation({
     summary: "Readiness probe",
     description: "Reports whether every dependency the API needs is reachable.",

@@ -14,8 +14,13 @@ import { AllExceptionsFilter } from "./all-exceptions.filter.js";
 type Captured = { status: number; body: ApiErrorResponse };
 
 function hostCapturing(captured: Partial<Captured>): ArgumentsHost {
+  // Mirrors Express: statusCode starts at 200 and only changes when status()
+  // is called. A mock without that default cannot catch a filter that reads
+  // the status before setting it.
   const response = {
+    statusCode: 200,
     status(code: number) {
+      this.statusCode = code;
       captured.status = code;
       return this;
     },
@@ -56,6 +61,21 @@ describe("AllExceptionsFilter", () => {
     });
     expect(captured.body?.meta.requestId).toEqual(expect.any(String));
   });
+
+  it.each([
+    [new BadRequestException(), HttpStatus.BAD_REQUEST],
+    [new UnauthorizedException(), HttpStatus.UNAUTHORIZED],
+    [new NotFoundException(), HttpStatus.NOT_FOUND],
+    [new Error("boom"), HttpStatus.INTERNAL_SERVER_ERROR],
+  ])(
+    "reports the status it actually sends in meta.statusCode (%p)",
+    (exception, expected) => {
+      filter.catch(exception, hostCapturing(captured));
+
+      expect(captured.status).toBe(expected);
+      expect(captured.body?.meta.statusCode).toBe(expected);
+    },
+  );
 
   it("maps the status to a stable code", () => {
     filter.catch(new UnauthorizedException(), hostCapturing(captured));

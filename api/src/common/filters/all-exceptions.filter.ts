@@ -6,8 +6,8 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import type { ApiErrorResponse } from "../http/api-response.js";
 import { REQUEST_ID_HEADER } from "../interceptors/response-transform.interceptor.js";
 
@@ -56,6 +56,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       success: false,
       error: { code, message, ...(details === undefined ? {} : { details }) },
       meta: {
+        // The status we are about to send. Not response.statusCode: that is
+        // still Express's default of 200 until response.status() runs below.
+        statusCode: status,
         requestId: readRequestId(request),
         timestamp: new Date().toISOString(),
       },

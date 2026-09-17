@@ -8,6 +8,7 @@
 export type ResponseMeta = {
   /** Echoed back so a client log line can be matched to a server log line. */
   requestId: string;
+  statusCode: number;
   timestamp: string;
   pagination?: PaginationMeta;
 };
@@ -21,6 +22,8 @@ export type PaginationMeta = {
 
 export type ApiSuccessResponse<T> = {
   success: true;
+  /** From @CustomMessage on the handler, or "Success" when it has none. */
+  message: string;
   data: T;
   meta: ResponseMeta;
 };

@@ -1,5 +1,6 @@
 import { Global, Module, ValidationPipe } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AllExceptionsFilter } from "../src/common/filters/all-exceptions.filter.js";
@@ -43,7 +44,7 @@ describe("Health (e2e)", () => {
 
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    app.useGlobalInterceptors(new ResponseTransformInterceptor());
+    app.useGlobalInterceptors(new ResponseTransformInterceptor(app.get(Reflector)));
     app.useGlobalFilters(new AllExceptionsFilter());
 
     await app.init();
@@ -58,8 +59,10 @@ describe("Health (e2e)", () => {
 
     expect(asSuccess(response.body)).toMatchObject({
       success: true,
+      message: "API is running",
       data: { status: "ok", uptime: expect.any(Number) },
       meta: {
+        statusCode: 200,
         requestId: expect.any(String),
         timestamp: expect.any(String),
       },
@@ -80,9 +83,11 @@ describe("Health (e2e)", () => {
       .get("/health/ready")
       .expect(200);
 
-    expect(asSuccess(response.body).data).toEqual({
-      status: "ok",
-      checks: { database: "ok" },
+    expect(asSuccess(response.body)).toMatchObject({
+      success: true,
+      message: "Readiness checks completed",
+      data: { status: "ok", checks: { database: "ok" } },
+      meta: { statusCode: 200 },
     });
   });
 
@@ -91,10 +96,12 @@ describe("Health (e2e)", () => {
       .get("/health/does-not-exist")
       .expect(404);
 
+    // meta.statusCode must match the status actually sent, not Express's
+    // default of 200: this is the case that regressed.
     expect(asFailure(response.body)).toMatchObject({
       success: false,
       error: { code: "NOT_FOUND", message: expect.any(String) },
-      meta: { requestId: expect.any(String) },
+      meta: { statusCode: 404, requestId: expect.any(String) },
     });
   });
 });

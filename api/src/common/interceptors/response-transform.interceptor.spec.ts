@@ -1,16 +1,39 @@
 import type { CallHandler, ExecutionContext } from "@nestjs/common";
+import { HttpStatus } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { firstValueFrom, of } from "rxjs";
+import { CustomMessage } from "../decorators/custom-message.decorator.js";
 import { PaginatedResult } from "../http/api-response.js";
 import {
   REQUEST_ID_HEADER,
   ResponseTransformInterceptor,
 } from "./response-transform.interceptor.js";
 
-function contextWithHeaders(
-  headers: Record<string, string | string[] | undefined> = {},
-): ExecutionContext {
+/** Stand-in controller: one handler with a custom message, one without. */
+class Handlers {
+  @CustomMessage("Pathways loaded")
+  decorated(): void {}
+
+  plain(): void {}
+}
+
+type ContextOptions = {
+  headers?: Record<string, string | string[] | undefined>;
+  handler?: () => void;
+  statusCode?: number;
+};
+
+function contextFor({
+  headers = {},
+  handler = Handlers.prototype.plain,
+  statusCode = HttpStatus.OK,
+}: ContextOptions = {}): ExecutionContext {
   return {
-    switchToHttp: () => ({ getRequest: () => ({ headers }) }),
+    getHandler: () => handler,
+    switchToHttp: () => ({
+      getRequest: () => ({ headers }),
+      getResponse: () => ({ statusCode }),
+    }),
   } as unknown as ExecutionContext;
 }
 
@@ -22,15 +45,12 @@ describe("ResponseTransformInterceptor", () => {
   let interceptor: ResponseTransformInterceptor<unknown>;
 
   beforeEach(() => {
-    interceptor = new ResponseTransformInterceptor();
+    interceptor = new ResponseTransformInterceptor(new Reflector());
   });
 
   it("wraps plain data in the success envelope", async () => {
     const result = await firstValueFrom(
-      interceptor.intercept(
-        contextWithHeaders(),
-        handlerReturning({ id: "pathway-1" }),
-      ),
+      interceptor.intercept(contextFor(), handlerReturning({ id: "pathway-1" })),
     );
 
     expect(result.success).toBe(true);
@@ -39,10 +59,58 @@ describe("ResponseTransformInterceptor", () => {
     expect(Date.parse(result.meta.timestamp)).not.toBeNaN();
   });
 
+  describe("message", () => {
+    it('defaults to "Success" when the handler has no @CustomMessage', async () => {
+      const result = await firstValueFrom(
+        interceptor.intercept(contextFor(), handlerReturning("ok")),
+      );
+
+      expect(result.message).toBe("Success");
+    });
+
+    it("uses the handler's @CustomMessage", async () => {
+      const result = await firstValueFrom(
+        interceptor.intercept(
+          contextFor({ handler: Handlers.prototype.decorated }),
+          handlerReturning("ok"),
+        ),
+      );
+
+      expect(result.message).toBe("Pathways loaded");
+    });
+
+    it("is present on a paginated result too", async () => {
+      const page = PaginatedResult.of([{ id: "a" }], 1, 1, 10);
+
+      const result = await firstValueFrom(
+        interceptor.intercept(
+          contextFor({ handler: Handlers.prototype.decorated }),
+          handlerReturning(page),
+        ),
+      );
+
+      expect(result.message).toBe("Pathways loaded");
+    });
+  });
+
+  describe("meta.statusCode", () => {
+    it("reports the status Nest has already set on the response", async () => {
+      // Nest applies @HttpCode, or POST's default 201, before interceptors run.
+      const result = await firstValueFrom(
+        interceptor.intercept(
+          contextFor({ statusCode: HttpStatus.CREATED }),
+          handlerReturning("ok"),
+        ),
+      );
+
+      expect(result.meta.statusCode).toBe(HttpStatus.CREATED);
+    });
+  });
+
   it("reuses an inbound request id so traces join up", async () => {
     const result = await firstValueFrom(
       interceptor.intercept(
-        contextWithHeaders({ [REQUEST_ID_HEADER]: "trace-123" }),
+        contextFor({ headers: { [REQUEST_ID_HEADER]: "trace-123" } }),
         handlerReturning("ok"),
       ),
     );
@@ -52,7 +120,7 @@ describe("ResponseTransformInterceptor", () => {
 
   it("generates a request id when none is supplied", async () => {
     const result = await firstValueFrom(
-      interceptor.intercept(contextWithHeaders(), handlerReturning("ok")),
+      interceptor.intercept(contextFor(), handlerReturning("ok")),
     );
 
     expect(result.meta.requestId).toHaveLength(36);
@@ -62,7 +130,7 @@ describe("ResponseTransformInterceptor", () => {
     const page = PaginatedResult.of([{ id: "a" }, { id: "b" }], 5, 1, 2);
 
     const result = await firstValueFrom(
-      interceptor.intercept(contextWithHeaders(), handlerReturning(page)),
+      interceptor.intercept(contextFor(), handlerReturning(page)),
     );
 
     expect(result.data).toEqual([{ id: "a" }, { id: "b" }]);
@@ -76,7 +144,7 @@ describe("ResponseTransformInterceptor", () => {
 
   it("normalises an empty controller return to null", async () => {
     const result = await firstValueFrom(
-      interceptor.intercept(contextWithHeaders(), handlerReturning(undefined)),
+      interceptor.intercept(contextFor(), handlerReturning(undefined)),
     );
 
     expect(result.data).toBeNull();

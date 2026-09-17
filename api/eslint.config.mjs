@@ -35,6 +35,11 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
+      // Specs read decorator metadata off a method reference
+      // (`reflector.get(KEY, Controller.prototype.handler)`), the way Nest's
+      // context.getHandler() does. The method is never called, so `this`
+      // cannot be lost.
+      "@typescript-eslint/unbound-method": "off",
     },
   },
 );

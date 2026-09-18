@@ -87,6 +87,18 @@
   /* Every transition-* utility uses ease-farm unless it names another curve. */
   --default-transition-timing-function: var(--ease-farm);
   --animate-rise: farm-rise 620ms var(--ease-farm) both;
+  /* Skeletons only: a calm pulse, not a travelling highlight. */
+  --animate-shimmer: farm-shimmer 1600ms var(--ease-farm) infinite;
+
+  @keyframes farm-shimmer {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
 
   @keyframes farm-rise {
     from {

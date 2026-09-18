@@ -11,7 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // Explicit: node_modules is hoisted to the repo root, so the default would
+    // make every other workspace's @types ambient here.
+    "types": ["node", "jest"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]

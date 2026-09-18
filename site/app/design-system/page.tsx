@@ -6,16 +6,21 @@ import { Button } from "@farmclub/design-system/Button";
 import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { ContactFormShell } from "@/components/ui/ContactFormShell";
 import { CtaBand } from "@/components/ui/CtaBand";
+import { EmptyState } from "@farmclub/design-system/EmptyState";
 import { FaqList } from "@/components/ui/FaqList";
 import { FeatureCard } from "@/components/ui/FeatureCard";
+import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
 import { Icon, iconNames } from "@farmclub/design-system/Icon";
 import { IconDisc } from "@farmclub/design-system/IconDisc";
 import type { DiscTone } from "@farmclub/design-system/IconDisc";
 import { Logo } from "@farmclub/design-system/Logo";
+import { Notice } from "@farmclub/design-system/Notice";
 import { PageHero } from "@/components/ui/PageHero";
+import { ProgressBar } from "@farmclub/design-system/ProgressBar";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SectionLabel } from "@farmclub/design-system/SectionLabel";
+import { Skeleton } from "@farmclub/design-system/Skeleton";
 import { StepJourney } from "@/components/ui/StepJourney";
 import { aboutPageContent } from "@/content/pages/about";
 import { contactPageContent } from "@/content/pages/contact";
@@ -159,13 +164,13 @@ const sections = [
   { id: "journey", label: "Step journey" },
   { id: "faq", label: "FAQ" },
   { id: "forms", label: "Forms" },
+  { id: "states", label: "Loading & empty" },
   { id: "logo", label: "Logo" },
   { id: "heroes", label: "Heroes" },
   { id: "cta", label: "CTA band" },
 ];
 
 const photoCard = platformPageContent.useCases.items[0];
-const labelClass = "text-xs font-semibold text-farm-green-950";
 
 export default function DesignSystemPage() {
   return (
@@ -524,54 +529,55 @@ export default function DesignSystemPage() {
         <Block
           id="forms"
           title="Forms and states"
-          description="Controls use fieldClass from components/ui/form-classes.ts, which builds in the focus, invalid and disabled states. Required fields carry the native required attribute. Static specimens on the left; the live contact form on the right (submit it empty to see the invalid state)."
+          description="Field renders the label, hint, control and error, and hands the control its ids so no call site wires aria-describedby by hand. Controls use fieldClass, which builds in the focus, invalid and disabled states. Static specimens on the left; the live contact form on the right (submit it empty to see the invalid state)."
         >
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
             <div className="grid gap-5">
-              <div className="grid gap-1.5">
-                <label className="grid gap-1.5">
-                  <span className={labelClass}>
-                    Default, required
-                    <span aria-hidden="true" className="text-farm-green-700"> *</span>
-                  </span>
-                  <input className={fieldClass} type="text" placeholder="Full Name" required />
-                </label>
-              </div>
-              <div className="grid gap-1.5">
-                <label className="grid gap-1.5">
-                  <span className={labelClass}>Focused (border shown statically; Tab for the ring)</span>
+              <Field label="Default, required" name="ds-name" required>
+                {({ id }) => (
+                  <input className={fieldClass} id={id} placeholder="Full Name" required type="text" />
+                )}
+              </Field>
+
+              <Field label="Focused (border shown statically; Tab for the ring)" name="ds-focus">
+                {({ id }) => (
                   <input
                     className={fieldClass.replace("border-farm-border-strong", "border-farm-green-700")}
-                    type="text"
                     defaultValue="Example Organisation"
+                    id={id}
+                    type="text"
                   />
-                </label>
-              </div>
-              <div className="grid gap-1.5">
-                <label className="grid gap-1.5">
-                  <span className={labelClass}>Invalid</span>
+                )}
+              </Field>
+
+              <Field label="With a hint" name="ds-password" hint="At least 10 characters.">
+                {({ id, describedBy }) => (
+                  <input aria-describedby={describedBy} className={fieldClass} id={id} type="password" />
+                )}
+              </Field>
+
+              <Field label="Invalid" name="ds-email" error="Enter a valid email address.">
+                {({ id, describedBy, invalid }) => (
                   <input
+                    aria-describedby={describedBy}
+                    aria-invalid={invalid}
                     className={fieldClass}
-                    type="email"
                     defaultValue="name@example"
-                    aria-invalid
-                    aria-describedby="ds-email-error"
+                    id={id}
+                    type="email"
                   />
-                </label>
-                <span id="ds-email-error" className="text-sm font-semibold text-farm-danger">
-                  Enter a valid email address.
-                </span>
-              </div>
-              <div className="grid gap-1.5">
-                <label className="grid gap-1.5">
-                  <span className={labelClass}>Disabled</span>
-                  <input className={fieldClass} type="text" defaultValue="Not editable" disabled />
-                </label>
-              </div>
-              <div className="grid gap-1.5">
-                <label className="grid gap-1.5">
-                  <span className={labelClass}>Select</span>
-                  <select className={fieldClass} defaultValue="">
+                )}
+              </Field>
+
+              <Field label="Disabled" name="ds-disabled">
+                {({ id }) => (
+                  <input className={fieldClass} defaultValue="Not editable" disabled id={id} type="text" />
+                )}
+              </Field>
+
+              <Field label="Select" name="ds-subject">
+                {({ id }) => (
+                  <select className={fieldClass} defaultValue="" id={id}>
                     <option value="" disabled>
                       Select a subject
                     </option>
@@ -581,8 +587,10 @@ export default function DesignSystemPage() {
                       </option>
                     ))}
                   </select>
-                </label>
-              </div>
+                )}
+              </Field>
+
+              {/* A checkbox keeps its own markup: its label wraps its control. */}
               <div className="grid gap-2">
                 <label className="flex items-start gap-3 text-sm leading-6 text-farm-muted">
                   <input className="mt-1 h-4.5 w-4.5 shrink-0 accent-farm-green-800" type="checkbox" />
@@ -602,19 +610,12 @@ export default function DesignSystemPage() {
               </div>
 
               <DemoLabel className="mt-3">Notices</DemoLabel>
-              <p className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-xs leading-6 text-farm-muted">
-                Neutral notice: online delivery is not connected yet.
-              </p>
-              <p className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-sm font-semibold text-farm-info">
-                Busy: checking your message locally…
-              </p>
-              <p className="rounded-button border border-farm-danger-border bg-farm-danger-surface p-3.5 text-sm font-semibold text-farm-danger-strong">
-                Error: review the highlighted fields. Nothing has been sent.
-              </p>
-              <div className="rounded-button border border-farm-success bg-farm-success-surface p-3.5">
-                <p className="text-sm font-semibold text-farm-green-950">Success: your enquiry is complete.</p>
-                <p className="mt-1 text-xs leading-6 text-farm-green-900">Nothing was sent or stored.</p>
-              </div>
+              <Notice tone="info">Neutral notice: online delivery is not connected yet.</Notice>
+              <Notice tone="busy">Busy: checking your message locally…</Notice>
+              <Notice tone="error">Error: review the highlighted fields. Nothing has been sent.</Notice>
+              <Notice tone="success" title="Success: your enquiry is complete.">
+                Nothing was sent or stored.
+              </Notice>
             </div>
 
             <ContactFormShell
@@ -622,6 +623,64 @@ export default function DesignSystemPage() {
               integrationNote={contactPageContent.form.integrationNote}
               requiredNote={contactPageContent.form.requiredNote}
             />
+          </div>
+        </Block>
+
+        <Block
+          id="states"
+          title="Loading, progress and empty states"
+          description="What a screen shows while it waits, how far through something a learner is, and what a list with nothing in it says. Skeleton is aria-hidden, so the region around it announces loading once."
+        >
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="grid gap-6">
+              <div>
+                <DemoLabel>Skeleton: text</DemoLabel>
+                <div className="mt-3 rounded-card border border-farm-border p-5">
+                  <Skeleton variant="text" />
+                </div>
+              </div>
+              <div>
+                <DemoLabel>Skeleton: block</DemoLabel>
+                <div className="mt-3 rounded-card border border-farm-border p-5">
+                  <Skeleton className="h-32" />
+                </div>
+              </div>
+              <div>
+                <DemoLabel>Progress</DemoLabel>
+                <div className="mt-3 grid gap-3 rounded-card border border-farm-border p-5">
+                  <ProgressBar label="Agricultural Entrepreneurship Foundation" value={0} />
+                  <ProgressBar label="Greenhouse Enterprise" value={45} />
+                  <ProgressBar label="Agribusiness Enterprise Accelerator" value={100} />
+                </div>
+                <p className="mt-2 type-caption text-farm-muted">
+                  The figure is printed beside the bar, not carried by width alone. Only ever fed
+                  real platform data.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6">
+              <div>
+                <DemoLabel>Empty state, with an action</DemoLabel>
+                <div className="mt-3">
+                  <EmptyState
+                    action={<ButtonLink href="/contact">Talk to us</ButtonLink>}
+                    description="Once your institution enrols you in a cohort, the pathways you can take appear here."
+                    icon="learn"
+                    title="No pathways yet"
+                  />
+                </div>
+              </div>
+              <div>
+                <DemoLabel>Empty state, no action</DemoLabel>
+                <div className="mt-3">
+                  <EmptyState
+                    description="Nothing has been recorded against this cohort yet."
+                    title="No activity"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </Block>
 

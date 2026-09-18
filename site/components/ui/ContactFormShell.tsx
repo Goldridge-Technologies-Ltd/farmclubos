@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@farmclub/design-system/Button";
+import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
+import { Notice } from "@farmclub/design-system/Notice";
 
 type ContactFormShellProps = {
   enquiryTypes: string[];
@@ -89,39 +91,48 @@ export function ContactFormShell({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" name="name" error={errors.name} required>
-            <input
-              className={fieldClass}
-              type="text"
-              name="name"
-              autoComplete="name"
-              placeholder="Full Name"
-              required
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? "name-error" : undefined}
-            />
+            {({ id, describedBy, invalid }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={invalid}
+                autoComplete="name"
+                className={fieldClass}
+                id={id}
+                name="name"
+                placeholder="Full Name"
+                required
+                type="text"
+              />
+            )}
           </Field>
           <Field label="Email address" name="email" error={errors.email} required>
-            <input
-              className={fieldClass}
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="Email Address"
-              required
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? "email-error" : undefined}
-            />
+            {({ id, describedBy, invalid }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={invalid}
+                autoComplete="email"
+                className={fieldClass}
+                id={id}
+                name="email"
+                placeholder="Email Address"
+                required
+                type="email"
+              />
+            )}
           </Field>
         </div>
 
         <Field label="Organisation / Company" name="organisation">
-          <input
-            className={fieldClass}
-            type="text"
-            name="organisation"
-            autoComplete="organization"
-            placeholder="Organisation / Company"
-          />
+          {({ id }) => (
+            <input
+              autoComplete="organization"
+              className={fieldClass}
+              id={id}
+              name="organisation"
+              placeholder="Organisation / Company"
+              type="text"
+            />
+          )}
         </Field>
 
         <Field
@@ -130,36 +141,40 @@ export function ContactFormShell({
           error={errors.enquiryType}
           required
         >
-          <select
-            className={fieldClass}
-            name="enquiryType"
-            defaultValue=""
-            required
-            aria-invalid={Boolean(errors.enquiryType)}
-            aria-describedby={
-              errors.enquiryType ? "enquiryType-error" : undefined
-            }
-          >
-            <option value="" disabled>
-              Select a subject
-            </option>
-            {enquiryTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
+          {({ id, describedBy, invalid }) => (
+            <select
+              aria-describedby={describedBy}
+              aria-invalid={invalid}
+              className={fieldClass}
+              defaultValue=""
+              id={id}
+              name="enquiryType"
+              required
+            >
+              <option value="" disabled>
+                Select a subject
               </option>
-            ))}
-          </select>
+              {enquiryTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          )}
         </Field>
 
         <Field label="Message" name="message" error={errors.message} required>
-          <textarea
-            className={`${fieldClass} min-h-36 py-3 leading-6`}
-            name="message"
-            placeholder="Message"
-            required
-            aria-invalid={Boolean(errors.message)}
-            aria-describedby={errors.message ? "message-error" : undefined}
-          />
+          {({ id, describedBy, invalid }) => (
+            <textarea
+              aria-describedby={describedBy}
+              aria-invalid={invalid}
+              className={`${fieldClass} min-h-36 py-3 leading-6`}
+              id={id}
+              name="message"
+              placeholder="Message"
+              required
+            />
+          )}
         </Field>
 
         <div>
@@ -200,50 +215,6 @@ export function ContactFormShell({
   );
 }
 
-/*
-  The error sits outside the label so screen readers announce it once (through
-  aria-describedby) rather than again as part of the label.
-*/
-function Field({
-  label,
-  name,
-  error,
-  required = false,
-  children,
-}: {
-  label: string;
-  name: FieldName;
-  error?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="grid gap-1.5">
-        <span className="text-xs font-semibold text-farm-green-950">
-          {label}
-          {required ? (
-            <span aria-hidden="true" className="text-farm-green-700">
-              {" "}
-              *
-            </span>
-          ) : null}
-        </span>
-        {children}
-      </label>
-      {error ? (
-        <span
-          id={`${name}-error`}
-          className="text-sm font-semibold text-farm-danger"
-          role="alert"
-        >
-          {error}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 function FormStatusMessage({
   status,
   integrationNote,
@@ -251,39 +222,20 @@ function FormStatusMessage({
   status: FormStatus;
   integrationNote: string;
 }) {
-  if (status === "idle")
-    return (
-      <p className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-xs leading-6 text-farm-muted">
-        {integrationNote}
-      </p>
-    );
+  if (status === "idle") return <Notice tone="info">{integrationNote}</Notice>;
+
   if (status === "invalid")
     return (
-      <p
-        className="rounded-button border border-farm-danger-border bg-farm-danger-surface p-3.5 text-sm font-semibold text-farm-danger-strong"
-      >
-        Review the highlighted fields. Nothing has been sent.
-      </p>
+      <Notice tone="error">Review the highlighted fields. Nothing has been sent.</Notice>
     );
+
   if (status === "reviewing")
-    return (
-      <p
-        className="rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-sm font-semibold text-farm-info"
-      >
-        Checking your message locally…
-      </p>
-    );
+    return <Notice tone="busy">Checking your message locally…</Notice>;
+
   return (
-    <div
-      className="rounded-button border border-farm-success bg-farm-success-surface p-3.5"
-    >
-      <p className="text-sm font-semibold text-farm-green-950">
-        Your enquiry is complete.
-      </p>
-      <p className="mt-1 text-xs leading-6 text-farm-green-900">
-        Nothing was sent or stored. Email hello@farmclubos.com to reach the team
-        while online delivery is being connected.
-      </p>
-    </div>
+    <Notice tone="success" title="Your enquiry is complete.">
+      Nothing was sent or stored. Email hello@farmclubos.com to reach the team
+      while online delivery is being connected.
+    </Notice>
   );
 }

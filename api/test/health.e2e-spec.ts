@@ -18,12 +18,13 @@ const asFailure = (body: unknown) => body as ApiErrorResponse;
 */
 describe("Health (e2e)", () => {
   let app: INestApplication;
+  let unreachable = false;
 
   beforeAll(async () => {
     ({ app } = await createTestApp({
       imports: [HealthModule],
       overrides: [
-        { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(true) } },
+        { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(!unreachable) } },
       ],
     }));
   });
@@ -65,6 +66,20 @@ describe("Health (e2e)", () => {
       data: { status: "ok", checks: { database: "ok" } },
       meta: { statusCode: 200 },
     });
+  });
+
+  it("GET /health/ready answers 503 when the database is unreachable", async () => {
+    unreachable = true;
+
+    const response = await request(app.getHttpServer()).get("/health/ready").expect(503);
+
+    expect(asFailure(response.body)).toMatchObject({
+      success: false,
+      error: { code: "NOT_READY", details: { database: "down" } },
+      meta: { statusCode: 503 },
+    });
+
+    unreachable = false;
   });
 
   /*

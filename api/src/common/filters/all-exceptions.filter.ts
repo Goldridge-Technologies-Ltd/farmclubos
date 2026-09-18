@@ -25,6 +25,7 @@ const CODE_BY_STATUS: Record<number, string> = {
   [HttpStatus.UNPROCESSABLE_ENTITY]: "UNPROCESSABLE_ENTITY",
   [HttpStatus.TOO_MANY_REQUESTS]: "TOO_MANY_REQUESTS",
   [HttpStatus.INTERNAL_SERVER_ERROR]: "INTERNAL_ERROR",
+  [HttpStatus.SERVICE_UNAVAILABLE]: "SERVICE_UNAVAILABLE",
 };
 
 @Catch()
@@ -89,8 +90,14 @@ function describe(
 ): { code: string; message: string; details?: unknown } {
   const fallbackCode = CODE_BY_STATUS[status] ?? "ERROR";
 
-  if (status >= SERVER_ERROR) {
-    return { code: fallbackCode, message: "Something went wrong." };
+  /*
+    Anything that is not a deliberate HttpException — or is a bare 500 — is our
+    bug, and its message may describe our internals, so the caller is told
+    nothing. Other statuses, 503 from a readiness probe included, are answers
+    we chose to give, so their payload is passed through.
+  */
+  if (!(exception instanceof HttpException) || status === SERVER_ERROR) {
+    return { code: "INTERNAL_ERROR", message: "Something went wrong." };
   }
 
   if (exception instanceof HttpException) {
@@ -103,6 +110,7 @@ function describe(
     const body = payload as {
       code?: unknown;
       message?: unknown;
+      details?: unknown;
       error?: unknown;
     };
 
@@ -118,8 +126,9 @@ function describe(
 
     return {
       code: typeof body.code === "string" ? body.code : fallbackCode,
-      message:
-        typeof body.message === "string" ? body.message : exception.message,
+      message: typeof body.message === "string" ? body.message : exception.message,
+      // An exception may carry its own detail, such as which dependency is down.
+      details: body.details,
     };
   }
 

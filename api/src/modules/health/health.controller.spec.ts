@@ -59,6 +59,18 @@ describe("HealthController", () => {
     });
   });
 
+  it("fails the probe when a dependency is down, so orchestrators pull the instance", async () => {
+    service.checkReadiness.mockResolvedValue({
+      status: "degraded",
+      checks: { database: "down" },
+    });
+
+    await expect(controller.getReadiness()).rejects.toMatchObject({
+      status: 503,
+      response: { code: "NOT_READY", details: { database: "down" } },
+    });
+  });
+
   it("returns the service's readiness result unwrapped", async () => {
     service.checkReadiness.mockResolvedValue({ status: "ok", checks: {} });
 

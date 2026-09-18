@@ -48,6 +48,19 @@ gitignored — edit the originals. To refresh them by hand:
 npm run sync-brand --workspace webapp
 ```
 
+### Health probes
+
+`GET /health` says the process is up. `GET /health/ready` says whether it can
+serve traffic, and answers **503** when a dependency is unreachable, naming it
+in `error.details` — load balancers, Render and Docker read the status code,
+not the body, so a 200 saying "degraded" would keep sending traffic to a
+broken instance.
+
+Both sit outside the `/api` prefix and need no token, so a probe does not have
+to know either. The API starts even when the database is unreachable and
+reports not-ready until it returns, so a transient outage does not fail a
+deploy.
+
 ### The API is an ESM package
 
 NestJS 12 ships ESM only, so `api/` sets `"type": "module"`. Relative imports

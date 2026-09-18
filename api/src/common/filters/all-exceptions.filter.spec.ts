@@ -4,8 +4,10 @@ import type {
 import {
   BadRequestException,
   HttpStatus,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
 import type { ApiErrorResponse } from "../http/api-response.js";
@@ -109,6 +111,36 @@ describe("AllExceptionsFilter", () => {
     expect(captured.body?.error).toEqual({
       code: "INVALID_CREDENTIALS",
       message: "Invalid email or password.",
+    });
+  });
+
+  it("passes a deliberate 503 through with its code and detail", () => {
+    filter.catch(
+      new ServiceUnavailableException({
+        code: "NOT_READY",
+        message: "One or more dependencies are unavailable.",
+        details: { database: "down" },
+      }),
+      hostCapturing(captured),
+    );
+
+    expect(captured.status).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+    expect(captured.body?.error).toEqual({
+      code: "NOT_READY",
+      message: "One or more dependencies are unavailable.",
+      details: { database: "down" },
+    });
+  });
+
+  it("still hides the message of a 500, even a deliberate one", () => {
+    filter.catch(
+      new InternalServerErrorException("connect ECONNREFUSED 127.0.0.1:5432"),
+      hostCapturing(captured),
+    );
+
+    expect(captured.body?.error).toEqual({
+      code: "INTERNAL_ERROR",
+      message: "Something went wrong.",
     });
   });
 

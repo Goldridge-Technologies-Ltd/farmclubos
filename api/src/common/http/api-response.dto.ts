@@ -42,9 +42,11 @@ export class ApiErrorDto {
   message: string;
 
   @ApiPropertyOptional({
-    type: [String],
+    description:
+      "Extra detail when the error has any: the failed validation messages, " +
+      "or which dependency a readiness probe found unavailable.",
+    oneOf: [{ type: "array", items: { type: "string" } }, { type: "object" }],
     example: ["email must be an email"],
-    description: "Present when the request failed validation.",
   })
-  details?: string[];
+  details?: string[] | Record<string, unknown>;
 }

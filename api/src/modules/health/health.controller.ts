@@ -1,4 +1,10 @@
-import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { Public } from "../../common/decorators/public.decorator.js";
@@ -31,13 +37,32 @@ export class HealthController {
   @CustomMessage("Readiness checks completed")
   @ApiOperation({
     summary: "Readiness probe",
-    description: "Reports whether every dependency the API needs is reachable.",
+    description:
+      "Reports whether every dependency the API needs is reachable. Answers 503 when one is not.",
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: "Every registered dependency check passed.",
   })
-  getReadiness(): Promise<ReadinessResult> {
-    return this.health.checkReadiness();
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description:
+      "NOT_READY: a dependency is unreachable. `error.details` names which. " +
+      "Orchestrators read the status code, so this takes the instance out of rotation.",
+  })
+  async getReadiness(): Promise<ReadinessResult> {
+    const result = await this.health.checkReadiness();
+
+    // The status code is the part a load balancer, Render or Docker reads; a
+    // 200 saying "degraded" in its body would keep sending traffic here.
+    if (result.status === "degraded") {
+      throw new ServiceUnavailableException({
+        code: "NOT_READY",
+        message: "One or more dependencies are unavailable.",
+        details: result.checks,
+      });
+    }
+
+    return result;
   }
 }

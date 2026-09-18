@@ -89,6 +89,8 @@ Installed with husky when you run `npm install`:
   yet (such as `api/` before it is scaffolded) is skipped.
 - **commit-msg** — checks the Conventional Commits format described in
   `CONTRIBUTING.md`.
+- **pre-commit** also scans every staged file for credentials, so a real value
+  cannot reach a committed `.env.example`. See "Secrets" in `CONTRIBUTING.md`.
 
 Don't bypass them with `--no-verify`. If a hook is wrong, fix the hook.
 

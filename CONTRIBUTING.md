@@ -41,6 +41,23 @@ A change that crosses apps — an API contract that `webapp/` consumes, or a
 shared component used by both front ends — belongs in **one** commit, with
 both sides updated.
 
+## Secrets
+
+Never commit a credential. Real values live in `api/.env` and `webapp/.env.local`,
+which are gitignored; the committed `.env.example` files list every variable
+with an **empty** value, so a new developer knows what to set without being
+handed a key.
+
+A pre-commit check (`scripts/check-secrets.mjs`) rejects a staged file that
+holds something credential-shaped: a non-empty value on a name containing
+secret, password, token or key; a private key block; or a high-entropy value in
+a `.env*` file. Readable test constants are fine. If a match really is not a
+credential, add a trailing `allowlist secret` comment to that line rather than
+bypassing the hook.
+
+If a secret is committed, **rotate it first** — rewriting history does not
+reliably remove it from the remote.
+
 ## Local development
 
 See [`docs/guides/local-dev.md`](docs/guides/local-dev.md) for the full

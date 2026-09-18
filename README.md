@@ -11,7 +11,7 @@ CONNECT · EMPOWER · GROW
 |---|---|
 | `site/` | Public website (Next.js, static-first) |
 | `webapp/` | Authenticated web app (Next.js), currently a scaffold |
-| `api/` | Backend API, not started |
+| `api/` | Backend API (NestJS 12) |
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI components |
 | `docs/` | Design system, content rules and reference artwork; `docs/site/` holds the website's docs |
 
@@ -28,6 +28,7 @@ Run an app:
 ```bash
 npm run dev:site     # http://localhost:3000
 npm run dev:webapp   # http://localhost:3001
+npm run dev:api      # http://localhost:4000
 ```
 
 The site's live design-system reference is at
@@ -35,11 +36,12 @@ The site's live design-system reference is at
 
 ## Quality checks
 
-Each command runs in every workspace; add `--workspace <site|webapp>` for one.
+Each command runs in every workspace; add `--workspace <name>` for one.
 
 ```bash
 npm run lint
 npm run type-check
+npm test
 npm run build
 ```
 

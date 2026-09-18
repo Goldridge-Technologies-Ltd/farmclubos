@@ -1,0 +1,38 @@
+# Optional local infrastructure. Development against Supabase needs none of
+# this — it exists for working offline and for the VPS deployment target, where
+# Postgres runs beside the API rather than as a managed service.
+#
+#   docker compose up -d postgres   # then point DATABASE_URL at it
+#   docker compose up -d mailpit    # catches invite emails, UI on :8025
+services:
+  postgres:
+    # Pin to the major version Supabase runs, so local and hosted agree.
+    image: postgres:17-alpine
+    container_name: farmclub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: farmclub
+      POSTGRES_PASSWORD: farmclub
+      POSTGRES_DB: farmclub
+    ports:
+      - "5432:5432"
+    volumes:
+      - farmclub-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmclub -d farmclub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # A local SMTP sink, so invite and password-reset emails can be read without
+  # sending anything. The API's `log` mail driver needs no container at all.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: farmclub-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  farmclub-postgres-data:

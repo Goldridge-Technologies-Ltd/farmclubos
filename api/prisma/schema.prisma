@@ -1,0 +1,1349 @@
+/*
+  FARMCLUB OS — Phase 1 domain schema.
+
+  Modelled on the business domain (institutions, learners, pathways, practical
+  experience, competency, enterprise), not on screens, as api/AGENTS.md
+  requires. Every Phase 1 capability from the MVP plan has its tables here even
+  where the endpoints come in a later milestone, so no later change has to
+  reshape the core.
+
+  Conventions:
+  - IDs are UUIDv7: time-ordered, so they index well and stay safe in a URL.
+  - Every model carries createdAt and updatedAt.
+  - "Hide but keep" is `archivedAt`. Everything else uses a status enum, and
+    attempts, progress, attendance, verifications, credentials, messages and
+    audit rows are append-only.
+  - Tenant-owned rows carry `institutionId`; every service query filters on the
+    institution from the access token.
+  - The Academy catalogue (Pathway, PathwayModule, Lesson, Assessment,
+    Competency, CredentialTemplate) is authored by FARMCLUB and shared by every
+    institution, so it has no `institutionId`.
+
+  Content guardrail (AGENTS.md): estimatedHours, durationMinutes, capacity and
+  ReportSnapshot.payload are columns whose seeded values would read as real
+  platform figures. The seed leaves every one of them null, and seeds no
+  Institution and no ExperienceSite.
+*/
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Tenancy and identity ────────────────────────────────────────────────────
+
+enum PlatformRole {
+  PLATFORM_ADMIN
+  CONTENT_MANAGER
+  NONE
+}
+
+enum InstitutionType {
+  SCHOOL
+  TECHNICAL_COLLEGE
+  UNIVERSITY
+  YOUTH_PROGRAMME
+  GOVERNMENT_AGENCY
+  DEVELOPMENT_PARTNER
+  ENTERPRISE
+  OTHER
+}
+
+enum InstitutionStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum InstitutionRole {
+  INSTITUTION_ADMIN
+  FACILITATOR
+  MENTOR
+  LEARNER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  LEFT
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+model Institution {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  slug         String            @unique
+  name         String
+  type         InstitutionType
+  status       InstitutionStatus @default(PENDING)
+  contactEmail String
+  contactPhone String?
+  website      String?
+  addressLine  String?
+  city         String?
+  country      String?
+  archivedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  memberships   Membership[]
+  invites       Invite[]
+  authSessions  AuthSession[]
+  cohorts       Cohort[]
+  enrolments    Enrolment[]
+  sites         ExperienceSite[]
+  bookings      Booking[]
+  attendance    AttendanceRecord[]
+  verifications CompetencyVerification[]
+  credentials   Credential[]
+  engagements   MentorshipEngagement[]
+  enterprises   EnterpriseProfile[]
+  projects      EnterpriseProject[]
+  reports       ReportSnapshot[]
+  auditEvents   AuditEvent[]
+  emails        EmailMessage[]
+
+  @@index([status])
+}
+
+model User {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  /// Stored lower-cased; the application normalises before writing.
+  email           String       @unique
+  /// Null until an invite is accepted or a password is set.
+  passwordHash    String?
+  firstName       String
+  lastName        String
+  platformRole    PlatformRole @default(NONE)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  /// Users are never hard-deleted: credentials and attendance reference them.
+  deactivatedAt   DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  memberships        Membership[]
+  learnerProfile     LearnerProfile?
+  mentorProfile      MentorProfile?
+  authSessions       AuthSession[]
+  passwordResets     PasswordResetToken[]
+  auditEvents        AuditEvent[]
+  invitesSent        Invite[]                  @relation("InviteInvitedBy")
+  inviteAccepted     Invite[]                  @relation("InviteAcceptedBy")
+  cohortsFacilitated CohortFacilitator[]
+  enrolments         Enrolment[]
+  siteRoles          SiteStaff[]
+  sessionsLed        ActivitySession[]
+  bookings           Booking[]
+  attendance         AttendanceRecord[]        @relation("AttendanceLearner")
+  attendanceRecorded AttendanceRecord[]        @relation("AttendanceRecordedBy")
+  verifications      CompetencyVerification[]  @relation("VerificationLearner")
+  verificationsGiven CompetencyVerification[]  @relation("VerificationVerifier")
+  evidenceUploaded   VerificationEvidence[]
+  credentials        Credential[]
+  mentorships        MentorshipEngagement[]    @relation("EngagementMentor")
+  mentorshipsAsLearner MentorshipEngagement[]  @relation("EngagementLearner")
+  messages           MentorshipMessage[]
+  messageReads       MentorshipMessageRead[]
+  enterprises        EnterpriseProfile[]
+  documentsUploaded  EnterpriseProjectDocument[]
+  stateChanges       LearnerStateChange[]
+  emails             EmailMessage[]
+
+  @@index([deactivatedAt])
+}
+
+model Membership {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  userId        String           @db.Uuid
+  institutionId String           @db.Uuid
+  role          InstitutionRole
+  status        MembershipStatus @default(INVITED)
+  /// The institution's own identifier for this person, such as a matric number.
+  externalReference String?
+  department    String?
+  programme     String?
+  joinedAt      DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, institutionId])
+  @@index([institutionId, role])
+  @@index([institutionId, status])
+}
+
+model Invite {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  institutionId String          @db.Uuid
+  email         String
+  role          InstitutionRole
+  /// sha256 of the token; the token itself is only ever in the email.
+  tokenHash     String          @unique
+  status        InviteStatus    @default(PENDING)
+  expiresAt     DateTime
+  invitedById   String          @db.Uuid
+  acceptedAt    DateTime?
+  acceptedById  String?         @db.Uuid
+  revokedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  invitedBy   User        @relation("InviteInvitedBy", fields: [invitedById], references: [id])
+  acceptedBy  User?       @relation("InviteAcceptedBy", fields: [acceptedById], references: [id])
+
+  @@index([institutionId, email])
+  @@index([status, expiresAt])
+}
+
+model AuthSession {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  /// Every refresh token descended from one sign-in shares a family, so
+  /// detecting a replayed token can revoke the whole family at once.
+  familyId     String    @db.Uuid
+  tokenHash    String    @unique
+  issuedAt     DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?   @unique @db.Uuid
+  /// The institution this session is working in. Carried forward on every
+  /// rotation, so a refresh keeps the user where they switched to.
+  activeInstitutionId String? @db.Uuid
+  /// Informational only, never used for a security decision: behind the web
+  /// app these describe the forwarded client, which a caller can set.
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy        AuthSession? @relation("SessionRotation", fields: [replacedById], references: [id])
+  replaces          AuthSession? @relation("SessionRotation")
+  activeInstitution Institution? @relation(fields: [activeInstitutionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditEvent {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  institutionId String?  @db.Uuid
+  actorUserId   String?  @db.Uuid
+  action        String
+  entityType    String
+  entityId      String?
+  metadata      Json?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  actor       User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, createdAt])
+  @@index([entityType, entityId])
+}
+
+// ─── Learner ─────────────────────────────────────────────────────────────────
+
+/// The three states the MVP is designed to test.
+enum UserState {
+  EXPLORER
+  EMERGING_ENTREPRENEUR
+  EXISTING_ENTERPRISE
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum EducationLevel {
+  PRIMARY
+  SECONDARY
+  TECHNICAL
+  UNDERGRADUATE
+  POSTGRADUATE
+  OTHER
+}
+
+enum EmploymentStatus {
+  STUDENT
+  EMPLOYED
+  SELF_EMPLOYED
+  UNEMPLOYED
+  OTHER
+}
+
+model LearnerProfile {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  userId           String            @unique @db.Uuid
+  state            UserState         @default(EXPLORER)
+  phone            String?
+  dateOfBirth      DateTime?         @db.Date
+  gender           Gender?
+  educationLevel   EducationLevel?
+  employmentStatus EmploymentStatus?
+  location         String?
+  bio              String?
+  goals            String?
+  avatarUrl        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stateChanges LearnerStateChange[]
+
+  @@index([state])
+}
+
+model LearnerStateChange {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  learnerProfileId String    @db.Uuid
+  fromState       UserState?
+  toState         UserState
+  reason          String?
+  changedById     String?    @db.Uuid
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  learnerProfile LearnerProfile @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  changedBy      User?          @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([learnerProfileId, createdAt])
+}
+
+// ─── Academy catalogue ───────────────────────────────────────────────────────
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+/// Whether the content itself has been written, as distinct from whether the
+/// record is published. A seeded outline is PLACEHOLDER until someone authors it.
+enum AuthoringStatus {
+  PLACEHOLDER
+  IN_REVIEW
+  AUTHORED
+}
+
+enum PathwayLevel {
+  FOUNDATION
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LessonKind {
+  TEXT
+  VIDEO
+  DOWNLOAD
+  PRACTICAL
+}
+
+enum AssessmentKind {
+  QUIZ
+  SUBMISSION
+  PRACTICAL
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model Pathway {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  slug        String          @unique
+  title       String
+  summary     String
+  description String?
+  level       PathwayLevel    @default(FOUNDATION)
+  status      PublishStatus   @default(DRAFT)
+  /// Never seeded: a figure here would read as a real platform claim.
+  estimatedHours Int?
+  sequence    Int
+  archivedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  modules     PathwayModule[]
+  cohorts     Cohort[]
+  competencies Competency[]
+  activities  Activity[]
+  credentialTemplates CredentialTemplate[]
+
+  @@index([status, sequence])
+}
+
+model PathwayModule {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  pathwayId  String        @db.Uuid
+  slug       String
+  title      String
+  summary    String?
+  sequence   Int
+  status     PublishStatus @default(DRAFT)
+  archivedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  pathway     Pathway          @relation(fields: [pathwayId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  assessments Assessment[]
+  progress    ModuleProgress[]
+  activities  Activity[]
+
+  @@unique([pathwayId, slug])
+  @@index([pathwayId, sequence])
+}
+
+model Lesson {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  moduleId   String          @db.Uuid
+  slug       String
+  title      String
+  summary    String?
+  /// Null while the lesson is a seeded outline awaiting authoring.
+  body       String?
+  kind       LessonKind      @default(TEXT)
+  authoringStatus AuthoringStatus @default(PLACEHOLDER)
+  /// Never seeded: see the guardrail note at the top of this file.
+  durationMinutes Int?
+  sequence   Int
+  status     PublishStatus   @default(DRAFT)
+  archivedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  module   PathwayModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId, sequence])
+}
+
+model Assessment {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  moduleId        String          @db.Uuid
+  slug            String
+  title           String
+  instructions    String?
+  kind            AssessmentKind  @default(QUIZ)
+  authoringStatus AuthoringStatus @default(PLACEHOLDER)
+  passMarkPercent Int             @default(70)
+  maxAttempts     Int?
+  timeLimitMinutes Int?
+  sequence        Int             @default(1)
+  status          PublishStatus   @default(DRAFT)
+  archivedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  module    PathwayModule        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions AssessmentQuestion[]
+  attempts  AssessmentAttempt[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId, sequence])
+}
+
+model AssessmentQuestion {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  assessmentId String       @db.Uuid
+  prompt       String
+  helpText     String?
+  type         QuestionType @default(SINGLE_CHOICE)
+  points       Int          @default(1)
+  sequence     Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  options    AssessmentOption[]
+  responses  AssessmentResponse[]
+
+  @@index([assessmentId, sequence])
+}
+
+model AssessmentOption {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  questionId String   @db.Uuid
+  label      String
+  /// Never leaves the API: no DTO exposes this field to a learner.
+  isCorrect  Boolean  @default(false)
+  sequence   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  question  AssessmentQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  responses AssessmentResponseOption[]
+
+  @@index([questionId, sequence])
+}
+
+// ─── Cohorts and progress ────────────────────────────────────────────────────
+
+enum DeliveryMode {
+  ONLINE
+  BLENDED
+  IN_PERSON
+}
+
+enum CohortStatus {
+  PLANNED
+  OPEN
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum FacilitatorRole {
+  LEAD
+  ASSISTANT
+}
+
+enum EnrolmentStatus {
+  INVITED
+  ACTIVE
+  COMPLETED
+  WITHDRAWN
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  ABANDONED
+}
+
+model Cohort {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  institutionId String       @db.Uuid
+  pathwayId     String       @db.Uuid
+  name          String
+  /// The institution's own code for this intake.
+  code          String?
+  status        CohortStatus @default(PLANNED)
+  deliveryMode  DeliveryMode @default(BLENDED)
+  startsOn      DateTime?    @db.Date
+  endsOn        DateTime?    @db.Date
+  /// Never seeded: see the guardrail note at the top of this file.
+  capacity      Int?
+  archivedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  institution  Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  pathway      Pathway             @relation(fields: [pathwayId], references: [id])
+  facilitators CohortFacilitator[]
+  enrolments   Enrolment[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId, status])
+  @@index([pathwayId])
+}
+
+model CohortFacilitator {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  cohortId  String          @db.Uuid
+  userId    String          @db.Uuid
+  role      FacilitatorRole @default(LEAD)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId])
+}
+
+model Enrolment {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  cohortId      String          @db.Uuid
+  userId        String          @db.Uuid
+  /// Denormalised from the cohort so every tenant-scoped query has one filter.
+  institutionId String          @db.Uuid
+  status        EnrolmentStatus @default(INVITED)
+  /// Derived from completed lessons; never seeded, never illustrative.
+  progressPercent Int           @default(0)
+  enrolledAt    DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  withdrawnAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  cohort         Cohort              @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution    Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  lessonProgress LessonProgress[]
+  moduleProgress ModuleProgress[]
+  attempts       AssessmentAttempt[]
+  bookings       Booking[]
+  verifications  CompetencyVerification[]
+  credentials    Credential[]
+
+  @@unique([cohortId, userId])
+  @@index([institutionId, status])
+  @@index([userId])
+}
+
+model LessonProgress {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  enrolmentId      String         @db.Uuid
+  lessonId         String         @db.Uuid
+  status           ProgressStatus @default(NOT_STARTED)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  timeSpentSeconds Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  enrolment Enrolment @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrolmentId, lessonId])
+  @@index([enrolmentId, status])
+}
+
+model ModuleProgress {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  enrolmentId String         @db.Uuid
+  moduleId    String         @db.Uuid
+  status      ProgressStatus @default(NOT_STARTED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  enrolment Enrolment     @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  module    PathwayModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([enrolmentId, moduleId])
+}
+
+model AssessmentAttempt {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  enrolmentId   String        @db.Uuid
+  assessmentId  String        @db.Uuid
+  attemptNumber Int
+  status        AttemptStatus @default(IN_PROGRESS)
+  startedAt     DateTime      @default(now())
+  submittedAt   DateTime?
+  gradedAt      DateTime?
+  scorePercent  Int?
+  passed        Boolean?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  enrolment  Enrolment            @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  responses  AssessmentResponse[]
+
+  @@unique([enrolmentId, assessmentId, attemptNumber])
+  @@index([assessmentId, status])
+}
+
+model AssessmentResponse {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  attemptId     String   @db.Uuid
+  questionId    String   @db.Uuid
+  textAnswer    String?
+  isCorrect     Boolean?
+  pointsAwarded Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attempt         AssessmentAttempt          @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        AssessmentQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptions AssessmentResponseOption[]
+
+  @@unique([attemptId, questionId])
+}
+
+model AssessmentResponseOption {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  responseId String   @db.Uuid
+  optionId   String   @db.Uuid
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  response AssessmentResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  option   AssessmentOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, optionId])
+}
+
+// ─── Experience network ──────────────────────────────────────────────────────
+//
+// "Learn digitally, practise locally, verify consistently, scale without owning
+// every facility." A site may be a FARMCLUB hub, a university facility, a
+// partner farm, a training centre, an employer or a certified partner hub; the
+// Reference Hub coordinates standards and verification.
+
+enum ExperienceFunction {
+  LEARN
+  PRACTISE
+  BUILD
+}
+
+enum SiteKind {
+  OWNED_HUB
+  UNIVERSITY_FACILITY
+  PARTNER_FARM
+  TRAINING_CENTRE
+  EMPLOYER
+  CERTIFIED_PARTNER_HUB
+}
+
+enum AccreditationStatus {
+  PROSPECTIVE
+  IN_REVIEW
+  ACCREDITED
+  SUSPENDED
+}
+
+enum SiteRole {
+  SITE_MANAGER
+  SITE_FACILITATOR
+  VERIFIER
+}
+
+enum ActivityKind {
+  DEMONSTRATION
+  PRACTICAL
+  WORKSHOP
+  ASSESSMENT
+  MENTORING
+}
+
+enum SessionStatus {
+  SCHEDULED
+  OPEN
+  FULL
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  REQUESTED
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  PARTIAL
+  ABSENT
+  EXCUSED
+}
+
+enum AttendanceMethod {
+  FACILITATOR
+  QR_CODE
+  SELF_REPORTED
+}
+
+model ExperienceSite {
+  id                  String              @id @default(uuid(7)) @db.Uuid
+  /// Null when the site is FARMCLUB's own or an independent partner's rather
+  /// than belonging to one institution.
+  institutionId       String?             @db.Uuid
+  slug                String              @unique
+  name                String
+  kind                SiteKind
+  accreditationStatus AccreditationStatus @default(PROSPECTIVE)
+  /// The site that coordinates standards, evidence and verification.
+  isReferenceHub      Boolean             @default(false)
+  description         String?
+  addressLine         String?
+  city                String?
+  country             String?
+  /// Never seeded: see the guardrail note at the top of this file.
+  capacity            Int?
+  contactEmail        String?
+  contactPhone        String?
+  archivedAt          DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  institution   Institution?            @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  functions     SiteFunction[]
+  staff         SiteStaff[]
+  activities    Activity[]
+  sessions      ActivitySession[]
+  verifications CompetencyVerification[]
+
+  @@index([kind, accreditationStatus])
+  @@index([institutionId])
+}
+
+model SiteFunction {
+  id        String             @id @default(uuid(7)) @db.Uuid
+  siteId    String             @db.Uuid
+  function  ExperienceFunction
+  notes     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  site ExperienceSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, function])
+}
+
+model SiteStaff {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  siteId    String   @db.Uuid
+  userId    String   @db.Uuid
+  role      SiteRole @default(SITE_FACILITATOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site ExperienceSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId])
+}
+
+model Activity {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  siteId          String             @db.Uuid
+  /// Optional links back to the catalogue, when an activity practises a
+  /// specific pathway or module.
+  pathwayId       String?            @db.Uuid
+  moduleId        String?            @db.Uuid
+  slug            String
+  title           String
+  summary         String?
+  kind            ActivityKind       @default(PRACTICAL)
+  function        ExperienceFunction @default(PRACTISE)
+  durationMinutes Int?
+  status          PublishStatus      @default(DRAFT)
+  archivedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  site     ExperienceSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  pathway  Pathway?          @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+  module   PathwayModule?    @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  sessions ActivitySession[]
+
+  @@unique([siteId, slug])
+  @@index([pathwayId])
+}
+
+model ActivitySession {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  activityId   String        @db.Uuid
+  siteId       String        @db.Uuid
+  startsAt     DateTime
+  endsAt       DateTime
+  capacity     Int?
+  status       SessionStatus @default(SCHEDULED)
+  facilitatorId String?      @db.Uuid
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  activity    Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  site        ExperienceSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  facilitator User?          @relation(fields: [facilitatorId], references: [id], onDelete: SetNull)
+  bookings    Booking[]
+  attendance  AttendanceRecord[]
+
+  @@index([siteId, startsAt])
+  @@index([activityId, status])
+}
+
+model Booking {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  sessionId          String        @db.Uuid
+  userId             String        @db.Uuid
+  institutionId      String        @db.Uuid
+  enrolmentId        String?       @db.Uuid
+  status             BookingStatus @default(REQUESTED)
+  bookedAt           DateTime      @default(now())
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  session     ActivitySession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  enrolment   Enrolment?        @relation(fields: [enrolmentId], references: [id], onDelete: SetNull)
+  attendance  AttendanceRecord?
+
+  @@unique([sessionId, userId])
+  @@index([institutionId, status])
+  @@index([userId])
+}
+
+model AttendanceRecord {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  bookingId     String           @unique @db.Uuid
+  sessionId     String           @db.Uuid
+  userId        String           @db.Uuid
+  institutionId String           @db.Uuid
+  status        AttendanceStatus
+  method        AttendanceMethod @default(FACILITATOR)
+  recordedById  String           @db.Uuid
+  recordedAt    DateTime         @default(now())
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  booking     Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  session     ActivitySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User            @relation("AttendanceLearner", fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  recordedBy  User            @relation("AttendanceRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([institutionId, recordedAt])
+  @@index([userId])
+}
+
+// ─── Competency and credentials ──────────────────────────────────────────────
+
+enum CompetencyLevel {
+  FOUNDATION
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum VerificationStatus {
+  NOT_STARTED
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationMethod {
+  OBSERVATION
+  EVIDENCE_REVIEW
+  ASSESSMENT
+}
+
+enum EvidenceKind {
+  PHOTO
+  DOCUMENT
+  VIDEO
+  NOTE
+}
+
+enum CredentialKind {
+  CERTIFICATE
+  COMPETENCY_BADGE
+}
+
+model Competency {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  slug        String          @unique
+  title       String
+  description String?
+  level       CompetencyLevel @default(FOUNDATION)
+  pathwayId   String?         @db.Uuid
+  status      PublishStatus   @default(DRAFT)
+  archivedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  pathway       Pathway?                 @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+  criteria      CompetencyCriterion[]
+  verifications CompetencyVerification[]
+  credentialTemplates CredentialTemplate[]
+
+  @@index([pathwayId, status])
+}
+
+model CompetencyCriterion {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  competencyId String   @db.Uuid
+  description  String
+  sequence     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@index([competencyId, sequence])
+}
+
+model CompetencyVerification {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  competencyId  String             @db.Uuid
+  userId        String             @db.Uuid
+  institutionId String             @db.Uuid
+  enrolmentId   String?            @db.Uuid
+  /// Where it was demonstrated: a hub, a partner farm, a university facility.
+  siteId        String?            @db.Uuid
+  status        VerificationStatus @default(NOT_STARTED)
+  method        VerificationMethod @default(OBSERVATION)
+  verifiedById  String?            @db.Uuid
+  verifiedAt    DateTime?
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  competency  Competency             @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  user        User                   @relation("VerificationLearner", fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution            @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  enrolment   Enrolment?             @relation(fields: [enrolmentId], references: [id], onDelete: SetNull)
+  site        ExperienceSite?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  verifiedBy  User?                  @relation("VerificationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  evidence    VerificationEvidence[]
+
+  @@unique([competencyId, userId, institutionId])
+  @@index([institutionId, status])
+  @@index([userId])
+}
+
+model VerificationEvidence {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  verificationId String       @db.Uuid
+  kind           EvidenceKind @default(NOTE)
+  fileUrl        String?
+  note           String?
+  uploadedById   String       @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  verification CompetencyVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  uploadedBy   User                   @relation(fields: [uploadedById], references: [id])
+
+  @@index([verificationId])
+}
+
+/// Named Credential rather than Badge: Badge is a shared UI component that the
+/// design system forbids using for claims such as "Verified".
+model CredentialTemplate {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  slug         String         @unique
+  title        String
+  description  String?
+  kind         CredentialKind @default(CERTIFICATE)
+  pathwayId    String?        @db.Uuid
+  competencyId String?        @db.Uuid
+  status       PublishStatus  @default(DRAFT)
+  archivedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  pathway     Pathway?     @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+  competency  Competency?  @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  credentials Credential[]
+}
+
+model Credential {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  templateId    String    @db.Uuid
+  userId        String    @db.Uuid
+  institutionId String    @db.Uuid
+  enrolmentId   String?   @db.Uuid
+  /// Printed on the certificate and used for public verification.
+  serial        String    @unique
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  template    CredentialTemplate @relation(fields: [templateId], references: [id])
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  enrolment   Enrolment?         @relation(fields: [enrolmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, issuedAt])
+  @@index([institutionId, issuedAt])
+}
+
+// ─── Mentorship ──────────────────────────────────────────────────────────────
+
+enum EngagementStatus {
+  REQUESTED
+  ACTIVE
+  ENDED
+  DECLINED
+}
+
+enum ThreadStatus {
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+model MentorProfile {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  userId       String        @unique @db.Uuid
+  headline     String?
+  bio          String?
+  expertise    String[]
+  availability String?
+  status       PublishStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MentorshipEngagement {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  mentorId      String           @db.Uuid
+  learnerId     String           @db.Uuid
+  institutionId String           @db.Uuid
+  status        EngagementStatus @default(REQUESTED)
+  focus         String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  mentor      User                @relation("EngagementMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  learner     User                @relation("EngagementLearner", fields: [learnerId], references: [id], onDelete: Cascade)
+  institution Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  threads     MentorshipThread[]
+
+  @@unique([mentorId, learnerId, institutionId])
+  @@index([institutionId, status])
+}
+
+model MentorshipThread {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  engagementId  String       @db.Uuid
+  subject       String
+  status        ThreadStatus @default(OPEN)
+  lastMessageAt DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  engagement MentorshipEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  messages   MentorshipMessage[]
+
+  @@index([engagementId, lastMessageAt])
+}
+
+model MentorshipMessage {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  threadId  String   @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  thread MentorshipThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reads  MentorshipMessageRead[]
+
+  @@index([threadId, createdAt])
+}
+
+model MentorshipMessageRead {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  readAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  message MentorshipMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+// ─── Enterprise ──────────────────────────────────────────────────────────────
+
+enum EnterpriseStage {
+  IDEA
+  PROTOTYPE
+  EARLY_REVENUE
+  ESTABLISHED
+}
+
+enum RegistrationStatus {
+  UNREGISTERED
+  IN_PROGRESS
+  REGISTERED
+}
+
+enum ProjectStage {
+  PLANNING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  ABANDONED
+}
+
+model EnterpriseProfile {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  userId             String             @db.Uuid
+  institutionId      String             @db.Uuid
+  name               String
+  stage              EnterpriseStage    @default(IDEA)
+  registrationStatus RegistrationStatus @default(UNREGISTERED)
+  sector             String?
+  description        String?
+  location           String?
+  foundedOn          DateTime?          @db.Date
+  archivedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  projects    EnterpriseProject[]
+
+  @@unique([userId, institutionId, name])
+  @@index([institutionId, stage])
+}
+
+model EnterpriseProject {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  enterpriseProfileId String       @db.Uuid
+  institutionId       String       @db.Uuid
+  title               String
+  summary             String?
+  stage               ProjectStage @default(PLANNING)
+  startedOn           DateTime?    @db.Date
+  targetOn            DateTime?    @db.Date
+  completedOn         DateTime?    @db.Date
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  enterpriseProfile EnterpriseProfile            @relation(fields: [enterpriseProfileId], references: [id], onDelete: Cascade)
+  institution       Institution                  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  milestones        EnterpriseProjectMilestone[]
+  documents         EnterpriseProjectDocument[]
+
+  @@index([institutionId, stage])
+}
+
+model EnterpriseProjectMilestone {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  projectId   String    @db.Uuid
+  title       String
+  description String?
+  dueOn       DateTime? @db.Date
+  completedOn DateTime? @db.Date
+  sequence    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project EnterpriseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, sequence])
+}
+
+model EnterpriseProjectDocument {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  projectId    String   @db.Uuid
+  title        String
+  fileUrl      String
+  uploadedById String   @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project    EnterpriseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User              @relation(fields: [uploadedById], references: [id])
+
+  @@index([projectId])
+}
+
+// ─── Platform ────────────────────────────────────────────────────────────────
+
+enum SnapshotKind {
+  INSTITUTION_OVERVIEW
+  COHORT_PROGRESS
+  EXPERIENCE_DELIVERY
+  COMPETENCY_ATTAINMENT
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+/// A computed reporting snapshot. Its payload is always derived from real
+/// platform data; nothing here is ever seeded or illustrative.
+model ReportSnapshot {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  institutionId String       @db.Uuid
+  kind          SnapshotKind
+  periodStart   DateTime     @db.Date
+  periodEnd     DateTime     @db.Date
+  payload       Json
+  generatedAt   DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, kind, periodStart, periodEnd])
+  @@index([institutionId, generatedAt])
+}
+
+/// An audit trail of what the API sent, so a failed invite can be diagnosed.
+model EmailMessage {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  to                String
+  subject           String
+  template          String
+  status            EmailStatus @default(QUEUED)
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+  institutionId     String?     @db.Uuid
+  userId            String?     @db.Uuid
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([to])
+}

@@ -7,16 +7,87 @@ Paths below are relative to `api/` unless they start with `docs/` or
 ## Project
 
 `api/` is the FARMCLUB OS backend API: a NestJS 12 project on the Express
-adapter, serving `webapp/`.
+adapter, serving `webapp/`. It runs on port 4000; start it from the repository
+root with `npm run dev:api`.
 
-It is not scaffolded yet — the folder holds only its instructions. When it is
-created, give it a `package.json` and add it to the root `workspaces`.
+## ESM
+
+NestJS 12 ships ESM only, so `api/` is an ESM package (`"type": "module"`).
+Three consequences that are easy to trip over:
+
+- **Relative imports carry an explicit `.js` extension** — `./health.service.js`,
+  even though the file on disk is `.ts`. `nodenext` resolution requires it.
+- **A type-only import must use `import type`.** Each file is transpiled in
+  isolation, so a plain `import { SomeType }` becomes a real runtime import and
+  fails at load. The `consistent-type-imports` lint rule catches this.
+- **Jest needs `NODE_OPTIONS=--experimental-vm-modules`** (already in the npm
+  scripts) on Node 22, and `jest` is not a global in ESM — import it from
+  `@jest/globals` in any spec that uses `jest.fn()` or `jest.spyOn()`.
+
+`tsconfig.json` sets `types: ["node", "jest"]` explicitly, because
+`node_modules` is hoisted to the repository root and the default would make
+every other workspace's `@types` ambient in the API.
 
 ## Design
 
 The API has no app UI, so `docs/design-system.md` applies only to what the API
 renders for users, such as email templates in `src/lib/mail/`: use its colour
 tokens, type roles and tone there.
+
+## Database
+
+Prisma 7 with PostgreSQL. `prisma/schema.prisma` holds no connection details:
+the CLI reads its URL from `prisma.config.ts`, and the application passes its
+own to the `@prisma/adapter-pg` driver adapter in `src/lib/database/`. So one
+schema serves a local Postgres and Supabase alike, and only environment
+variables differ.
+
+- **Every tenant-scoped query filters on the institution from the access
+  token.** Never look a row up by id alone. An ownership check belongs in the
+  service (`findFirst({ where: { id, institutionId } })`), and a miss throws
+  `NotFoundException`, not `ForbiddenException`, so an id is never confirmed to
+  someone who should not see it.
+- **`AssessmentOption.isCorrect` never appears in a DTO** that a learner can
+  reach. Grading happens in the service.
+- **A new table needs row-level security.** Supabase serves `public` over HTTPS
+  through PostgREST, so a table created without RLS is readable by anyone with
+  the project's anon key. Follow the pattern in the
+  `enable_row_level_security` migration: enable RLS, add no policy, and revoke
+  from `anon` and `authenticated`. The API connects as the owner, which
+  bypasses RLS, so it is unaffected.
+- `src/generated/prisma` is generated and gitignored. `type-check` and
+  `prebuild` run `prisma generate` first, so a fresh clone works.
+- Columns that would read as real platform figures if seeded —
+  `Pathway.estimatedHours`, `Lesson.durationMinutes`, `Cohort.capacity`,
+  `ExperienceSite.capacity`, `ReportSnapshot.payload` — stay null in every
+  seed, and no `Institution` or `ExperienceSite` is ever seeded.
+
+## Authentication and authorisation
+
+- **Secure by default.** `JwtAuthGuard` is global: every route needs a valid
+  bearer access token unless it is marked `@Public()`. Forgetting the decorator
+  fails closed.
+- **Roles are coarse; records are checked in the service.**
+  `@PlatformRoles()` and `@InstitutionRoles()` are checked by the global
+  `RolesGuard`. `@InstitutionRoles()` only knows the *active* institution in the
+  token, so a route naming an institution in its path checks access to that
+  institution in the service.
+- **Access tokens can be up to `ACCESS_TOKEN_TTL_SECONDS` stale.** They are
+  verified without a database lookup. When a change must take effect at once —
+  a suspended membership, a deactivated account — check the database.
+- **Any route acting inside an institution checks access through
+  `InstitutionAccessService`** (`assertCanView`, `assertCanManage`), exported
+  by `InstitutionsModule`. It reads memberships from the database, so a
+  suspension takes effect at once, and it answers 404 to a non-member and 403
+  to a member who lacks the role.
+- Read the caller with `@CurrentUser()` and the session details with
+  `@ClientInfo()`. Never read `request.user` or headers directly.
+- Refresh, invite and password-reset tokens are opaque and only ever stored as
+  a SHA-256 hash (`TokenService.hashToken`). Never store, log or return a raw
+  token.
+- Document every route with `@ApiEnvelope()` and `@ApiErrors()` from
+  `src/common/decorators/api-envelope.decorator.ts`, so Swagger shows the real
+  `{ success, message, data, meta }` shape.
 
 ## Domain and planning
 

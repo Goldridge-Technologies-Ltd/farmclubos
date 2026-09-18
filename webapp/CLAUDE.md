@@ -12,6 +12,7 @@ You are a senior Next.js developer. Always apply Next.js App Router patterns and
 
 - App UI follows `docs/design-system.md` (loaded by the root `CLAUDE.md`) and imports shared components from `@farmclub/design-system/<Name>`.
 - Don't restyle or re-create a shared component locally. If one is missing or needs a new variant, add it to `packages/design-system/` following the root `CLAUDE.md`.
+- App-specific patterns are in `docs/webapp/design-patterns.md`: the four states every data screen needs (loading, empty, error, missing), how app forms differ from the website's, and what is not designed yet.
 
 ## Project structure
 

@@ -9,16 +9,22 @@
     "./Badge": "./components/Badge.tsx",
     "./Button": "./components/Button.tsx",
     "./ButtonLink": "./components/ButtonLink.tsx",
-    "./button-classes": "./components/button-classes.ts",
-    "./form-classes": "./components/form-classes.ts",
+    "./EmptyState": "./components/EmptyState.tsx",
+    "./Field": "./components/Field.tsx",
     "./Icon": "./components/Icon.tsx",
     "./IconDisc": "./components/IconDisc.tsx",
     "./Logo": "./components/Logo.tsx",
-    "./SectionLabel": "./components/SectionLabel.tsx"
+    "./Notice": "./components/Notice.tsx",
+    "./ProgressBar": "./components/ProgressBar.tsx",
+    "./SectionLabel": "./components/SectionLabel.tsx",
+    "./Skeleton": "./components/Skeleton.tsx",
+    "./button-classes": "./components/button-classes.ts",
+    "./form-classes": "./components/form-classes.ts"
   },
   "scripts": {
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest --passWithNoTests"
   },
   "peerDependencies": {
     "next": "^16.3.0",
@@ -26,14 +32,17 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "26.1.2",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.0",
+    "jest": "^30.5.1",
     "next": "^16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "ts-jest": "^29.4.12",
     "typescript": "6.0.3"
   }
 }

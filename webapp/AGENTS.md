@@ -46,11 +46,11 @@ All application code lives in `src/`. Config files (`next.config.ts`,
 - The website's section patterns (`docs/site/design-patterns.md`) are
   marketing layouts. Don't use them for app screens unless a screen really is
   a marketing page.
-- App patterns (app shell, navigation, tables, dashboards, empty, loading and
-  error states) don't exist yet. Build app-only components in
-  `src/components/`, and shared ones in `packages/design-system/components/`
-  when the site could use them too. Document app patterns in
-  `docs/webapp/design-patterns.md` once the first ones exist.
+- App patterns are in `docs/webapp/design-patterns.md`: the four states every
+  data screen needs, how app forms differ from the website's, and what is not
+  designed yet. Build app-only components in `src/components/`, and shared ones
+  in `packages/design-system/components/` when the site could use them too,
+  documenting each there as it lands.
 - Forms follow `docs/design-system.md` §11. Unlike the website's, app forms
   submit for real, so every one needs busy, error and success states.
 

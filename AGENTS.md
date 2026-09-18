@@ -21,6 +21,7 @@ This is an npm-workspaces monorepo holding every FARMCLUB OS codebase.
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI primitives shared by the apps | `docs/design-system.md` |
 | `docs/` | Shared docs: design system, content rules, reference artwork | |
 | `docs/site/` | Website docs: brief, page notes, asset manifest, screen briefs, section patterns | |
+| `docs/webapp/` | Web app docs: screen states, forms and app-only patterns | |
 | `docs/guides/` | Developer guides, starting with the local development setup | |
 
 Read the `AGENTS.md` of the app you are changing as well as this file.

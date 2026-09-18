@@ -48,12 +48,18 @@ export const iconNames = [
   "phone",
   "location",
   "clock",
+  // app interface
+  "user",
+  "logout",
+  "tick",
+  "alert",
   // controls
   "menu",
   "close",
   "plus",
   "minus",
   "chevron-down",
+  "chevron-right",
   // brands
   "linkedin",
   "x",
@@ -245,10 +251,23 @@ const strokePaths: Partial<Record<IconName, string[]>> = {
   ],
   clock: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z", "M12 6.8v5.6l3.6 2.1"],
   menu: ["M3.6 7h16.8M3.6 12h16.8M3.6 17h16.8"],
+  user: [
+    "M12 12.2a3.8 3.8 0 1 0 0-7.6 3.8 3.8 0 0 0 0 7.6z",
+    "M4.8 19.6a7.4 7.4 0 0 1 14.4 0",
+  ],
+  logout: [
+    "M14.4 7.6V5.8A1.8 1.8 0 0 0 12.6 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20h6.8a1.8 1.8 0 0 0 1.8-1.8v-1.8",
+    "M9.8 12h10",
+    "M17 9.2 19.8 12 17 14.8",
+  ],
+  /* A bare tick for a completed step; `check` is a circled one, sized for bullet lists. */
+  tick: ["M4.8 12.6 9.6 17.4 19.2 6.6"],
+  alert: ["M12 4.4 2.6 20.4h18.8L12 4.4z", "M12 10v4.2", "M12 17.2h.01"],
   close: ["M6 6l12 12M18 6 6 18"],
   plus: ["M12 5.2v13.6M5.2 12h13.6"],
   minus: ["M5.2 12h13.6"],
   "chevron-down": ["M6 9.5l6 6 6-6"],
+  "chevron-right": ["M9.4 6 15.4 12l-6 6"],
 };
 
 const filledPaths: Partial<Record<IconName, string>> = {

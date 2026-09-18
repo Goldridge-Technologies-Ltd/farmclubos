@@ -163,7 +163,7 @@ Check every screen at 375, 768, 1024 and 1440.
 
 Containers, section rhythm and page anatomy differ between a marketing site and an application, so they are not shared:
 - **Website:** `docs/site/design-patterns.md` §1–2 (`.site-container`, `.section-padding`, `PageHero` → sections → `CtaBand`).
-- **Web app:** the app shell is not designed yet. When it is, document it in `docs/webapp/design-patterns.md`; if the site needs it too, move it into the package and document it here.
+- **Web app:** `docs/webapp/design-patterns.md`. The app shell itself is not designed yet; document each piece there as it lands, and if the site needs it too, move it into the package and document it here.
 
 ### 5.3 Spacing inside a section or panel
 
@@ -206,11 +206,13 @@ Tailwind's default radius, shadow, easing and animation scales are switched off,
   - 200ms: button colour changes (`transition-colors duration-200`, built into `button-classes.ts`), transforms and surfaces (`duration-200`)
   - 500ms: image zoom (`duration-500`)
   - 620ms: hero entrance (`animate-rise`)
+  - 1600ms: skeleton pulse (`animate-shimmer`), on `Skeleton` only
 - **Allowed effects:**
   - arrow nudge `group-hover:translate-x-1`
   - card image `group-hover:scale-[1.04]`
   - FAQ icon `group-open:rotate-45`
   - `animate-rise` on hero copy only
+  - `animate-shimmer` on loading placeholders only. Tailwind's `animate-*` scale is off, so `animate-pulse` compiles to nothing
 - **Pressed:** buttons repeat their hover colours on `active:` (built into `button-classes.ts`), because Tailwind only applies `hover:` on devices that can hover.
 - **Reduced motion** is handled globally in `theme.css`.
 - **Not allowed:** animation libraries, scroll-triggered effects, autoplaying carousels.
@@ -292,6 +294,11 @@ The source files document the props. This section says when to use each componen
 | `IconDisc` | Circular icons in cards, rows, contact lists (§8) | Mix tones within one row |
 | `SectionLabel` | Every eyebrow: `gold` (default) on light, `dark` on deep green, `light` for green text | Hand-styled uppercase text |
 | `Logo` | The brand mark (§9) | Images of the logo |
+| `Field` | Every form field: label, optional hint, control and error, with the ids wired (§11). The control is a render function receiving `{ id, describedBy, invalid }` | Wiring `aria-describedby` by hand; wrapping a checkbox, whose label surrounds its control |
+| `Notice` | The four status treatments (§11) as `tone="info" \| "busy" \| "success" \| "error"`, with an optional `title` | Adding a `role`: a form's own `role="status"` region wraps it |
+| `Skeleton` | Loading placeholders, `variant="text" \| "block"`. Always `aria-hidden` | A spinner; announcing each bar separately |
+| `ProgressBar` | Progress through a pathway, module or cohort. Shows the figure as text beside the bar (§12) | Any figure that is not real platform data (§13) |
+| `EmptyState` | A list, dashboard or deferred feature with nothing to show: `IconDisc`, heading, copy and one optional action | A bare blank panel; more than one action |
 | `button-classes` | The button recipes behind `Button` and `ButtonLink`, for the rare control that can't use either | Restyling a button inline |
 | `form-classes` | `fieldClass` for inputs, selects and textareas (§11) | Hand-written field styles |
 
@@ -304,22 +311,22 @@ The source files document the props. This section says when to use each componen
 
 Every form says plainly what happens on submit. The website is static-first and sends nothing yet (`docs/site/design-patterns.md` §5). Web app forms submit for real, so they need the busy, error and success states below.
 
-- **Field anatomy:** a `<div className="grid gap-1.5">` holding a `<label className="grid gap-1.5">` (label text in `text-xs font-semibold text-farm-green-950`, required marker `<span aria-hidden="true" className="text-farm-green-700"> *</span>`, then the control), then the error. The error sits outside the label so screen readers announce it once. Checkbox labels carry the same marker, and the form says "Fields marked * are required." (copy lives with the app's content).
+- **Field anatomy:** use `<Field>`. It renders the label (`text-xs font-semibold text-farm-green-950`), the required marker (`<span aria-hidden="true" className="text-farm-green-700"> *</span>`), an optional hint, the control, and the error — which sits *outside* the label, so a screen reader announces it once. It hands the control `{ id, describedBy, invalid }`, so no call site wires `aria-describedby` itself. A checkbox is the exception: its label wraps its control, so it keeps its own markup. Forms say "Fields marked * are required." (copy lives with the app's content).
 - **Required fields** carry the native `required` attribute. Forms keep `noValidate` and validate on submit.
 - **Controls** use `fieldClass` from `@farmclub/design-system/form-classes`. Focus, invalid and disabled states are built in. Textareas add `min-h-36 py-3 leading-6`; checkboxes use `accent-farm-green-800`.
 - **Submit buttons** use `<Button type="submit">`, with `busy` while work is in progress; the submit handler also returns early while busy, because Enter in a field still submits.
-- **Status messages** render inside one always-mounted `<div role="status">`; swap its content instead of mounting new live regions. Field errors keep `role="alert"`.
+- **Status messages** use `<Notice>` inside one always-mounted `<div role="status">`; swap its content instead of mounting new live regions. `Notice` sets no role of its own for that reason. Field errors keep `role="alert"`, which `Field` adds.
 
 | State | Treatment |
 |---|---|
 | Default | `border-farm-border-strong`, placeholder `text-farm-muted` |
 | Focus | Border `farm-green-700` plus the global two-tone ring. Never add `focus:outline-none` |
 | Invalid | `aria-invalid` turns the border `farm-danger`; `aria-describedby` points at an error `<span role="alert" className="text-sm font-semibold text-farm-danger">` |
-| Error banner | `rounded-button border border-farm-danger-border bg-farm-danger-surface p-3.5 text-sm font-semibold text-farm-danger-strong`, inside the status region |
-| Neutral notice | `rounded-button border border-farm-info-border bg-farm-info-surface p-3.5 text-xs leading-6 text-farm-muted` |
+| Error banner | `<Notice tone="error">`, inside the status region |
+| Neutral notice | `<Notice tone="info">` |
 | Disabled | `disabled`: cream-100 fill, muted text, not-allowed cursor |
-| Busy | `<Button busy>`: stays focusable with `aria-disabled` and `aria-busy`, ignores activation, wait cursor; plus a status notice |
-| Success | `rounded-button border border-farm-success bg-farm-success-surface p-3.5`, inside the status region |
+| Busy | `<Button busy>`: stays focusable with `aria-disabled` and `aria-busy`, ignores activation, wait cursor; plus `<Notice tone="busy">` |
+| Success | `<Notice tone="success">`, inside the status region |
 
 ## 12. Accessibility checklist
 
@@ -329,7 +336,7 @@ Every form says plainly what happens on submit. The website is static-first and 
 - **Contrast:** text needs 4.5:1, large text and icons 3:1. Check §3.5 before using gold.
 - **Touch targets:** at least 48px (`min-h-12` buttons and inputs).
 - **Images and icons:** every image has meaningful `alt` or `alt=""`. Icons stay `aria-hidden` unless they have a title.
-- **Visual-only layouts:** give them a text equivalent (see the `sr-only` list in the site's `EcosystemDiagram`).
+- **Visual-only layouts:** give them a text equivalent (see the `sr-only` list in the site's `EcosystemDiagram`). `ProgressBar` does this by printing the percentage beside the bar, not only filling it.
 - **Client components** manage focus themselves (see the site's `MobileNavigation`).
 
 ## 13. Content guardrails
@@ -378,6 +385,6 @@ Rules for code inside `packages/design-system/`:
 - Gold-600 text and gold discs fail contrast (§3.5).
 - White-opacity steps outside the ladder in the site code (§3.3).
 - The hero scrim colour `rgb(4 32 20)` in the site stylesheet is not a token.
-- The live reference exists only in the site; the web app has no equivalent yet.
+- The live reference exists only in the site; the web app has no equivalent yet (`docs/webapp/design-patterns.md` §6).
 - There is no Figma mirror yet. When one is made, generate its tokens from `theme.css` rather than copying values by hand.
 - Website-specific debt is listed in `docs/site/design-patterns.md` §8.

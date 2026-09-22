@@ -14,6 +14,10 @@ import type { AuthSession, User } from "../../generated/prisma/client.js";
 import type { InstitutionRole } from "../../generated/prisma/enums.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import { MailService } from "../../lib/mail/mail.service.js";
+import {
+  RateLimitService,
+  type RateLimitRule,
+} from "../../lib/rate-limit/rate-limit.service.js";
 import type {
   AuthSessionResult,
   ClientContext,
@@ -30,6 +34,20 @@ type ActiveMembership = {
   role: InstitutionRole;
   institution: { id: string; name: string; slug: string };
 };
+
+const LOGIN_SCOPE = "login";
+const PASSWORD_RESET_SCOPE = "password-reset";
+
+/*
+  How much looser the caller's address is than the account it is attacking.
+
+  An address is shared — a campus, an office, a phone network all reach the
+  internet through one — so it carries every one of its users' mistakes. On the
+  account's own budget, one careless afternoon in a computer lab would lock a
+  whole building out of the product. It is here to bound a spray across many
+  accounts from a single source, which only needs a ceiling, not a tight one.
+*/
+const ADDRESS_LIMIT_MULTIPLIER = 10;
 
 /** Thrown inside a rotation when a concurrent refresh has already rotated. */
 class RotationRaceLost extends Error {}
@@ -56,26 +74,49 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
     private readonly mail: MailService,
+    private readonly throttle: RateLimitService,
   ) {}
 
   async login(
     credentials: { email: string; password: string },
     client: ClientContext,
   ): Promise<AuthSessionResult> {
-    const account = await this.prisma.user.findUnique({
-      where: { email: normalizeEmail(credentials.email) },
-    });
+    const email = normalizeEmail(credentials.email);
+    /*
+      The account is the key. Behind the web app every request reaches the API
+      from one address, so throttling on the caller's address alone would count
+      all users against a single budget. A genuinely forwarded client address is
+      a second key when there is one — it is spoofable, so it only supplements,
+      and it runs on the far looser budget above.
+    */
+    const keys = this.credentialKeys(email, client);
+
+    // Checked first: a blocked attacker must not cost an Argon2 verification,
+    // which is deliberately expensive.
+    await this.throttle.assertNotBlocked(LOGIN_SCOPE, keys);
+
+    const account = await this.prisma.user.findUnique({ where: { email } });
 
     if (!account?.passwordHash) {
       // Spend the same effort as a real check, so timing does not reveal
       // whether the email is registered.
       await this.passwords.verifyAgainstDummy(credentials.password);
+      await this.chargeFailure(this.loginRule(), email, client);
       throw invalidCredentials();
     }
 
     if (!(await this.passwords.verify(account.passwordHash, credentials.password))) {
+      await this.chargeFailure(this.loginRule(), email, client);
       throw invalidCredentials();
     }
+
+    /*
+      The password was right, so this was never an attack: forget the tally.
+      Only the account's — the address's stays, because the next person behind
+      it is a different person, and one of them signing in successfully says
+      nothing about the attempts around it.
+    */
+    await this.throttle.clear(LOGIN_SCOPE, [email]);
 
     // Only revealed once the password is proven, so it cannot be probed.
     if (account.deactivatedAt) {
@@ -310,10 +351,23 @@ export class AuthService {
    * way, and does the issuing after returning, so neither the response nor its
    * timing reveals whether the email is registered.
    */
-  async requestPasswordReset(email: string): Promise<void> {
-    const account = await this.prisma.user.findUnique({
-      where: { email: normalizeEmail(email) },
-    });
+  async requestPasswordReset(email: string, client: ClientContext): Promise<void> {
+    const normalised = normalizeEmail(email);
+
+    /*
+      Charged per request rather than per failure: here the request itself is
+      the cost — an email in someone's inbox, and a send against the mail
+      provider's quota and reputation. Keyed on the submitted address whether
+      or not it exists, so the refusal still reveals nothing, and on the caller
+      too, so working down a list of emails is not a way round the limit.
+    */
+    await this.throttle.assertNotBlocked(
+      PASSWORD_RESET_SCOPE,
+      this.credentialKeys(normalised, client),
+    );
+    await this.chargeFailure(this.passwordResetRule(), normalised, client);
+
+    const account = await this.prisma.user.findUnique({ where: { email: normalised } });
 
     if (!account?.passwordHash || account.deactivatedAt) {
       return;
@@ -515,6 +569,56 @@ export class AuthService {
       activeInstitutionId: active?.institutionId ?? null,
       institutionRole: active?.role ?? null,
       memberships: memberships.map(toMembershipSummary),
+    };
+  }
+
+  /** Both keys a credential attempt is counted against, account first. */
+  private credentialKeys(email: string, client: ClientContext): string[] {
+    return client.forwardedFor ? [email, client.forwardedFor] : [email];
+  }
+
+  /**
+   * Charges one attempt to the account, and to the caller's address when one
+   * was forwarded — separately, because the two run on different budgets.
+   */
+  private async chargeFailure(
+    rule: RateLimitRule,
+    email: string,
+    client: ClientContext,
+  ): Promise<void> {
+    await this.throttle.recordAttempt(rule, [email]);
+
+    if (client.forwardedFor) {
+      await this.throttle.recordAttempt(
+        { ...rule, limit: rule.limit * ADDRESS_LIMIT_MULTIPLIER },
+        [client.forwardedFor],
+      );
+    }
+  }
+
+  private loginRule(): RateLimitRule {
+    const windowSeconds = this.config.getOrThrow<number>("LOGIN_THROTTLE_WINDOW_SECONDS");
+
+    return {
+      scope: LOGIN_SCOPE,
+      limit: this.config.getOrThrow<number>("LOGIN_MAX_FAILURES"),
+      windowSeconds,
+      // Blocked for as long as the window: long enough to make guessing
+      // useless, short enough that a locked-out person is not stuck.
+      blockSeconds: windowSeconds,
+    };
+  }
+
+  private passwordResetRule(): RateLimitRule {
+    const windowSeconds = this.config.getOrThrow<number>(
+      "PASSWORD_RESET_THROTTLE_WINDOW_SECONDS",
+    );
+
+    return {
+      scope: PASSWORD_RESET_SCOPE,
+      limit: this.config.getOrThrow<number>("PASSWORD_RESET_MAX_REQUESTS"),
+      windowSeconds,
+      blockSeconds: windowSeconds,
     };
   }
 

@@ -15,6 +15,7 @@ import { ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER } from "../../src/common/aut
 import type { AccessTokenClaims } from "../../src/common/auth/access-token.js";
 import { PrismaService } from "../../src/lib/database/prisma.service.js";
 import { MailService } from "../../src/lib/mail/mail.service.js";
+import { RateLimitService } from "../../src/lib/rate-limit/rate-limit.service.js";
 
 export const TEST_ENV = {
   NODE_ENV: "test",
@@ -27,6 +28,10 @@ export const TEST_ENV = {
   PASSWORD_RESET_TTL_MINUTES: 60,
   WEBAPP_URL: "http://localhost:3001",
   MAIL_FROM: "FARMCLUB OS <no-reply@farmclubos.com>",
+  LOGIN_MAX_FAILURES: 8,
+  LOGIN_THROTTLE_WINDOW_SECONDS: 900,
+  PASSWORD_RESET_MAX_REQUESTS: 5,
+  PASSWORD_RESET_THROTTLE_WINDOW_SECONDS: 3600,
 };
 
 type TestAppOptions = {
@@ -51,8 +56,18 @@ export async function createTestApp({ imports, overrides = [] }: TestAppOptions)
     providers: [
       { provide: PrismaService, useValue: {} } satisfies Provider,
       { provide: MailService, useValue: {} } satisfies Provider,
+      // Permissive by default: these specs cover HTTP contracts, and a spec
+      // that cares about throttling overrides it with its own stub.
+      {
+        provide: RateLimitService,
+        useValue: {
+          assertNotBlocked: () => Promise.resolve(),
+          recordAttempt: () => Promise.resolve(),
+          clear: () => Promise.resolve(),
+        },
+      } satisfies Provider,
     ],
-    exports: [PrismaService, MailService],
+    exports: [PrismaService, MailService, RateLimitService],
   })
   class StubInfrastructureModule {}
 

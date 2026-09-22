@@ -3,6 +3,7 @@ import type {
   ArgumentsHost} from "@nestjs/common";
 import {
   BadRequestException,
+  HttpException,
   HttpStatus,
   InternalServerErrorException,
   Logger,
@@ -13,14 +14,20 @@ import {
 import type { ApiErrorResponse } from "../http/api-response.js";
 import { AllExceptionsFilter } from "./all-exceptions.filter.js";
 
-type Captured = { status: number; body: ApiErrorResponse };
+type Captured = { status: number; body: ApiErrorResponse; headers: Record<string, string> };
 
 function hostCapturing(captured: Partial<Captured>): ArgumentsHost {
   // Mirrors Express: statusCode starts at 200 and only changes when status()
   // is called. A mock without that default cannot catch a filter that reads
   // the status before setting it.
+  captured.headers = {};
+
   const response = {
     statusCode: 200,
+    setHeader(name: string, value: string) {
+      (captured.headers ??= {})[name] = value;
+      return this;
+    },
     status(code: number) {
       this.statusCode = code;
       captured.status = code;
@@ -142,6 +149,30 @@ describe("AllExceptionsFilter", () => {
       code: "INTERNAL_ERROR",
       message: "Something went wrong.",
     });
+  });
+
+  it("tells a throttled caller when to come back, in the header clients read", () => {
+    filter.catch(
+      new HttpException(
+        {
+          code: "TOO_MANY_ATTEMPTS",
+          message: "Too many attempts. Wait a few minutes and try again.",
+          details: { retryAfterSeconds: 240 },
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+      hostCapturing(captured),
+    );
+
+    expect(captured.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    expect(captured.headers?.["Retry-After"]).toBe("240");
+    expect(captured.body?.error.code).toBe("TOO_MANY_ATTEMPTS");
+  });
+
+  it("sets no Retry-After on an ordinary failure", () => {
+    filter.catch(new NotFoundException("Nope"), hostCapturing(captured));
+
+    expect(captured.headers).toEqual({});
   });
 
   it("never leaks internals from an unexpected error", () => {

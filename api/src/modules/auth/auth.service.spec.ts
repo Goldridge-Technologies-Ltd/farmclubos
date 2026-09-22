@@ -11,6 +11,7 @@ import { Test } from "@nestjs/testing";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import { MailService } from "../../lib/mail/mail.service.js";
+import { RateLimitService } from "../../lib/rate-limit/rate-limit.service.js";
 import { AuthService } from "./auth.service.js";
 import { PasswordService } from "./password.service.js";
 import { TokenService } from "./token.service.js";
@@ -25,6 +26,10 @@ const settings: Record<string, unknown> = {
   REFRESH_REUSE_GRACE_SECONDS: 30,
   PASSWORD_RESET_TTL_MINUTES: 60,
   WEBAPP_URL: "http://localhost:3001",
+  LOGIN_MAX_FAILURES: 8,
+  LOGIN_THROTTLE_WINDOW_SECONDS: 900,
+  PASSWORD_RESET_MAX_REQUESTS: 5,
+  PASSWORD_RESET_THROTTLE_WINDOW_SECONDS: 3600,
 };
 
 const client = { userAgent: "jest", ipAddress: "127.0.0.1" };
@@ -53,6 +58,7 @@ describe("AuthService", () => {
   let tokens: TokenService;
   let passwords: { hash: AsyncMock; verify: AsyncMock; verifyAgainstDummy: AsyncMock };
   let mail: { sendPasswordReset: AsyncMock; sendPasswordChanged: AsyncMock };
+  let throttle: { assertNotBlocked: AsyncMock; recordAttempt: AsyncMock; clear: AsyncMock };
   let prisma: {
     user: { findUnique: AsyncMock; update: AsyncMock };
     membership: { findMany: AsyncMock };
@@ -65,6 +71,7 @@ describe("AuthService", () => {
   beforeEach(async () => {
     passwords = { hash: fn(), verify: fn(), verifyAgainstDummy: fn() };
     mail = { sendPasswordReset: fn(), sendPasswordChanged: fn() };
+    throttle = { assertNotBlocked: fn(), recordAttempt: fn(), clear: fn() };
     prisma = {
       user: { findUnique: fn(), update: fn() },
       membership: { findMany: fn() },
@@ -98,6 +105,7 @@ describe("AuthService", () => {
         { provide: ConfigService, useValue: config },
         { provide: PasswordService, useValue: passwords },
         { provide: MailService, useValue: mail },
+        { provide: RateLimitService, useValue: throttle },
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -181,6 +189,118 @@ describe("AuthService", () => {
       await expect(
         service.login({ email: "ada@example.com", password: "correct horse" }, client),
       ).rejects.toMatchObject({ response: { code: "ACCOUNT_DEACTIVATED" } });
+    });
+
+    it("refuses a throttled account before spending an Argon2 verification on it", async () => {
+      throttle.assertNotBlocked.mockRejectedValue(new Error("TOO_MANY_ATTEMPTS"));
+
+      await expect(
+        service.login({ email: "ada@example.com", password: "correct horse" }, client),
+      ).rejects.toThrow("TOO_MANY_ATTEMPTS");
+      expect(passwords.verify).not.toHaveBeenCalled();
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("charges a failed attempt to the account, not to whoever asked", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(false);
+
+      await expect(
+        service.login({ email: "  Ada@Example.com ", password: "wrong" }, client),
+      ).rejects.toMatchObject({ response: { code: "INVALID_CREDENTIALS" } });
+
+      const [rule, keys] = throttle.recordAttempt.mock.calls[0] as [
+        { scope: string; limit: number },
+        string[],
+      ];
+      expect(rule.scope).toBe("login");
+      // Normalised, so "Ada@Example.com" and "ada@example.com" share a budget.
+      expect(keys).toContain("ada@example.com");
+    });
+
+    it("charges an unknown email too, so guessing addresses is throttled as well", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      passwords.verifyAgainstDummy.mockResolvedValue(false);
+
+      await expect(
+        service.login({ email: "nobody@example.com", password: "whatever" }, client),
+      ).rejects.toMatchObject({ response: { code: "INVALID_CREDENTIALS" } });
+      expect(throttle.recordAttempt).toHaveBeenCalled();
+    });
+
+    it("charges a forwarded address too, but on a far looser budget", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(false);
+
+      await expect(
+        service.login(
+          { email: "ada@example.com", password: "wrong" },
+          { ...client, forwardedFor: "203.0.113.5" },
+        ),
+      ).rejects.toThrow();
+
+      const charges = throttle.recordAttempt.mock.calls as Array<
+        [{ limit: number }, string[]]
+      >;
+      const [accountRule, accountKeys] = charges[0];
+      const [addressRule, addressKeys] = charges[1];
+
+      expect(accountKeys).toEqual(["ada@example.com"]);
+      expect(addressKeys).toEqual(["203.0.113.5"]);
+      /*
+        A shared address — a campus, an office, a phone network — carries every
+        one of its users' mistakes. On the account's budget of 8, one careless
+        afternoon would lock the whole building out of the product.
+      */
+      expect(addressRule.limit).toBeGreaterThan(accountRule.limit * 5);
+    });
+
+    it("keys only on the account when nothing was forwarded, so one web app cannot lock everyone out", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(false);
+
+      await expect(
+        service.login({ email: "ada@example.com", password: "wrong" }, { userAgent: "jest" }),
+      ).rejects.toThrow();
+
+      expect(throttle.recordAttempt).toHaveBeenCalledTimes(1);
+      const [, keys] = throttle.recordAttempt.mock.calls[0] as [unknown, string[]];
+      expect(keys).toEqual(["ada@example.com"]);
+    });
+
+    it("checks both keys before doing any work", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+
+      await service.login(
+        { email: "ada@example.com", password: "correct horse" },
+        { ...client, forwardedFor: "203.0.113.5" },
+      );
+
+      expect(throttle.assertNotBlocked).toHaveBeenCalledWith("login", [
+        "ada@example.com",
+        "203.0.113.5",
+      ]);
+    });
+
+    it("forgets the failures once the right password is given", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+
+      await service.login({ email: "ada@example.com", password: "correct horse" }, client);
+
+      expect(throttle.clear).toHaveBeenCalledWith("login", ["ada@example.com"]);
+      expect(throttle.recordAttempt).not.toHaveBeenCalled();
+    });
+
+    it("does not charge an attempt when the password was right but the account is deactivated", async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...user, deactivatedAt: new Date() });
+      passwords.verify.mockResolvedValue(true);
+
+      await expect(
+        service.login({ email: "ada@example.com", password: "correct horse" }, client),
+      ).rejects.toMatchObject({ response: { code: "ACCOUNT_DEACTIVATED" } });
+      expect(throttle.recordAttempt).not.toHaveBeenCalled();
     });
 
     it("signs the active institution role into the access token", async () => {
@@ -495,7 +615,7 @@ describe("AuthService", () => {
     it("issues a single-use token and emails a link carrying it", async () => {
       prisma.user.findUnique.mockResolvedValue(user);
 
-      await service.requestPasswordReset("ada@example.com");
+      await service.requestPasswordReset("ada@example.com", {});
       await flush();
 
       const sent = mail.sendPasswordReset.mock.calls[0]?.[0] as { resetUrl: string };
@@ -511,10 +631,42 @@ describe("AuthService", () => {
       });
     });
 
+    it("charges every request, because the cost is an email in someone's inbox", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      await service.requestPasswordReset("ada@example.com", {});
+
+      expect(throttle.assertNotBlocked).toHaveBeenCalledWith("password-reset", [
+        "ada@example.com",
+      ]);
+      const [rule] = throttle.recordAttempt.mock.calls[0] as [{ scope: string }];
+      expect(rule.scope).toBe("password-reset");
+    });
+
+    it("bounds the total from one address, so a list of emails is not a way round the limit", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      await service.requestPasswordReset("ada@example.com", { forwardedFor: "203.0.113.5" });
+
+      const charges = throttle.recordAttempt.mock.calls as Array<[{ limit: number }, string[]]>;
+      expect(charges[0]?.[1]).toEqual(["ada@example.com"]);
+      expect(charges[1]?.[1]).toEqual(["203.0.113.5"]);
+      expect(charges[1][0].limit).toBeGreaterThan(charges[0][0].limit * 5);
+    });
+
+    it("refuses once the inbox has had enough, before looking the account up", async () => {
+      throttle.assertNotBlocked.mockRejectedValue(new Error("TOO_MANY_ATTEMPTS"));
+
+      await expect(service.requestPasswordReset("ada@example.com", {})).rejects.toThrow(
+        "TOO_MANY_ATTEMPTS",
+      );
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
     it("does nothing, and says nothing, for an unknown email", async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.requestPasswordReset("nobody@example.com")).resolves.toBeUndefined();
+      await expect(service.requestPasswordReset("nobody@example.com", {})).resolves.toBeUndefined();
       await flush();
 
       expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
@@ -524,7 +676,7 @@ describe("AuthService", () => {
     it("sends nothing to a deactivated account", async () => {
       prisma.user.findUnique.mockResolvedValue({ ...user, deactivatedAt: new Date() });
 
-      await service.requestPasswordReset("ada@example.com");
+      await service.requestPasswordReset("ada@example.com", {});
       await flush();
 
       expect(mail.sendPasswordReset).not.toHaveBeenCalled();

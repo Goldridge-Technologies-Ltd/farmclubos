@@ -13,6 +13,7 @@ import { REQUEST_ID_HEADER } from "../interceptors/response-transform.intercepto
 
 /** Comparing a plain number against the HttpStatus enum is not type-safe. */
 const SERVER_ERROR = 500;
+const TOO_MANY_REQUESTS = 429;
 
 /** Stable, machine-readable codes for the statuses the API actually returns. */
 const CODE_BY_STATUS: Record<number, string> = {
@@ -48,8 +49,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    /*
+      A throttled caller is told when to come back in the header clients and
+      proxies actually read, not only in the body.
+    */
+    const retryAfter = retryAfterSeconds(body.error.details);
+
+    if (status === TOO_MANY_REQUESTS && retryAfter !== null) {
+      response.setHeader("Retry-After", String(retryAfter));
+    }
+
     response.status(status).json(body);
   }
+}
+
+function retryAfterSeconds(details: unknown): number | null {
+  if (typeof details !== "object" || details === null || !("retryAfterSeconds" in details)) {
+    return null;
+  }
+
+  const { retryAfterSeconds: value } = details;
+
+  return typeof value === "number" && Number.isFinite(value) ? Math.ceil(value) : null;
 }
 
 /**

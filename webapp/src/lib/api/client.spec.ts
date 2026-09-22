@@ -115,6 +115,28 @@ describe("apiRequest", () => {
     expect(init.headers).toMatchObject({ "content-type": "application/json" });
   });
 
+  it("forwards the caller's address when it is given one, for throttling", async () => {
+    const fetchMock = respondWith({ success: true, message: "ok", data: null, meta: {} });
+
+    await apiRequest("/api/auth/login", {
+      method: "POST",
+      authenticated: false,
+      body: {},
+      clientAddress: "203.0.113.5",
+    });
+
+    const [, init] = lastCall(fetchMock);
+    expect(init.headers).toMatchObject({ "x-forwarded-for": "203.0.113.5" });
+  });
+
+  it("forwards no address when there is none, rather than inventing one", async () => {
+    const fetchMock = respondWith({ success: true, message: "ok", data: null, meta: {} });
+
+    await apiRequest("/api/auth/login", { method: "POST", authenticated: false, body: {} });
+
+    expect(lastCall(fetchMock)[1].headers).not.toHaveProperty("x-forwarded-for");
+  });
+
   it("never caches a reply that depended on a token", async () => {
     const fetchMock = respondWith({ success: true, message: "ok", data: null, meta: {} });
 

@@ -1,5 +1,10 @@
 import { jest } from "@jest/globals";
-import { UnauthorizedException, type INestApplication } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+  type INestApplication,
+} from "@nestjs/common";
 import request from "supertest";
 import type {
   ApiErrorResponse,
@@ -111,6 +116,50 @@ describe("Auth (e2e)", () => {
         error: { code: "INVALID_CREDENTIALS" },
         meta: { statusCode: 401 },
       });
+    });
+
+    it("answers a throttled attempt with 429 and a Retry-After the caller can act on", async () => {
+      auth.login.mockRejectedValue(
+        new HttpException(
+          {
+            code: "TOO_MANY_ATTEMPTS",
+            message: "Too many attempts. Wait a few minutes and try again.",
+            details: { retryAfterSeconds: 300 },
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        ),
+      );
+
+      const response = await request(server())
+        .post("/api/auth/login")
+        .send({ email: "ada@example.com", password: "wrong" })
+        .expect(429);
+
+      // The header is what an HTTP client obeys; the body is what a person is
+      // shown. A 429 without the header is a 429 nothing can wait out.
+      expect(response.headers["retry-after"]).toBe("300");
+      expect(asFailure(response.body)).toMatchObject({
+        success: false,
+        error: {
+          code: "TOO_MANY_ATTEMPTS",
+          details: { retryAfterSeconds: 300 },
+        },
+        meta: { statusCode: 429 },
+      });
+    });
+
+    it("hands the forwarded client address to the service, so it can be throttled on", async () => {
+      auth.login.mockResolvedValue({ accessToken: "access", refreshToken: "refresh" });
+
+      await request(server())
+        .post("/api/auth/login")
+        .set("x-forwarded-for", "203.0.113.5, 10.0.0.1")
+        .send({ email: "ada@example.com", password: "correct horse" })
+        .expect(200);
+
+      const [, client] = auth.login.mock.calls[0] as [unknown, { forwardedFor?: string }];
+      // The first entry is the original caller; the rest are the proxies.
+      expect(client.forwardedFor).toBe("203.0.113.5");
     });
   });
 

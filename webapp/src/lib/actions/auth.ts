@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
+import { forwardedClientAddress } from "../api/forwarded-address";
 import type { AuthSession, MembershipSummary } from "../api/contracts";
 import { endSession, readRefreshToken, startSession } from "../session";
 import { safeRedirectPath } from "../session-cookies";
@@ -33,6 +34,7 @@ export async function signIn(_previous: FormState, formData: FormData): Promise<
       method: "POST",
       authenticated: false,
       body: { email, password },
+      clientAddress: await forwardedClientAddress(),
     });
 
     await startSession(session);
@@ -127,6 +129,7 @@ export async function requestPasswordReset(
       method: "POST",
       authenticated: false,
       body: { email },
+      clientAddress: await forwardedClientAddress(),
     });
   } catch (error) {
     return toFormState(error, ["email"]);

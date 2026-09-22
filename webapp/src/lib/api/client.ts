@@ -43,6 +43,11 @@ export type ApiRequestOptions = {
    * everyone; a per-user response must never be cached (see below).
    */
   tags?: string[];
+  /**
+   * The caller's address, forwarded so the API can throttle sign-in attempts
+   * against it as well as the account. See ./forwarded-address.
+   */
+  clientAddress?: string;
   signal?: AbortSignal;
 };
 
@@ -60,6 +65,10 @@ export async function apiRequest<T>(
 
   if (body !== undefined) {
     headers["content-type"] = "application/json";
+  }
+
+  if (options.clientAddress) {
+    headers["x-forwarded-for"] = options.clientAddress;
   }
 
   const token = authenticated

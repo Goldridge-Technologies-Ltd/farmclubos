@@ -116,6 +116,36 @@ export class EnvironmentVariables {
   @Max(1440)
   PASSWORD_RESET_TTL_MINUTES = 60;
 
+  /*
+    Sign-in throttling. Counts failed attempts against the account, because
+    behind the web app every request reaches the API from one address. A
+    blocked key is refused for the same length as the window.
+  */
+  @Type(() => Number)
+  @IsInt()
+  @Min(3)
+  @Max(100)
+  LOGIN_MAX_FAILURES = 8;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(60)
+  @Max(86400)
+  LOGIN_THROTTLE_WINDOW_SECONDS = 900;
+
+  /** Reset requests allowed per email, so an inbox cannot be flooded. */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  PASSWORD_RESET_MAX_REQUESTS = 5;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(60)
+  @Max(86400)
+  PASSWORD_RESET_THROTTLE_WINDOW_SECONDS = 3600;
+
   /** How long an invitation link stays usable. Defaults to seven days. */
   @Type(() => Number)
   @IsInt()

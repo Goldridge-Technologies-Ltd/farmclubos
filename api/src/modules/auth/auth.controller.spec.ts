@@ -68,7 +68,7 @@ describe("AuthController", () => {
 
   it("returns no data from sign-out, password-reset request and reset", async () => {
     await expect(controller.logout({ refreshToken: "r".repeat(43) })).resolves.toBeNull();
-    await expect(controller.forgotPassword({ email: "ada@example.com" })).resolves.toBeNull();
+    await expect(controller.forgotPassword({ email: "ada@example.com" }, client)).resolves.toBeNull();
     await expect(
       controller.resetPassword({ token: "t".repeat(43), password: "a long new passphrase" }),
     ).resolves.toBeNull();

@@ -73,20 +73,6 @@ export const homeScreen = {
   },
 } as const;
 
-export const academyScreen = {
-  eyebrow: "Learn",
-  heading: "Academy",
-  description:
-    "Structured pathways that take you from the fundamentals of agriculture " +
-    "to running a production enterprise.",
-  building: {
-    title: "The Academy is being connected",
-    description:
-      "The pathways and their modules exist. The screens that open them are " +
-      "next, and your enrolment will appear here as soon as they land.",
-  },
-} as const;
-
 export const journeyScreen = {
   eyebrow: "Progress",
   heading: "My Journey",

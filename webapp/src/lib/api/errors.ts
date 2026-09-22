@@ -27,6 +27,11 @@ export function isUnauthorized(error: unknown): boolean {
   return isApiError(error) && error.status === 401;
 }
 
+/** True when the API says there is no such record — or none this caller may see. */
+export function isNotFound(error: unknown): boolean {
+  return isApiError(error) && error.status === 404;
+}
+
 /**
  * The per-field messages behind a VALIDATION_FAILED response, if any. The API
  * sends them as an array of strings from its validation pipe.

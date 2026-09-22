@@ -1,0 +1,78 @@
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  CohortStatus,
+  DeliveryMode,
+  EnrolmentStatus,
+  PathwayLevel,
+} from "../../../generated/prisma/enums.js";
+import type {
+  CohortPathwayView,
+  CohortSummaryView,
+  EnrolmentView,
+} from "../cohorts.types.js";
+
+export class CohortPathwayDto implements CohortPathwayView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "agricultural-entrepreneurship-foundation" })
+  slug: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  summary: string;
+
+  @ApiProperty({ enum: PathwayLevel, enumName: "PathwayLevel" })
+  level: PathwayLevel;
+}
+
+export class CohortSummaryDto implements CohortSummaryView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "September intake" })
+  name: string;
+
+  @ApiProperty({ type: String, nullable: true, description: "The institution's own code." })
+  code: string | null;
+
+  @ApiProperty({ enum: CohortStatus, enumName: "CohortStatus" })
+  status: CohortStatus;
+
+  @ApiProperty({ enum: DeliveryMode, enumName: "DeliveryMode" })
+  deliveryMode: DeliveryMode;
+
+  @ApiProperty({ type: String, nullable: true, format: "date", example: "2026-09-01" })
+  startsOn: string | null;
+
+  @ApiProperty({ type: String, nullable: true, format: "date" })
+  endsOn: string | null;
+
+  @ApiProperty({ type: CohortPathwayDto })
+  pathway: CohortPathwayDto;
+}
+
+export class EnrolmentDto implements EnrolmentView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: EnrolmentStatus, enumName: "EnrolmentStatus" })
+  status: EnrolmentStatus;
+
+  @ApiProperty({ description: "Derived from completed lessons. Never illustrative." })
+  progressPercent: number;
+
+  @ApiProperty({ format: "date-time" })
+  enrolledAt: Date;
+
+  @ApiProperty({ type: Date, nullable: true, format: "date-time" })
+  startedAt: Date | null;
+
+  @ApiProperty({ type: Date, nullable: true, format: "date-time" })
+  completedAt: Date | null;
+
+  @ApiProperty({ type: CohortSummaryDto })
+  cohort: CohortSummaryDto;
+}

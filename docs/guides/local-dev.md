@@ -115,6 +115,7 @@ one exists and fill in your own values.
 | `REFRESH_REUSE_GRACE_SECONDS` | `api/.env` | How long a just-rotated refresh token is still honoured, so concurrent requests are not mistaken for theft. Defaults to `30`. |
 | `PASSWORD_RESET_TTL_MINUTES` | `api/.env` | Reset link lifetime. Defaults to `60`. |
 | `INVITE_TTL_HOURS` | `api/.env` | Invitation link lifetime. Defaults to `168` (seven days). |
+| `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; see below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
@@ -199,12 +200,6 @@ which bypasses RLS — and so does the Supabase Studio table editor.
   Prisma 6, a breaking change. `overrides` do not take effect on npm 10.9.4
   here, and forcing the patched versions breaks the CLI. Revisit when Prisma
   bumps its pins.
-
-## Not set up yet
-
-These arrive in later steps, and this guide is updated in the same change:
-
-- The webapp's `src/lib/api/client.ts` and the API base URL it reads
 
 ## Testing the API in Swagger
 

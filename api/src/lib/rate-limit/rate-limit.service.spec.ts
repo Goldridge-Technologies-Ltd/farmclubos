@@ -66,6 +66,23 @@ describe("RateLimitService", () => {
       });
     });
 
+    it.each([
+      [30, "in less than a minute"],
+      [890, "in about 15 minutes"],
+      [3590, "in about 1 hour"],
+    ])("says how long to wait when it is %ps away", async (seconds, expected) => {
+      counter.findMany.mockResolvedValue([{ blockedUntil: secondsAhead(seconds) }]);
+
+      /*
+        "Wait a few minutes" against a 15-minute block sends someone back to
+        the form every minute until they give up. The number is already known
+        here, so the message carries it — and it counts down, so it stays true.
+      */
+      await expect(service.assertNotBlocked("login", ["ada@example.com"])).rejects.toMatchObject({
+        response: { message: `Too many attempts. Try again ${expected}.` },
+      });
+    });
+
     it("allows a key whose block has passed", async () => {
       counter.findMany.mockResolvedValue([{ blockedUntil: secondsAgo(1) }]);
 

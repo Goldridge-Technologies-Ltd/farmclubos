@@ -68,7 +68,13 @@ export class RateLimitService {
     throw new HttpException(
       {
         code: "TOO_MANY_ATTEMPTS",
-        message: "Too many attempts. Wait a few minutes and try again.",
+        /*
+          The wait goes in the message, not only the header. "Wait a few
+          minutes" against a 15-minute block sends someone back to the form
+          every minute until they give up. It counts down as time passes, so
+          it stays true, and every client gets it without doing the arithmetic.
+        */
+        message: `Too many attempts. Try again ${describeWait(retryAfterSeconds)}.`,
         details: { retryAfterSeconds },
       },
       HttpStatus.TOO_MANY_REQUESTS,
@@ -160,6 +166,23 @@ export class RateLimitService {
       where: { scope, updatedAt: { lt: new Date(now.getTime() - PRUNE_AFTER_MS) } },
     });
   }
+}
+
+/** A wait a person can act on, rounded up so it is never an understatement. */
+function describeWait(seconds: number): string {
+  if (seconds < 60) {
+    return "in less than a minute";
+  }
+
+  const minutes = Math.ceil(seconds / 60);
+
+  if (minutes < 60) {
+    return `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+
+  const hours = Math.ceil(minutes / 60);
+
+  return `in about ${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
 function hashKey(key: string): string {

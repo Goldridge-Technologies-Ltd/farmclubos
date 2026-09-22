@@ -123,7 +123,7 @@ describe("Auth (e2e)", () => {
         new HttpException(
           {
             code: "TOO_MANY_ATTEMPTS",
-            message: "Too many attempts. Wait a few minutes and try again.",
+            message: "Too many attempts. Try again in about 5 minutes.",
             details: { retryAfterSeconds: 300 },
           },
           HttpStatus.TOO_MANY_REQUESTS,

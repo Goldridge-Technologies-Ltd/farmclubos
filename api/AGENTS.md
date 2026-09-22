@@ -49,6 +49,12 @@ variables differ.
   someone who should not see it.
 - **`AssessmentOption.isCorrect` never appears in a DTO** that a learner can
   reach. Grading happens in the service.
+- **The Academy catalogue is the exception to tenancy, not to access control.**
+  A pathway belongs to no institution, so `AcademyService` filters on
+  publication rather than `institutionId`: `{ status: "PUBLISHED",
+  archivedAt: null }`, applied at *every* level. A module is reached through
+  its pathway and a lesson through its module, so an unpublished parent hides
+  everything beneath it and a slug pair cannot be mixed between pathways.
 - **A new table needs row-level security.** Supabase serves `public` over HTTPS
   through PostgREST, so a table created without RLS is readable by anyone with
   the project's anon key. Follow the pattern in the

@@ -152,6 +152,27 @@ Two components, for two different situations:
   `Badge tone="warning"` with "Coming soon"; §4 still applies, so no date, no
   ordering, no figure and no partner name appears.
 
+### A missing record is a soft 404
+
+`notFound()` renders the right page but the response has already begun
+streaming as a `200`, so the status cannot change — Next documents this and
+injects `noindex`. A real `404` would mean checking the slug before the
+response streams, which for us means calling the API from `proxy.ts`, and
+`proxy.ts` must never call the API. The app is `noindex` throughout, so the
+trade is worth taking; don't "fix" it by moving the lookup into the proxy.
+
+### Reading the API
+
+Screens never call `apiRequest` directly. Each area gets one module in
+`src/lib/api/` — `academy.ts` is the first — whose functions turn the API's
+404 into `notFound()` and let everything else throw. The API being down is not
+the same as a page not existing, and must not look like it.
+
+Nothing in the Academy is cached, deliberately. The catalogue is identical for
+everyone so caching it would be safe in principle, but the client refuses to
+cache any reply that carried a bearer token, and an exception to that rule is
+how one person's data eventually reaches another.
+
 ## 7. Not defined yet
 
 These arrive with the screens that need them, and are documented here in the

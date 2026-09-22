@@ -85,6 +85,13 @@ variables differ.
 - Refresh, invite and password-reset tokens are opaque and only ever stored as
   a SHA-256 hash (`TokenService.hashToken`). Never store, log or return a raw
   token.
+- **Credential endpoints are throttled through `RateLimitService`**
+  (`src/lib/rate-limit/`), which counts failures in the database rather than
+  requests in memory — `@nestjs/throttler` would reset on restart and count
+  each instance separately. Key on the **account**, not the address: behind the
+  BFF every request arrives from the web app's own address. `assertNotBlocked`
+  runs *before* the expensive work, `recordAttempt` charges a failure, and
+  `clear` forgets the tally on success.
 - Document every route with `@ApiEnvelope()` and `@ApiErrors()` from
   `src/common/decorators/api-envelope.decorator.ts`, so Swagger shows the real
   `{ success, message, data, meta }` shape.

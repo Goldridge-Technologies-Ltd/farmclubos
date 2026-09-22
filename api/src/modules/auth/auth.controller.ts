@@ -31,6 +31,13 @@ const VALIDATION_FAILED = {
   description: "VALIDATION_FAILED: the body did not pass validation.",
 };
 
+const TOO_MANY_ATTEMPTS = {
+  status: HttpStatus.TOO_MANY_REQUESTS,
+  description:
+    "TOO_MANY_ATTEMPTS: too many attempts for this account. `Retry-After` and " +
+    "`error.details.retryAfterSeconds` say how long to wait.",
+};
+
 @ApiTags("auth")
 @Controller("auth")
 export class AuthController {
@@ -45,10 +52,14 @@ export class AuthController {
     description: "Starts a new session and returns an access token and a refresh token.",
   })
   @ApiEnvelope({ status: HttpStatus.OK, description: "Signed in.", type: AuthSessionDto })
-  @ApiErrors(VALIDATION_FAILED, {
-    status: HttpStatus.UNAUTHORIZED,
-    description: "INVALID_CREDENTIALS, or ACCOUNT_DEACTIVATED once the password is proven.",
-  })
+  @ApiErrors(
+    VALIDATION_FAILED,
+    {
+      status: HttpStatus.UNAUTHORIZED,
+      description: "INVALID_CREDENTIALS, or ACCOUNT_DEACTIVATED once the password is proven.",
+    },
+    TOO_MANY_ATTEMPTS,
+  )
   login(@Body() body: LoginDto, @ClientInfo() client: ClientContext): Promise<AuthSessionResult> {
     return this.auth.login(body, client);
   }
@@ -146,9 +157,12 @@ export class AuthController {
       "find out who is registered.",
   })
   @ApiEnvelope({ status: HttpStatus.OK, description: "Request accepted." })
-  @ApiErrors(VALIDATION_FAILED)
-  async forgotPassword(@Body() body: ForgotPasswordDto): Promise<null> {
-    await this.auth.requestPasswordReset(body.email);
+  @ApiErrors(VALIDATION_FAILED, TOO_MANY_ATTEMPTS)
+  async forgotPassword(
+    @Body() body: ForgotPasswordDto,
+    @ClientInfo() client: ClientContext,
+  ): Promise<null> {
+    await this.auth.requestPasswordReset(body.email, client);
     return null;
   }
 

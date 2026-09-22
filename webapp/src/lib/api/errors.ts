@@ -1,0 +1,57 @@
+/*
+  Failures from the API, in one shape the rest of the app can act on.
+
+  The API answers `{ success: false, error: { code, message, details } }`. The
+  `code` is the stable part — `INVALID_CREDENTIALS`, `INVITE_EXPIRED` — so
+  screens branch on that, never on the message, which is prose and may change.
+*/
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
+}
+
+/** True when the API refused the caller's identity, not their request. */
+export function isUnauthorized(error: unknown): boolean {
+  return isApiError(error) && error.status === 401;
+}
+
+/**
+ * The per-field messages behind a VALIDATION_FAILED response, if any. The API
+ * sends them as an array of strings from its validation pipe.
+ */
+export function validationMessages(error: unknown): string[] {
+  if (!isApiError(error) || !Array.isArray(error.details)) {
+    return [];
+  }
+
+  return error.details.filter((detail): detail is string => typeof detail === "string");
+}
+
+/**
+ * A sentence to show the person. The API writes its messages for them, so they
+ * are used as-is; anything else falls back to wording that does not blame them
+ * or expose internals.
+ */
+export function userMessage(
+  error: unknown,
+  fallback = "Something went wrong. Try again.",
+): string {
+  if (!isApiError(error)) {
+    return fallback;
+  }
+
+  // A 500 carries "Something went wrong." from the API's own filter.
+  return error.message || fallback;
+}

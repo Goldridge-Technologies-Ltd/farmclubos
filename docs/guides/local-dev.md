@@ -115,6 +115,11 @@ one exists and fill in your own values.
 | `REFRESH_REUSE_GRACE_SECONDS` | `api/.env` | How long a just-rotated refresh token is still honoured, so concurrent requests are not mistaken for theft. Defaults to `30`. |
 | `PASSWORD_RESET_TTL_MINUTES` | `api/.env` | Reset link lifetime. Defaults to `60`. |
 | `INVITE_TTL_HOURS` | `api/.env` | Invitation link lifetime. Defaults to `168` (seven days). |
+| `LOGIN_MAX_FAILURES` | `api/.env` | Failed sign-ins allowed per account inside the window before it is blocked. Defaults to `8`. A forwarded client address gets ten times this. |
+| `LOGIN_THROTTLE_WINDOW_SECONDS` | `api/.env` | How long failed sign-ins are counted, and how long a block then lasts. Defaults to `900` (15 minutes). |
+| `PASSWORD_RESET_MAX_REQUESTS` | `api/.env` | Reset emails allowed per email address inside the window. Defaults to `5`. A forwarded client address gets ten times this. |
+| `PASSWORD_RESET_THROTTLE_WINDOW_SECONDS` | `api/.env` | The reset window, and the length of the block. Defaults to `3600` (one hour). |
+| `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; see below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
@@ -178,6 +183,47 @@ npm run db:seed --workspace api
 Sign in with `POST /api/auth/login`. The seed refuses to create an admin in
 production, and re-running it never changes an existing account's password.
 
+### Throttling sign-in
+
+Sign-in and password-reset attempts are counted in the `RateLimitCounter`
+table, not in memory, so the limit holds across restarts and across more than
+one API instance. Sign-in counts **failures** — a correct password clears the
+tally — while a password reset counts every request, because there the request
+itself is the cost.
+
+Counting is keyed on the **account**, not the caller's address. Behind the BFF
+every request reaches the API from the web app's own address, so an address
+alone would either throttle everybody at once or nobody. The address is used as
+a second key only when the web app forwards one (`x-forwarded-for`), which is
+what happens in production behind a proxy; locally there is nothing to forward
+and the account key does the work.
+
+The two budgets are deliberately different. An address is shared — a campus, an
+office, a phone network all reach the internet through one — so it runs on ten
+times the account's allowance: enough to cap a spray across many accounts from
+a single host, loose enough that one careless afternoon in a computer lab does
+not lock out the building. A forwarded address is also spoofable, so it only
+ever supplements the account key; it can never be used to get past it.
+
+Keys are stored as SHA-256 hashes. The table would otherwise fill with every
+email anyone ever typed at the sign-in form, including the ones that do not
+exist — an attacker's spray list, sitting in the database.
+
+A blocked attempt answers `429` with a `Retry-After` header and
+`error.details.retryAfterSeconds`. To try the limit locally, post a wrong
+password to `/api/auth/login` nine times:
+
+```bash
+for i in $(seq 1 9); do
+  curl -s -o /dev/null -w '%{http_code} ' -X POST http://localhost:4000/api/auth/login \
+    -H 'content-type: application/json' \
+    -d '{"email":"you@example.com","password":"wrong"}'
+done
+# 401 401 401 401 401 401 401 401 429
+```
+
+Clear it with `DELETE FROM "RateLimitCounter";`, or wait out the window.
+
 ### Row-level security
 
 Supabase serves the `public` schema over HTTPS through PostgREST, so a table
@@ -199,12 +245,6 @@ which bypasses RLS — and so does the Supabase Studio table editor.
   Prisma 6, a breaking change. `overrides` do not take effect on npm 10.9.4
   here, and forcing the patched versions breaks the CLI. Revisit when Prisma
   bumps its pins.
-
-## Not set up yet
-
-These arrive in later steps, and this guide is updated in the same change:
-
-- The webapp's `src/lib/api/client.ts` and the API base URL it reads
 
 ## Testing the API in Swagger
 

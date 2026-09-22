@@ -4,6 +4,7 @@ import { globalProviders } from "./app.providers.js";
 import { validate } from "./config/env.validation.js";
 import { PrismaModule } from "./lib/database/prisma.module.js";
 import { MailModule } from "./lib/mail/mail.module.js";
+import { RateLimitModule } from "./lib/rate-limit/rate-limit.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
@@ -20,6 +21,7 @@ import { UsersModule } from "./modules/users/users.module.js";
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate }),
     PrismaModule,
     MailModule,
+    RateLimitModule,
     AuthModule,
     HealthModule,
     InstitutionsModule,

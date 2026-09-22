@@ -1326,6 +1326,41 @@ model ReportSnapshot {
   @@index([institutionId, generatedAt])
 }
 
+/*
+  Failed-attempt counters, for throttling credential attacks.
+
+  Counts *failures*, not requests: someone who mistypes a password once and
+  reloads is not an attacker, and a success clears the counter. Persisted
+  rather than held in memory so every API instance sees the same tally.
+
+  The key is the account (a normalised email), because behind the web app
+  every request reaches the API from one address, so an address-keyed limit
+  would throttle everyone together.
+
+  Keys are stored only as a SHA-256 hash. This table would otherwise become a
+  list of every email anyone ever typed at the sign-in form, the ones that do
+  not exist included — an attacker's spray list, sitting in the database.
+*/
+model RateLimitCounter {
+  id       String @id @default(uuid(7)) @db.Uuid
+  /// What is being limited: "login", "password-reset".
+  scope    String
+  /// SHA-256 of the normalised email, or of a forwarded client address. A
+  /// forwarded address runs on a far looser budget than the account, since an
+  /// address is shared by a whole campus or office.
+  key      String
+  failures Int    @default(0)
+  /// When the current counting window opened.
+  windowStartedAt DateTime @default(now())
+  /// Set once the limit is reached; refused until it passes.
+  blockedUntil    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scope, key])
+  @@index([scope, updatedAt])
+}
+
 /// An audit trail of what the API sent, so a failed invite can be diagnosed.
 model EmailMessage {
   id                String      @id @default(uuid(7)) @db.Uuid

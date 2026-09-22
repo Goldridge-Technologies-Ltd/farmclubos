@@ -18,6 +18,8 @@ export const ClientInfo = createParamDecorator(
     return {
       userAgent: request.headers["user-agent"]?.slice(0, 500),
       ipAddress: (firstForwarded || request.ip)?.slice(0, 100),
+      // Only when it was really forwarded: see ClientContext.forwardedFor.
+      ...(firstForwarded ? { forwardedFor: firstForwarded.slice(0, 100) } : {}),
     };
   },
 );

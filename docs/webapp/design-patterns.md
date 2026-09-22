@@ -83,13 +83,81 @@ Terminology follows `docs/content-rules.md` — "learner" in the platform and
 institution context, "participant" at a Hub, "Experience & Innovation Hub"
 never "Experience Hub".
 
-## 6. Not defined yet
+## 6. The app shell
+
+Everything behind a session is wrapped by `AppShell`
+(`src/components/layout/`), which the `(app)` route group's layout renders
+once. The session is fetched there, once, and passed down as props; no screen
+fetches it again to draw chrome.
+
+| Piece | What it does |
+|---|---|
+| `AppShell` | The frame: fixed sidebar from `lg`, top bar, content column. Owns `main#main-content` |
+| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker |
+| `AppMobileNav` | The same sections as a drawer below `lg` |
+| `AppTopBar` | Drawer trigger and logo on small screens, active institution on large, account menu |
+| `UserMenu` | The account disclosure: who you are, profile, sign out |
+| `PageHeader` | Crumbs, eyebrow, the page's only `h1`, description, actions |
+| `Breadcrumbs` | The trail for nested screens. Crumbs are passed in, never derived from the URL |
+| `Panel` | The basic content surface: flat white, hairline border |
+| `AppErrorState` | What an `error.tsx` segment renders |
+
+Three decisions in there are worth not undoing:
+
+- **`main#main-content` belongs to the route group, not the root layout.** The
+  skip link has to jump past the sidebar and the bar to reach the content,
+  which it cannot do if one `main` wraps them all. `(auth)` provides its own.
+- **The user menu is a disclosure, not a `role="menu"`.** Menu semantics
+  promise arrow-key roving over `menuitem`s, and a `menuitem` may not be a
+  form — but signing out must be a form posting to a Server Action, because
+  only an action may clear an httpOnly cookie.
+- **The drawer's open state is "open for this route", not a boolean.** A route
+  change then closes it during render, with no effect synchronising the two.
+  This is the site's `MobileNavigation` behaviour, which has been through it.
+
+### Page anatomy
+
+```tsx
+<div className="app-stack">
+  <PageHeader eyebrow="…" heading="…" description="…" />
+  <Panel title="…">…</Panel>
+</div>
+```
+
+`.app-container` (in `src/app/globals.css`) sets the content measure and
+gutters; `AppShell` applies it, so a screen never does. `.app-stack` is the
+vertical rhythm between the blocks of a screen. The website's
+`.site-container` and `.section-padding` are **not** available here.
+
+A page heading uses `type-h2-band`, not `type-h1`: the `h1` roles are sized
+for a marketing hero and would shout on a screen sitting beside a sidebar.
+
+### Navigation
+
+`src/lib/navigation.ts` is the single source: `appNavigation` drives the
+sidebar and the drawer, `accountNavigation` drives the user menu, and
+`isActiveNavItem` decides what is highlighted. Home matches exactly — as a
+prefix, `/` would light up everywhere — and every other item matches its own
+path and anything below it, but only at a `/` boundary.
+
+### Sections that are not open yet
+
+Two components, for two different situations:
+
+- **`CapabilityScreenView`** — Experience, Mentorship and Enterprise. Phase 1
+  sections whose tables exist and whose screens do not. Each says what it is
+  for, then shows the empty state it will genuinely have on day one.
+- **`FutureCapabilityPanel`** — Marketplace and Finance. Not being built yet,
+  and the page says what has to be true first. This is the sanctioned use of
+  `Badge tone="warning"` with "Coming soon"; §4 still applies, so no date, no
+  ordering, no figure and no partner name appears.
+
+## 7. Not defined yet
 
 These arrive with the screens that need them, and are documented here in the
 same change:
 
-- The app shell: sidebar, top bar, mobile drawer, user menu, breadcrumbs
-- Page anatomy and the app's layout container
+- Switching between institutions when someone belongs to more than one
 - Tables, list rows and pagination
-- Dashboard composition
+- Dashboard composition, once there is real data to compose
 - A live reference page for the web app, as the site has at `/design-system`

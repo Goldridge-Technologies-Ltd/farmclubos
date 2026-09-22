@@ -79,11 +79,27 @@ export const journeyScreen = {
   description:
     "Every lesson completed, assessment passed and competency verified, in " +
     "one place.",
-  building: {
-    title: "Your journey is being built",
+  notEnrolled: {
+    title: "You are not enrolled on a pathway yet",
     description:
-      "Nothing is recorded against your account yet. Once you begin a " +
-      "pathway, each step you complete will be listed here.",
+      "Your institution enrols you onto a cohort. Once that happens, your " +
+      "pathway and everything you complete will be listed here.",
+    action: "Browse the Academy",
+  },
+  cohort: (name: string) => `Cohort: ${name}`,
+  through: "through this pathway",
+  moduleProgress: (done: number, total: number) =>
+    `${done} of ${total} ${total === 1 ? "lesson" : "lessons"} complete`,
+  statuses: {
+    NOT_STARTED: "Not started",
+    IN_PROGRESS: "In progress",
+    COMPLETED: "Complete",
+  },
+  enrolmentStatuses: {
+    INVITED: "Invited",
+    ACTIVE: "In progress",
+    COMPLETED: "Completed",
+    WITHDRAWN: "Withdrawn",
   },
 } as const;
 

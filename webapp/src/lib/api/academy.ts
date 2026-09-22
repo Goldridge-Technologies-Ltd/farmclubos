@@ -3,7 +3,10 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { apiRequest } from "./client";
 import type {
+  Assessment,
+  Attempt,
   Enrolment,
+  Journey,
   LessonDetail,
   ModuleDetail,
   PathwayDetail,
@@ -79,4 +82,20 @@ async function orNotFound<T>(request: Promise<T>): Promise<T> {
 /** A slug comes from the URL, so it goes back into one encoded. */
 function encode(slug: string): string {
   return encodeURIComponent(slug);
+}
+
+/* ── Progress and assessments ─────────────────────────────────────────── */
+
+export async function myJourney(): Promise<Journey[]> {
+  return apiRequest<Journey[]>("/api/progress/mine");
+}
+
+export async function getAssessment(assessmentId: string): Promise<Assessment> {
+  return orNotFound(apiRequest<Assessment>(`/api/assessments/${encode(assessmentId)}`));
+}
+
+export async function getAttempt(attemptId: string): Promise<Attempt> {
+  return orNotFound(
+    apiRequest<Attempt>(`/api/assessments/attempts/${encode(attemptId)}`),
+  );
 }

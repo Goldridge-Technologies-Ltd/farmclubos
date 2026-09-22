@@ -6,7 +6,8 @@ import { Notice } from "@farmclub/design-system/Notice";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { academy } from "@/content/academy";
-import { getLesson } from "@/lib/api/academy";
+import { MarkCompleteForm } from "@/components/learning/MarkCompleteForm";
+import { getLesson, myJourney } from "@/lib/api/academy";
 
 type PageProps = {
   params: Promise<{ pathwaySlug: string; moduleSlug: string; lessonSlug: string }>;
@@ -21,7 +22,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LessonPage({ params }: PageProps) {
   const { pathwaySlug, moduleSlug, lessonSlug } = await params;
-  const lesson = await getLesson(pathwaySlug, moduleSlug, lessonSlug);
+  const [lesson, journeys] = await Promise.all([
+    getLesson(pathwaySlug, moduleSlug, lessonSlug),
+    myJourney(),
+  ]);
+
+  /*
+    Completing a lesson only means something against an enrolment, so the
+    button appears only for someone who has one on this pathway. Everyone else
+    is told why, rather than shown a control that would fail.
+  */
+  const enrolment = journeys.find((journey) => journey.pathway.slug === pathwaySlug);
+  const alreadyComplete = enrolment
+    ? enrolment.modules
+        .flatMap((pathwayModule) => pathwayModule.lessons)
+        .some((entry) => entry.lessonId === lesson.id && entry.status === "COMPLETED")
+    : false;
 
   const moduleHref = `/academy/${pathwaySlug}/modules/${moduleSlug}`;
   const lessonHref = (slug: string) => `${moduleHref}/lessons/${slug}`;
@@ -72,6 +88,14 @@ export default async function LessonPage({ params }: PageProps) {
               ? academy.lesson.inReview.description
               : academy.lesson.beingAuthored.description}
           </Notice>
+        )}
+      </Panel>
+
+      <Panel>
+        {enrolment ? (
+          <MarkCompleteForm alreadyComplete={alreadyComplete} lessonId={lesson.id} />
+        ) : (
+          <Notice tone="info">{academy.lesson.notEnrolled}</Notice>
         )}
       </Panel>
 

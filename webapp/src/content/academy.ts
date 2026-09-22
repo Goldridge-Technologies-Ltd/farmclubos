@@ -74,6 +74,12 @@ export const academy = {
     previous: "Previous lesson",
     next: "Next lesson",
     backToModule: "Back to the module",
+    markComplete: "Mark as complete",
+    completing: "Saving…",
+    completed: "You have completed this lesson.",
+    notEnrolled:
+      "You are not enrolled on this pathway, so nothing is recorded against your " +
+      "account. Your institution enrols you onto a cohort.",
     /*
       The seeded lessons are outlines: a title and a summary, with no body
       written yet. Saying so plainly is the point — a blank page would read as
@@ -94,5 +100,38 @@ export const academy = {
   assessment: {
     passMark: (percent: number) => `Pass mark ${percent}%`,
     beingAuthored: "Being written",
+    start: "Start the assessment",
+    resume: "Resume your attempt",
+    review: "See your result",
+    starting: "Opening…",
+    submitting: "Submitting…",
+    submit: "Submit for marking",
+    savesAsYouGo: "Your answers save as you go.",
+    savedAt: (time: string) => `Saved at ${time}.`,
+    questionNumber: (index: number) => `Question ${index}`,
+    chooseOne: "Choose one answer.",
+    chooseAll: "Choose every answer that applies.",
+    writeAnswer: "Write your answer in your own words.",
+    writtenReviewed:
+      "A written answer is marked by a person, so it is left out of the score below " +
+      "rather than counted as wrong.",
+    noAttemptsLeft: "You have used every attempt at this assessment.",
+    attemptsUsed: (used: number, max: number | null) =>
+      max === null
+        ? `${used} ${used === 1 ? "attempt" : "attempts"} so far`
+        : `${used} of ${max} ${max === 1 ? "attempt" : "attempts"} used`,
+    result: {
+      heading: "Your result",
+      score: (percent: number) => `${percent}%`,
+      passed: "Passed",
+      notPassed: "Not passed yet",
+      againstPassMark: (percent: number) => `The pass mark is ${percent}%.`,
+      awaitingReview: (count: number) =>
+        `${count} written ${count === 1 ? "answer is" : "answers are"} waiting to be marked by a person, and ${count === 1 ? "is" : "are"} not counted in this score.`,
+      correct: "Correct",
+      incorrect: "Not correct",
+      awaiting: "Awaiting marking",
+      retake: "Take it again",
+    },
   },
 } as const;

@@ -224,6 +224,29 @@ done
 
 Clear it with `DELETE FROM "RateLimitCounter";`, or wait out the window.
 
+### Walking the learner journey
+
+The seed creates the catalogue but no institution, cohort or enrolment — that
+is deliberate, and it means a fresh database has nobody to enrol. To see the
+journey end to end you need an institution with two members: an administrator
+to open an intake, and a learner to take it.
+
+1. Create an institution and invite yourself as its administrator
+   (`POST /api/institutions`, then the invite routes — see below).
+2. Invite a second person as a `LEARNER` and accept the invitation.
+3. As the administrator, open an intake:
+   `POST /api/institutions/{institutionId}/cohorts` with a `pathwaySlug` and a
+   `name`.
+4. Enrol the learner:
+   `POST /api/institutions/{institutionId}/cohorts/{cohortId}/enrolments` with
+   their email. They must already be an active member.
+5. Sign in as the learner. `/academy` now offers "Mark as complete" on a
+   lesson and "Start the assessment" on *Fundamentals of Agriculture*, and
+   `/my-journey` shows what has been recorded.
+
+Only that module's assessment is published — the rest are drafts — so it is
+the one place the quiz appears.
+
 ### Row-level security
 
 Supabase serves the `public` schema over HTTPS through PostgREST, so a table

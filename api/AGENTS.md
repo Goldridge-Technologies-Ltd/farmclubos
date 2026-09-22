@@ -49,6 +49,19 @@ variables differ.
   someone who should not see it.
 - **`AssessmentOption.isCorrect` never appears in a DTO** that a learner can
   reach. Grading happens in the service.
+- **Progress belongs to an enrolment, never to a user.** The same person can
+  take the same pathway with two institutions, and those are two records.
+  `ProgressService` and `AssessmentsService` both resolve the enrolment from
+  the caller, their active institution and the pathway — so a lesson,
+  assessment or attempt id is only ever usable by the person it belongs to,
+  and "you are not enrolled" answers 404 rather than 403.
+- **`progressPercent` is recomputed from rows, never incremented.** An
+  increment drifts the moment a lesson is published or a module archived, and
+  a progress bar that quietly lies is worse than none.
+- **A written answer is left out of an assessment's score, not marked wrong.**
+  No machine can grade it; counting it as wrong would cap an otherwise perfect
+  attempt and fail the learner for it. The attempt reports how many are
+  waiting for a person instead.
 - **The Academy catalogue is the exception to tenancy, not to access control.**
   A pathway belongs to no institution, so `AcademyService` filters on
   publication rather than `institutionId`: `{ status: "PUBLISHED",

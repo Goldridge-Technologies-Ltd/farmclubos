@@ -49,3 +49,16 @@ export type EnrolmentView = {
   completedAt: Date | null;
   cohort: CohortSummaryView;
 };
+
+/** What an institution admin sends to open an intake. */
+export type CreateCohortInput = {
+  pathwaySlug: string;
+  name: string;
+  code?: string | null;
+  deliveryMode?: DeliveryMode;
+  startsOn?: string | null;
+  endsOn?: string | null;
+};
+
+/** Enrolling one of the institution's own members onto a cohort. */
+export type EnrolInput = { email: string };

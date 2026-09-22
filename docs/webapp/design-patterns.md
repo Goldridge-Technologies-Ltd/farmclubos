@@ -173,6 +173,29 @@ everyone so caching it would be safe in principle, but the client refuses to
 cache any reply that carried a bearer token, and an exception to that rule is
 how one person's data eventually reaches another.
 
+### Mutations
+
+Every write is a Server Action in `src/lib/actions/`, because each needs the
+access token from an httpOnly cookie the browser cannot read. A control that
+writes is therefore a `<form action={…}>`, never an `onClick` — that is why
+"Mark as complete" and "Start the assessment" are forms with a hidden input.
+
+After a write, `revalidatePath` clears the router's client-side cache for the
+segments that show the same data. These reads are per-user and so uncached on
+the server, but the router still holds segments already visited: without it,
+going back to a module would show a lesson you just completed as outstanding.
+
+A control that would fail is not shown. The completion button and the
+assessment launcher appear only for someone enrolled on that pathway;
+everyone else is told why, which is more use than a button that 404s.
+
+### Autosave
+
+The assessment form saves a second after answering stops, never on every
+keystroke, and a failed background save is not surfaced as an error — the
+answers are still in the form and submitting will send them. Shouting about it
+would be alarming and useless.
+
 ## 7. Not defined yet
 
 These arrive with the screens that need them, and are documented here in the

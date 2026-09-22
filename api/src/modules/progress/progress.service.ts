@@ -1,0 +1,320 @@
+import { Injectable, NotFoundException } from "@nestjs/common";
+import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
+import type { Prisma } from "../../generated/prisma/client.js";
+import type { ProgressStatus } from "../../generated/prisma/enums.js";
+import { PrismaService } from "../../lib/database/prisma.service.js";
+import type {
+  JourneyView,
+  LessonCompletionView,
+  ModuleProgressView,
+} from "./progress.types.js";
+
+/*
+  Recording and reading what a learner has actually done.
+
+  Two rules hold everything else together.
+
+  First, progress belongs to an *enrolment*, never to a user: the same person
+  could take the same pathway twice with two institutions, and those are two
+  separate records. Every write here resolves the enrolment from the caller,
+  their active institution and the lesson's pathway — so a lesson id alone can
+  never be used to write against someone else's record.
+
+  Second, `progressPercent` is recomputed from rows rather than incremented.
+  An increment drifts the moment anything else changes — a lesson published, a
+  module archived — and a progress bar that quietly lies is worse than none.
+*/
+
+const published = { status: "PUBLISHED", archivedAt: null } as const;
+
+@Injectable()
+export class ProgressService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Marks a lesson complete for the caller's enrolment, then recomputes the
+   * module's status and the enrolment's percentage from what is now recorded.
+   */
+  async completeLesson(
+    user: AuthenticatedUser,
+    lessonId: string,
+  ): Promise<LessonCompletionView> {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, ...published, module: { ...published, pathway: published } },
+      select: { id: true, moduleId: true, module: { select: { pathwayId: true } } },
+    });
+
+    if (!lesson) {
+      throw notFound("lesson");
+    }
+
+    const enrolment = await this.enrolmentFor(user, lesson.module.pathwayId);
+    const now = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.lessonProgress.upsert({
+        where: { enrolmentId_lessonId: { enrolmentId: enrolment.id, lessonId } },
+        create: {
+          enrolmentId: enrolment.id,
+          lessonId,
+          status: "COMPLETED",
+          startedAt: now,
+          completedAt: now,
+        },
+        // Completing twice is not an error — a second click, a stale page —
+        // and it must not move the first completion's date.
+        update: { status: "COMPLETED", completedAt: now },
+      });
+
+      const moduleStatus = await this.refreshModule(tx, enrolment.id, lesson.moduleId, now);
+      const progressPercent = await this.refreshEnrolment(
+        tx,
+        enrolment.id,
+        enrolment.pathwayId,
+        now,
+      );
+
+      return {
+        lessonId,
+        status: "COMPLETED" as ProgressStatus,
+        completedAt: now,
+        moduleStatus,
+        progressPercent,
+      };
+    });
+  }
+
+  /** Every enrolment the caller holds, with what they have completed in each. */
+  async myJourney(user: AuthenticatedUser): Promise<JourneyView[]> {
+    if (!user.institutionId) {
+      return [];
+    }
+
+    const enrolments = await this.prisma.enrolment.findMany({
+      where: {
+        userId: user.userId,
+        institutionId: user.institutionId,
+        status: { in: ["INVITED", "ACTIVE", "COMPLETED"] },
+        cohort: { archivedAt: null },
+      },
+      orderBy: { enrolledAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        progressPercent: true,
+        cohort: {
+          select: {
+            id: true,
+            name: true,
+            pathway: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+                modules: {
+                  where: { ...published },
+                  orderBy: { sequence: "asc" },
+                  select: {
+                    id: true,
+                    slug: true,
+                    title: true,
+                    sequence: true,
+                    lessons: {
+                      where: { ...published },
+                      orderBy: { sequence: "asc" },
+                      select: { id: true, slug: true, title: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (enrolments.length === 0) {
+      return [];
+    }
+
+    const progress = await this.prisma.lessonProgress.findMany({
+      where: { enrolmentId: { in: enrolments.map((enrolment) => enrolment.id) } },
+      select: { enrolmentId: true, lessonId: true, status: true, completedAt: true },
+    });
+
+    return enrolments.map((enrolment) => {
+      const recorded = new Map(
+        progress
+          .filter((row) => row.enrolmentId === enrolment.id)
+          .map((row) => [row.lessonId, row]),
+      );
+
+      const modules: ModuleProgressView[] = enrolment.cohort.pathway.modules.map(
+        (pathwayModule) => {
+          const lessons = pathwayModule.lessons.map((lesson) => {
+            const row = recorded.get(lesson.id);
+
+            return {
+              lessonId: lesson.id,
+              slug: lesson.slug,
+              title: lesson.title,
+              status: row?.status ?? "NOT_STARTED",
+              completedAt: row?.completedAt ?? null,
+            };
+          });
+
+          const lessonsCompleted = lessons.filter(
+            (lesson) => lesson.status === "COMPLETED",
+          ).length;
+
+          return {
+            moduleId: pathwayModule.id,
+            slug: pathwayModule.slug,
+            title: pathwayModule.title,
+            sequence: pathwayModule.sequence,
+            status: statusFor(lessonsCompleted, lessons.length),
+            lessonsCompleted,
+            lessonCount: lessons.length,
+            lessons,
+          };
+        },
+      );
+
+      return {
+        enrolmentId: enrolment.id,
+        status: enrolment.status,
+        progressPercent: enrolment.progressPercent,
+        cohort: { id: enrolment.cohort.id, name: enrolment.cohort.name },
+        pathway: enrolment.cohort.pathway,
+        modules,
+      };
+    });
+  }
+
+  /**
+   * The caller's enrolment on a pathway, in the institution their token is
+   * pinned to. A 404 rather than a 403: an id is never confirmed, and "you
+   * are not enrolled" is not an authorisation failure.
+   */
+  private async enrolmentFor(
+    user: AuthenticatedUser,
+    pathwayId: string,
+  ): Promise<{ id: string; pathwayId: string }> {
+    if (!user.institutionId) {
+      throw notFound("enrolment");
+    }
+
+    const enrolment = await this.prisma.enrolment.findFirst({
+      where: {
+        userId: user.userId,
+        institutionId: user.institutionId,
+        status: { in: ["INVITED", "ACTIVE"] },
+        cohort: { pathwayId, archivedAt: null },
+      },
+      orderBy: { enrolledAt: "desc" },
+      select: { id: true },
+    });
+
+    if (!enrolment) {
+      throw notFound("enrolment");
+    }
+
+    return { id: enrolment.id, pathwayId };
+  }
+
+  /** A module is complete when every published lesson in it is. */
+  private async refreshModule(
+    tx: Prisma.TransactionClient,
+    enrolmentId: string,
+    moduleId: string,
+    now: Date,
+  ): Promise<ProgressStatus> {
+    const [total, completed] = await Promise.all([
+      tx.lesson.count({ where: { moduleId, ...published } }),
+      tx.lessonProgress.count({
+        where: {
+          enrolmentId,
+          status: "COMPLETED",
+          lesson: { moduleId, ...published },
+        },
+      }),
+    ]);
+
+    const status = statusFor(completed, total);
+
+    await tx.moduleProgress.upsert({
+      where: { enrolmentId_moduleId: { enrolmentId, moduleId } },
+      create: {
+        enrolmentId,
+        moduleId,
+        status,
+        startedAt: now,
+        completedAt: status === "COMPLETED" ? now : null,
+      },
+      update: { status, completedAt: status === "COMPLETED" ? now : null },
+    });
+
+    return status;
+  }
+
+  /** Recomputed from rows, never incremented. */
+  private async refreshEnrolment(
+    tx: Prisma.TransactionClient,
+    enrolmentId: string,
+    pathwayId: string,
+    now: Date,
+  ): Promise<number> {
+    const [total, completed] = await Promise.all([
+      tx.lesson.count({
+        where: { ...published, module: { ...published, pathwayId } },
+      }),
+      tx.lessonProgress.count({
+        where: {
+          enrolmentId,
+          status: "COMPLETED",
+          lesson: { ...published, module: { ...published, pathwayId } },
+        },
+      }),
+    ]);
+
+    // A pathway with no published lessons is 0%, not 100%: nothing has been
+    // done, and dividing by zero would claim otherwise.
+    const progressPercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const finished = total > 0 && completed === total;
+
+    // Stamped once, on the first thing they complete. `updateMany` with the
+    // condition in the where clause keeps it a single statement.
+    await tx.enrolment.updateMany({
+      where: { id: enrolmentId, startedAt: null },
+      data: { startedAt: now, status: "ACTIVE" },
+    });
+
+    await tx.enrolment.update({
+      where: { id: enrolmentId },
+      data: {
+        progressPercent,
+        ...(finished ? { status: "COMPLETED", completedAt: now } : {}),
+      },
+    });
+
+    return progressPercent;
+  }
+}
+
+function statusFor(completed: number, total: number): ProgressStatus {
+  if (total > 0 && completed >= total) {
+    return "COMPLETED";
+  }
+
+  return completed > 0 ? "IN_PROGRESS" : "NOT_STARTED";
+}
+
+function notFound(what: string) {
+  return new NotFoundException({
+    code: "NOT_FOUND",
+    message:
+      what === "enrolment"
+        ? "You are not enrolled on this pathway."
+        : "That lesson does not exist, or has not been published.",
+  });
+}

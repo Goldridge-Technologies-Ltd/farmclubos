@@ -6,7 +6,8 @@ import { Icon } from "@farmclub/design-system/Icon";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { academy } from "@/content/academy";
-import { getModule } from "@/lib/api/academy";
+import { StartAttemptForm } from "@/components/learning/StartAttemptForm";
+import { getModule, myJourney } from "@/lib/api/academy";
 
 type PageProps = { params: Promise<{ pathwaySlug: string; moduleSlug: string }> };
 
@@ -19,7 +20,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ModulePage({ params }: PageProps) {
   const { pathwaySlug, moduleSlug } = await params;
-  const pathwayModule = await getModule(pathwaySlug, moduleSlug);
+  const [pathwayModule, journeys] = await Promise.all([
+    getModule(pathwaySlug, moduleSlug),
+    myJourney(),
+  ]);
+
+  // An attempt is recorded against an enrolment, so only someone enrolled on
+  // this pathway can start one.
+  const isEnrolled = journeys.some((journey) => journey.pathway.slug === pathwaySlug);
+  const moduleHref = `/academy/${pathwaySlug}/modules/${moduleSlug}`;
   const lessonHref = (lessonSlug: string) =>
     `/academy/${pathwaySlug}/modules/${moduleSlug}/lessons/${lessonSlug}`;
 
@@ -113,9 +122,18 @@ export default async function ModulePage({ params }: PageProps) {
                     {academy.assessment.passMark(assessment.passMarkPercent)}
                   </p>
                 </div>
-                {assessment.authoringStatus !== "AUTHORED" ? (
-                  <Badge tone="warning">{academy.assessment.beingAuthored}</Badge>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-3">
+                  {assessment.authoringStatus !== "AUTHORED" ? (
+                    <Badge tone="warning">{academy.assessment.beingAuthored}</Badge>
+                  ) : null}
+                  {isEnrolled && assessment.questionCount > 0 ? (
+                    <StartAttemptForm
+                      assessmentId={assessment.id}
+                      label={academy.assessment.start}
+                      returnTo={moduleHref}
+                    />
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { maxAgeSeconds, sessionCookieOptions } from "./session-cookies";
+import { maxAgeSeconds, safeRedirectPath, sessionCookieOptions } from "./session-cookies";
 
 /*
   A wrong lifetime here is invisible: the session either dies on the next click
@@ -59,5 +59,37 @@ describe("sessionCookieOptions", () => {
     } finally {
       Object.defineProperty(process.env, "NODE_ENV", { value: original, configurable: true });
     }
+  });
+});
+
+/*
+  An open redirect: sign-in carries ?next= straight into redirect(), so a
+  crafted link could otherwise bounce someone onto another site the moment
+  they authenticate, with the sign-in page looking entirely genuine.
+*/
+describe("safeRedirectPath", () => {
+  it("keeps an ordinary path, query and all", () => {
+    expect(safeRedirectPath("/academy?pathway=greenhouse-enterprise")).toBe(
+      "/academy?pathway=greenhouse-enterprise",
+    );
+  });
+
+  // Protocol-relative, absolute, a lookalike host, a script URL, and nothing.
+  const hostile: Array<string | null | undefined> = [
+    "//evil.example.com",
+    "https://evil.example.com",
+    "http://localhost:3001.evil.example.com",
+    "javascript:alert(1)",
+    "",
+    null,
+    undefined,
+  ];
+
+  it.each(hostile)("refuses %p and falls back to the default", (value) => {
+    expect(safeRedirectPath(value)).toBe("/");
+  });
+
+  it("uses the fallback it is given", () => {
+    expect(safeRedirectPath("https://evil.example.com", "/sign-in")).toBe("/sign-in");
   });
 });

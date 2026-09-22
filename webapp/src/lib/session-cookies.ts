@@ -51,3 +51,54 @@ export function maxAgeSeconds(expiresAt: string | Date): number {
 
   return Math.max(0, Math.floor((expiry - Date.now()) / 1000));
 }
+
+/*
+  Enough of a cookie store to write a session. Both the `cookies()` store in a
+  Server Action and a NextResponse's `cookies` satisfy it, so the sign-in
+  action and the /refresh route share one implementation.
+*/
+type CookieWriter = {
+  set(name: string, value: string, options: SessionCookieOptions): unknown;
+};
+
+type CookieClearer = { delete(name: string): unknown };
+
+export type SessionTokens = {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+};
+
+export function writeSessionCookies(target: CookieWriter, tokens: SessionTokens): void {
+  target.set(
+    ACCESS_TOKEN_COOKIE,
+    tokens.accessToken,
+    sessionCookieOptions(tokens.accessTokenExpiresAt),
+  );
+  target.set(
+    REFRESH_TOKEN_COOKIE,
+    tokens.refreshToken,
+    sessionCookieOptions(tokens.refreshTokenExpiresAt),
+  );
+}
+
+export function clearSessionCookies(target: CookieClearer): void {
+  target.delete(ACCESS_TOKEN_COOKIE);
+  target.delete(REFRESH_TOKEN_COOKIE);
+}
+
+/**
+ * A redirect target taken from a query string, reduced to something safe.
+ *
+ * Only a path on this app: anything absolute, protocol-relative (`//evil.com`)
+ * or otherwise off-site becomes the default, so a crafted `?next=` cannot
+ * bounce a freshly signed-in person somewhere else.
+ */
+export function safeRedirectPath(value: string | null | undefined, fallback = "/"): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+
+  return value;
+}

@@ -7,7 +7,8 @@ import { isUnauthorized } from "./api/errors";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
-  sessionCookieOptions,
+  clearSessionCookies,
+  writeSessionCookies,
 } from "./session-cookies";
 
 /*
@@ -32,26 +33,12 @@ export async function readRefreshToken(): Promise<string | undefined> {
 
 /** Stores a freshly issued pair. Server Actions and Route Handlers only. */
 export async function startSession(session: AuthSession): Promise<void> {
-  const cookieStore = await cookies();
-
-  cookieStore.set(
-    ACCESS_TOKEN_COOKIE,
-    session.accessToken,
-    sessionCookieOptions(session.accessTokenExpiresAt),
-  );
-  cookieStore.set(
-    REFRESH_TOKEN_COOKIE,
-    session.refreshToken,
-    sessionCookieOptions(session.refreshTokenExpiresAt),
-  );
+  writeSessionCookies(await cookies(), session);
 }
 
 /** Forgets the session here. Ending it on the API is a separate call. */
 export async function endSession(): Promise<void> {
-  const cookieStore = await cookies();
-
-  cookieStore.delete(ACCESS_TOKEN_COOKIE);
-  cookieStore.delete(REFRESH_TOKEN_COOKIE);
+  clearSessionCookies(await cookies());
 }
 
 /**

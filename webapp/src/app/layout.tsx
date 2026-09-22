@@ -32,7 +32,13 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <main id="main-content">{children}</main>
+        {/*
+          Each route group provides its own `main#main-content`: the app shell
+          has a sidebar and a bar the skip link must jump past, and the auth
+          screens are a centred card with neither. One `main` here would have
+          to wrap the shell's chrome as well as its content.
+        */}
+        {children}
       </body>
     </html>
   );

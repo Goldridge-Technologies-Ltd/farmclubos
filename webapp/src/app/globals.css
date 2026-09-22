@@ -7,3 +7,30 @@
   app-only CSS here sparingly; a pattern the site could also use belongs in
   the shared package instead.
 */
+
+/*
+  The app's layout container, the counterpart to the website's
+  `.site-container`. They are deliberately separate: a marketing page is a
+  centred column on a wide canvas, while an app screen sits beside a sidebar
+  and needs its own, narrower measure (docs/design-system.md §5.2).
+*/
+@utility app-container {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+
+  @variant sm {
+    padding-inline: 2rem;
+  }
+}
+
+/* The vertical rhythm between the blocks of a screen. */
+@utility app-stack {
+  display: grid;
+  gap: 1.75rem;
+
+  @variant sm {
+    gap: 2.25rem;
+  }
+}

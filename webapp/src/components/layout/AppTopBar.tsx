@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@farmclub/design-system/Logo";
 import { appShell } from "@/content/app";
 import type { SessionContext } from "@/lib/api/contracts";
+import type { NavGroup } from "@/lib/navigation";
 import { AppMobileNav } from "./AppMobileNav";
 import { UserMenu } from "./UserMenu";
 
@@ -15,21 +16,25 @@ import { UserMenu } from "./UserMenu";
 */
 export function AppTopBar({
   session,
-  canManage,
+  groups,
 }: {
   session: SessionContext;
-  canManage: boolean;
+  groups: NavGroup[];
 }) {
   const name = `${session.user.firstName} ${session.user.lastName}`.trim();
   const membership = session.memberships.find(
     (item) => item.institutionId === session.activeInstitutionId,
   );
-  const institution = membership?.institutionName ?? appShell.menu.noInstitution;
+  const institution =
+    membership?.institutionName ??
+    (session.user.platformRole === "PLATFORM_ADMIN"
+      ? appShell.menu.platform
+      : appShell.menu.noInstitution);
   const role = session.institutionRole ?? session.user.platformRole;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-farm-border bg-white px-5 sm:px-8">
-      <AppMobileNav canManage={canManage} />
+      <AppMobileNav groups={groups} />
 
       <Link href="/" className="inline-flex lg:hidden" aria-label="FARMCLUB OS home">
         <Logo className="h-7 w-auto" variant="primary" />

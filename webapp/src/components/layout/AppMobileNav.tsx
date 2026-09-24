@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@farmclub/design-system/Icon";
 import { Logo } from "@farmclub/design-system/Logo";
 import { appShell } from "@/content/app";
-import { appNavigation, isActiveNavItem, manageNavigation, type NavItem } from "@/lib/navigation";
+import { appNavigation, isActiveNavItem, type NavGroup, type NavItem } from "@/lib/navigation";
 
 /*
   The same sections as the sidebar, as a drawer, below lg.
@@ -18,7 +18,7 @@ import { appNavigation, isActiveNavItem, manageNavigation, type NavItem } from "
   while it is open, and Escape closes it and returns focus to the trigger,
   which is the part keyboard users notice when it is missing.
 */
-export function AppMobileNav({ canManage }: { canManage: boolean }) {
+export function AppMobileNav({ groups }: { groups: NavGroup[] }) {
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -105,13 +105,11 @@ export function AppMobileNav({ canManage }: { canManage: boolean }) {
                 ))}
               </ul>
 
-              {canManage ? (
-                <>
-                  <p className="mt-7 px-3 type-overline text-white/55">
-                    {appShell.manageHeading}
-                  </p>
+              {groups.map((group) => (
+                <div key={group.heading}>
+                  <p className="mt-7 px-3 type-overline text-white/55">{group.heading}</p>
                   <ul className="mt-2 grid gap-1">
-                    {manageNavigation.map((item) => (
+                    {group.items.map((item) => (
                       <li key={item.href}>
                         <DrawerLink
                           item={item}
@@ -121,8 +119,8 @@ export function AppMobileNav({ canManage }: { canManage: boolean }) {
                       </li>
                     ))}
                   </ul>
-                </>
-              ) : null}
+                </div>
+              ))}
             </nav>
           </div>
         </>

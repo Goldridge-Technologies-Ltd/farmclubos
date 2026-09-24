@@ -5,6 +5,7 @@ import { InviteActions } from "@/components/institution/InviteActions";
 import { InviteMemberForm } from "@/components/institution/InviteMemberForm";
 import { Panel } from "@/components/ui/Panel";
 import { institutionContent } from "@/content/institution";
+import { resendInvite, revokeInvite } from "@/lib/actions/institution";
 import { listMembers, listPendingInvites, managedInstitution } from "@/lib/api/institution";
 import { formatDay } from "@/lib/format";
 
@@ -54,7 +55,11 @@ export default async function MembersPage() {
                     {copy.pending.expires(formatDay(invite.expiresAt))}
                   </p>
                 </div>
-                <InviteActions inviteId={invite.id} />
+                <InviteActions
+                  inviteId={invite.id}
+                  resendAction={resendInvite}
+                  revokeAction={revokeInvite}
+                />
               </li>
             ))}
           </ul>

@@ -10,7 +10,7 @@ import { Panel } from "@/components/ui/Panel";
 import { homeScreen } from "@/content/app";
 import { myJourney } from "@/lib/api/academy";
 import { nextLesson } from "@/lib/journey";
-import { appNavigation, canManageInstitution } from "@/lib/navigation";
+import { appNavigation, canAdministerPlatform, canManageInstitution } from "@/lib/navigation";
 import { getSessionContext } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Home" };
@@ -36,6 +36,7 @@ export default async function HomePage() {
   const current = journeys[0];
   const next = current ? nextLesson(current) : null;
   const canManage = canManageInstitution(session);
+  const canAdminister = canAdministerPlatform(session);
   const sections = appNavigation.filter((item) => item.href !== "/");
 
   return (
@@ -62,7 +63,7 @@ export default async function HomePage() {
             {next ? homeScreen.continue.action : homeScreen.continue.journey}
           </ButtonLink>
         </Panel>
-      ) : canManage ? null : (
+      ) : canManage || canAdminister ? null : (
         <EmptyState
           action={<ButtonLink href="/academy">{homeScreen.notEnrolled.action}</ButtonLink>}
           description={homeScreen.notEnrolled.description}
@@ -70,6 +71,14 @@ export default async function HomePage() {
           title={homeScreen.notEnrolled.title}
         />
       )}
+
+      {canAdminister ? (
+        <Panel description={homeScreen.platform.description} title={homeScreen.platform.title}>
+          <ButtonLink href="/platform/institutions" icon="none" size="md" variant="secondary">
+            {homeScreen.platform.action}
+          </ButtonLink>
+        </Panel>
+      ) : null}
 
       {canManage ? (
         <Panel description={homeScreen.manage.description} title={homeScreen.manage.title}>

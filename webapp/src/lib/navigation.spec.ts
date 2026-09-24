@@ -1,4 +1,11 @@
-import { appNavigation, canManageInstitution, isActiveNavItem, manageNavigation } from "./navigation";
+import {
+  appNavigation,
+  canAdministerPlatform,
+  canManageInstitution,
+  isActiveNavItem,
+  manageNavigation,
+  platformNavigation,
+} from "./navigation";
 import type { SessionContext } from "./api/contracts";
 
 /*
@@ -101,6 +108,53 @@ describe("manageNavigation", () => {
 
     for (const item of manageNavigation) {
       expect(main.has(item.href)).toBe(false);
+    }
+  });
+});
+
+/*
+  The platform section runs every institution, so it follows the platform
+  role alone — unlike Manage, it needs no active institution: a platform
+  administrator who belongs to none is exactly who sets the first one up.
+*/
+describe("canAdministerPlatform", () => {
+  const user = {
+    id: "user-1",
+    email: "ops@example.com",
+    firstName: "Ops",
+    lastName: "Admin",
+    platformRole: "PLATFORM_ADMIN" as const,
+  };
+
+  it("is true for a platform administrator with no institution at all", () => {
+    expect(
+      canAdministerPlatform({
+        user,
+        activeInstitutionId: null,
+        institutionRole: null,
+        memberships: [],
+      }),
+    ).toBe(true);
+  });
+
+  it.each(["CONTENT_MANAGER", "NONE"] as const)("is false for platform role %s", (platformRole) => {
+    expect(
+      canAdministerPlatform({
+        user: { ...user, platformRole },
+        activeInstitutionId: "institution-1",
+        institutionRole: "INSTITUTION_ADMIN",
+        memberships: [],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("platformNavigation", () => {
+  it("shares no href with any other group", () => {
+    const others = new Set([...appNavigation, ...manageNavigation].map((item) => item.href));
+
+    for (const item of platformNavigation) {
+      expect(others.has(item.href)).toBe(false);
     }
   });
 });

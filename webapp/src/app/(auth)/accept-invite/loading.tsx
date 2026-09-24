@@ -1,4 +1,5 @@
 import { Skeleton } from "@farmclub/design-system/Skeleton";
+import { authContent } from "@/content/auth";
 
 /*
   This segment loads the invitation before it can render, so it needs a
@@ -7,7 +8,7 @@ import { Skeleton } from "@farmclub/design-system/Skeleton";
 export default function AcceptInviteLoading() {
   return (
     <div aria-busy="true" className="grid gap-5" role="status">
-      <span className="sr-only">Loading your invitation</span>
+      <span className="sr-only">{authContent.acceptInvite.loading}</span>
       <Skeleton className="h-7 w-2/3" />
       <Skeleton lines={2} variant="text" />
       <Skeleton className="h-12" />

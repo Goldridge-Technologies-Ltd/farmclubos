@@ -1,4 +1,5 @@
 import { Button } from "@farmclub/design-system/Button";
+import { appShell } from "@/content/app";
 import { signOut } from "@/lib/actions/auth";
 
 /*
@@ -10,7 +11,7 @@ export function SignOutButton({ className }: { className?: string }) {
   return (
     <form action={signOut} className={className}>
       <Button icon="none" type="submit" variant="secondary">
-        Sign out
+        {appShell.menu.signOut}
       </Button>
     </form>
   );

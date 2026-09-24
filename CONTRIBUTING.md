@@ -39,7 +39,9 @@ answer that.
 
 A change that crosses apps — an API contract that `webapp/` consumes, or a
 shared component used by both front ends — belongs in **one** commit, with
-both sides updated.
+both sides updated. It still takes a single scope, since the hook allows only
+one: use the side that owns the contract (usually `api`, or `design-system`
+for a shared component), and say in the body what changed on the other.
 
 ## Secrets
 
@@ -73,7 +75,7 @@ Vitest or a second runner.
 | Workspace | Tooling | Rule |
 |---|---|---|
 | `api/` | Jest + Supertest (both ship with NestJS) | **Write the failing spec first** for services, guards, pipes, interceptors and anything carrying business rules. Controllers, DTOs and module wiring need their spec filled in within the same commit. |
-| `webapp/` | Jest + React Testing Library | **Sparingly, and only where a test earns its place** — logic that can break silently, such as form validation, permission-dependent rendering, or data shaping in `src/lib/`. Don't test markup, styling or wiring. Most webapp changes need no test; set the tooling up when the first case appears. |
+| `webapp/` | Jest | **Sparingly, and only where a test earns its place** — logic that can break silently, such as form validation, permission-dependent rendering, or data shaping in `src/lib/`. Don't test markup, styling or wiring. Most webapp changes need no test. Add React Testing Library with the first test of a rendered component; none has earned one yet. |
 | `site/` | — | Static marketing pages; no unit tests. Check it in the browser instead. |
 | `packages/design-system/` | Jest | Only once a primitive carries logic rather than styling alone. |
 
@@ -88,6 +90,7 @@ its plan.
 ```bash
 npm test                          # every workspace that defines tests
 npm run test --workspace api      # one workspace
+npm run test:e2e --workspace api  # the API's HTTP contracts, database stubbed
 npm run lint                      # every workspace
 npm run type-check                # every workspace
 npm run build                     # every workspace
@@ -115,13 +118,17 @@ npm run build                     # every workspace
   components from `@farmclub/design-system/<Name>`; never copy a component or
   redefine a token inside an app.
 - **API response envelope.** Every successful controller response is wrapped
-  by a `ResponseTransformInterceptor` into `{ success, data, meta }`, and
-  failures by an exception filter into `{ success, error }`. Both live in
+  by a `ResponseTransformInterceptor` into `{ success, message, data, meta }`,
+  and failures by an exception filter into `{ success, error, meta }`, where
+  `error` carries a stable `code`. `@CustomMessage()` sets a route's
+  `message`; without it the message is "Success". Both live in
   `api/src/common/`. Controllers return plain data and never build the
   envelope themselves; `webapp/` unwraps it in one place,
   `src/lib/api/client.ts`.
-- **Swagger documentation.** Every endpoint carries `@ApiOperation` and
-  `@ApiResponse` decorators; the Swagger UI depends on them.
+- **Swagger documentation.** Every endpoint carries `@ApiOperation`, plus
+  `@ApiEnvelope()` and `@ApiErrors()` from
+  `api/src/common/decorators/api-envelope.decorator.ts`, which document the
+  real envelope rather than a bare response; the Swagger UI depends on them.
 - **Content guardrails.** The content restrictions in `AGENTS.md` are binding:
   no invented statistics, partners or hub locations.
 - **Environment variables.** Never commit a `.env` file. Document each new

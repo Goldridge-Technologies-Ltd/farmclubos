@@ -110,7 +110,7 @@ fetches it again to draw chrome.
 | Piece | What it does |
 |---|---|
 | `AppShell` | The frame: fixed sidebar from `lg`, top bar, content column. Owns `main#main-content` |
-| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a *Manage* group for administrators |
+| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a group per role below the main links — *Manage*, *Platform* — passed in by `AppShell` |
 | `AppMobileNav` | The same sections as a drawer below `lg` |
 | `AppTopBar` | Drawer trigger and logo on small screens, active institution on large, account menu |
 | `UserMenu` | The account disclosure: who you are, profile, sign out |
@@ -285,9 +285,8 @@ same change:
 
 - Switching between institutions when someone belongs to more than one
 - Removing a member, withdrawing a learner, or editing and closing a cohort
-- A browser-driven end-to-end suite. The journey was verified with Playwright
-  driving a local Chrome from outside the repo; adding it here is a decision
-  about a dev dependency, not yet taken
-- Tables, list rows and pagination
-- Dashboard composition, once there is real data to compose
+- The institution dashboard: reporting on learners and progress across
+  cohorts, a later milestone
+- Tables and pagination controls: lists are one page today, and say so when
+  there is more
 - A live reference page for the web app, as the site has at `/design-system`

@@ -163,7 +163,7 @@ Check every screen at 375, 768, 1024 and 1440.
 
 Containers, section rhythm and page anatomy differ between a marketing site and an application, so they are not shared:
 - **Website:** `docs/site/design-patterns.md` §1–2 (`.site-container`, `.section-padding`, `PageHero` → sections → `CtaBand`).
-- **Web app:** `docs/webapp/design-patterns.md`. The app shell itself is not designed yet; document each piece there as it lands, and if the site needs it too, move it into the package and document it here.
+- **Web app:** `docs/webapp/design-patterns.md` §6 — the app shell (sidebar, top bar, drawer), `.app-container` and page anatomy. If the site ever needs one of its pieces, move it into the package and document it here.
 
 ### 5.3 Spacing inside a section or panel
 
@@ -353,7 +353,7 @@ Copy is never hardcoded in JSX. The site keeps it in `site/content/pages/*.ts`; 
 
 ## 14. Using the design system in an app
 
-Every Next.js app in the monorepo sets up the same way (`webapp/` is the minimal example):
+Every Next.js app in the monorepo sets up the same way:
 
 1. **Dependency.** Add `"@farmclub/design-system": "0.1.0"` to the app's `package.json`, keep Next.js, React, Tailwind CSS and TypeScript on the versions the other apps use, add the app to the root `workspaces`, and run `npm install` from the root.
 2. **Styles.** The app's `app/globals.css` starts with, in this order:
@@ -385,6 +385,6 @@ Rules for code inside `packages/design-system/`:
 - Gold-600 text and gold discs fail contrast (§3.5).
 - White-opacity steps outside the ladder in the site code (§3.3).
 - The hero scrim colour `rgb(4 32 20)` in the site stylesheet is not a token.
-- The live reference exists only in the site; the web app has no equivalent yet (`docs/webapp/design-patterns.md` §6).
+- The live reference exists only in the site; the web app has no equivalent yet (`docs/webapp/design-patterns.md` §7).
 - There is no Figma mirror yet. When one is made, generate its tokens from `theme.css` rather than copying values by hand.
 - Website-specific debt is listed in `docs/site/design-patterns.md` §8.

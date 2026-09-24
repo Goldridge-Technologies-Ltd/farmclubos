@@ -26,6 +26,13 @@ export type FutureCapability = {
   meanwhile: { title: string; description: string; action: string; href: string };
 };
 
+/** The same for every future section: what the page's first panel is. */
+export const futureCapabilityPanel = {
+  dependsOnTitle: "What has to come first",
+  dependsOnDescription:
+    "This part of the ecosystem is built on the ones beneath it, and opens when they are real.",
+} as const;
+
 export const marketplaceCapability: FutureCapability = {
   eyebrow: "Future ecosystem capability",
   heading: "Marketplace",

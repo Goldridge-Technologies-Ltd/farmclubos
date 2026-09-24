@@ -1,4 +1,5 @@
 import { Skeleton } from "@farmclub/design-system/Skeleton";
+import { academy } from "@/content/academy";
 
 /*
   The shape of the catalogue, not a spinner, so the page does not jump when
@@ -8,7 +9,7 @@ import { Skeleton } from "@farmclub/design-system/Skeleton";
 export default function AcademyLoading() {
   return (
     <div aria-busy="true" className="app-stack" role="status">
-      <span className="sr-only">Loading the Academy</span>
+      <span className="sr-only">{academy.loading.catalogue}</span>
       <div className="max-w-2xl">
         <Skeleton className="w-24" variant="text" />
         <Skeleton className="mt-3 h-8 w-64" variant="block" />

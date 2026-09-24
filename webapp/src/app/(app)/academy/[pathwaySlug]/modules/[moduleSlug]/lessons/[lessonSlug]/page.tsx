@@ -100,7 +100,7 @@ export default async function LessonPage({ params }: PageProps) {
       </Panel>
 
       <nav
-        aria-label="Lessons in this module"
+        aria-label={academy.lesson.navigation}
         className="flex flex-wrap items-center justify-between gap-3"
       >
         {lesson.previous ? (

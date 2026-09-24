@@ -36,7 +36,7 @@ export function AppTopBar({
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-farm-border bg-white px-5 sm:px-8">
       <AppMobileNav groups={groups} />
 
-      <Link href="/" className="inline-flex lg:hidden" aria-label="FARMCLUB OS home">
+      <Link href="/" className="inline-flex lg:hidden" aria-label={appShell.homeLink}>
         <Logo className="h-7 w-auto" variant="primary" />
       </Link>
 

@@ -147,6 +147,7 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
 - Every infrastructure integration gets its own module and service:
   - `src/lib/database/prisma.module.ts` + `prisma.service.ts`
   - `src/lib/mail/mail.module.ts` + `mail.service.ts`
+  - `src/lib/rate-limit/rate-limit.module.ts` + `rate-limit.service.ts`
 - Mark infrastructure modules `@Global()`, export their service, and import
   each module once in `AppModule`.
 - Feature modules go in `src/modules/<name>/`. Feature modules are not
@@ -167,11 +168,16 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
   `nest g controller modules/<name>` (or `nest g resource modules/<name>` for
   a full CRUD feature).
 - Controllers return plain data. A `ResponseTransformInterceptor` in
-  `src/common/interceptors/` wraps every success into `{ success, data, meta }`,
-  and an exception filter in `src/common/filters/` wraps failures into
-  `{ success, error }`. Never build the envelope by hand in a controller or
-  service.
-- Document every endpoint with `@ApiOperation` and `@ApiResponse`; the Swagger
+  `src/common/interceptors/` wraps every success into
+  `{ success, message, data, meta }`, and an exception filter in
+  `src/common/filters/` wraps failures into `{ success, error, meta }`. Set a
+  route's message with `@CustomMessage()`; without it the message is
+  "Success". Never build the envelope by hand in a controller or service.
+- Return a `PaginatedResult` from a list that can outgrow one page: the
+  interceptor lifts its totals into `meta.pagination`, which the web app reads
+  with `apiPage`.
+- Document every endpoint with `@ApiOperation`, `@ApiEnvelope()` and
+  `@ApiErrors()` (see "Authentication and authorisation" above); the Swagger
   UI depends on them.
 - If you change a response shape or endpoint that `webapp/` consumes, update
   the webapp side in the same change.

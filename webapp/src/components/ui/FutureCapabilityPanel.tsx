@@ -3,7 +3,7 @@ import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { Icon } from "@farmclub/design-system/Icon";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import type { FutureCapability } from "@/content/future";
+import { futureCapabilityPanel, type FutureCapability } from "@/content/future";
 
 /*
   A section of the ecosystem that is not open yet: Marketplace, Finance.
@@ -33,8 +33,8 @@ export function FutureCapabilityPanel({ capability }: { capability: FutureCapabi
       />
 
       <Panel
-        description="This part of the ecosystem is built on the ones beneath it, and opens when they are real."
-        title="What has to come first"
+        description={futureCapabilityPanel.dependsOnDescription}
+        title={futureCapabilityPanel.dependsOnTitle}
       >
         <ul className="grid gap-5">
           {capability.dependsOn.map((item) => (

@@ -10,29 +10,51 @@ CONNECT · EMPOWER · GROW
 | Path | What it is |
 |---|---|
 | `site/` | Public website (Next.js, static-first) |
-| `webapp/` | Authenticated web app (Next.js), currently a scaffold |
-| `api/` | Backend API (NestJS 12) |
+| `webapp/` | The authenticated web app (Next.js): the Academy, learner progress, and the screens institutions and the platform are run from |
+| `api/` | Backend API (NestJS 12, Prisma 7, PostgreSQL) |
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI components |
-| `docs/` | Design system, content rules and reference artwork; `docs/site/` holds the website's docs |
+| `docs/` | Design system and content rules; `docs/site/` and `docs/webapp/` for each front end; `docs/guides/` for developer guides |
 
-## Getting started
+## First run
 
-Install every workspace from the repository root (Node.js 20.9 or later):
-
-```bash
-npm install
-```
-
-Run an app:
+You need Node.js 22 and a PostgreSQL database — either a Supabase project or
+the local one in `docker-compose.yml`. The full walkthrough, with every
+environment variable explained, is
+[`docs/guides/local-dev.md`](docs/guides/local-dev.md).
 
 ```bash
-npm run dev:site     # http://localhost:3000
-npm run dev:webapp   # http://localhost:3001
-npm run dev:api      # http://localhost:4000
+npm install                                 # every workspace, from the root
+
+cp api/.env.example api/.env                # then fill it in — see below
+cp webapp/.env.example webapp/.env.local
+
+docker compose up -d postgres               # only if you are not using Supabase
+npm run db:deploy --workspace api           # create the tables
+npm run db:seed   --workspace api           # the Academy catalogue, and your first admin
 ```
 
-The site's live design-system reference is at
-[http://localhost:3000/design-system](http://localhost:3000/design-system).
+In `api/.env`, three values have no default:
+
+- `DATABASE_URL` — Supabase's **Session pooler** connection string (port 5432),
+  or `postgresql://farmclub:farmclub@localhost:5432/farmclub` for Docker.
+- `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` — two different values, each
+  from `openssl rand -base64 32`.
+
+Add `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` before seeding, and the seed
+creates the first platform administrator. Nobody else can be invited until
+someone can sign in.
+
+Then run the apps:
+
+```bash
+npm run dev:api      # http://localhost:4000 — Swagger at /api/docs
+npm run dev:webapp   # http://localhost:3001 — sign in here
+npm run dev:site     # http://localhost:3000 — design-system reference at /design-system
+```
+
+Sign in to the web app as that administrator. **Platform → Institutions** is
+where the rest begins: add an institution, invite the person who runs it, and
+they invite and enrol their learners.
 
 ## Quality checks
 
@@ -42,8 +64,13 @@ Each command runs in every workspace; add `--workspace <name>` for one.
 npm run lint
 npm run type-check
 npm test
+npm run test:e2e --workspace api   # the API's HTTP contracts
 npm run build
 ```
+
+The pre-commit hook runs lint, type-check and tests for each workspace a commit
+touches, and refuses anything that looks like a credential. Branch, commit and
+review rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Working in the monorepo
 
@@ -56,6 +83,31 @@ npm run build
 
 ## Deployment
 
-Deploy each app as its own project with its root directory set to the app
-(`site` or `webapp`). The host installs from the repository root, and the app's
-`build` script runs `prebuild` first, which copies the brand files.
+**Front ends.** Deploy each as its own project with its root directory set to
+the app (`site` or `webapp`). The host installs from the repository root, and
+the app's `build` script runs `prebuild` first, which copies the brand files.
+The web app needs `API_BASE_URL` pointing at the API — its internal address
+where the host has one — and must be served over HTTPS: its session cookies are
+`secure` in production.
+
+**API.** Whatever the host, a deploy is the same four steps, from the
+repository root:
+
+```bash
+npm install
+npm run build --workspace api       # generates the Prisma client first
+npm run db:deploy --workspace api   # apply pending migrations, before the new version starts
+npm run start --workspace api
+```
+
+- **Database.** Supabase, with `DATABASE_URL` set as above; or, on a server of
+  your own, the `postgres` service in `docker-compose.yml` running beside the
+  API. The schema is identical either way — only the connection string
+  differs.
+- **Environment.** `NODE_ENV=production` turns Swagger off. Set `WEBAPP_URL`
+  to the web app's public address — it is what links in emails point to — and
+  `MAIL_DRIVER=smtp` with the `SMTP_*` settings: production refuses the `log`
+  driver, which would print invitation and reset links to the logs.
+- **Health check.** Point the host's check at `GET /health/ready`. It answers
+  503 while the database is unreachable, so traffic stops going to an instance
+  that cannot serve it.

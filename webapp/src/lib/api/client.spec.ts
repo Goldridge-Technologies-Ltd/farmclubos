@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { apiRequest } from "./client";
+import { apiPage, apiRequest } from "./client";
 import { ApiError, validationMessages } from "./errors";
 
 /*
@@ -185,3 +185,46 @@ describe("apiRequest", () => {
     );
   });
 });
+
+/*
+  A paginated reply carries its totals in `meta`, which apiRequest drops.
+  Dropping them silently is how a list quietly stops at its first page and
+  nobody notices the rest exist.
+*/
+describe("apiPage", () => {
+  it("returns the items and how many there are in total", async () => {
+    respondWith({
+      success: true,
+      message: "Institutions loaded",
+      data: [{ id: "a" }, { id: "b" }],
+      meta: { pagination: { page: 1, pageSize: 2, totalItems: 5, totalPages: 3 } },
+    });
+
+    await expect(apiPage("/api/institutions?pageSize=2", { accessToken: "t" })).resolves.toEqual({
+      items: [{ id: "a" }, { id: "b" }],
+      pagination: { page: 1, pageSize: 2, totalItems: 5, totalPages: 3 },
+    });
+  });
+
+  it("treats a reply without pagination as one complete page, rather than failing", async () => {
+    respondWith({ success: true, message: "ok", data: [{ id: "a" }], meta: {} });
+
+    await expect(apiPage("/api/things", { accessToken: "t" })).resolves.toEqual({
+      items: [{ id: "a" }],
+      pagination: { page: 1, pageSize: 1, totalItems: 1, totalPages: 1 },
+    });
+  });
+
+  it("throws the API's failure exactly as apiRequest does", async () => {
+    respondWith(
+      { success: false, error: { code: "INSUFFICIENT_ROLE", message: "No." }, meta: {} },
+      403,
+    );
+
+    await expect(apiPage("/api/institutions", { accessToken: "t" })).rejects.toMatchObject({
+      status: 403,
+      code: "INSUFFICIENT_ROLE",
+    });
+  });
+});
+

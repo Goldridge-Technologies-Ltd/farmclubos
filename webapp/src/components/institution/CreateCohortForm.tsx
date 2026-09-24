@@ -36,10 +36,13 @@ export function CreateCohortForm({
             aria-describedby={describedBy}
             aria-invalid={invalid}
             className={fieldClass}
-            defaultValue=""
+            defaultValue={state.values?.pathwaySlug ?? ""}
             id={id}
             name="pathwaySlug"
             required
+            // React applies a select's defaultValue only when it mounts;
+            // keyed so a failed submit remounts it with the choice made.
+            key={state.values?.pathwaySlug ?? ""}
           >
             <option disabled value="">
               {copy.fields.pathwayPlaceholder}
@@ -68,6 +71,7 @@ export function CreateCohortForm({
               className={fieldClass}
               id={id}
               maxLength={200}
+              defaultValue={state.values?.name}
               name="name"
               required
             />
@@ -82,6 +86,7 @@ export function CreateCohortForm({
               className={fieldClass}
               id={id}
               maxLength={50}
+              defaultValue={state.values?.code}
               name="code"
             />
           )}
@@ -93,9 +98,12 @@ export function CreateCohortForm({
           <select
             aria-describedby={describedBy}
             className={fieldClass}
-            defaultValue="BLENDED"
+            defaultValue={state.values?.deliveryMode ?? "BLENDED"}
             id={id}
             name="deliveryMode"
+            // React applies a select's defaultValue only when it mounts;
+            // keyed so a failed submit remounts it with the choice made.
+            key={state.values?.deliveryMode ?? ""}
           >
             {DELIVERY_MODES.map((mode) => (
               <option key={mode} value={mode}>
@@ -114,6 +122,7 @@ export function CreateCohortForm({
               aria-invalid={invalid}
               className={fieldClass}
               id={id}
+              defaultValue={state.values?.startsOn}
               name="startsOn"
               type="date"
             />
@@ -127,6 +136,7 @@ export function CreateCohortForm({
               aria-invalid={invalid}
               className={fieldClass}
               id={id}
+              defaultValue={state.values?.endsOn}
               name="endsOn"
               type="date"
             />

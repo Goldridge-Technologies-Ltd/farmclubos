@@ -40,6 +40,7 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
               autoComplete="given-name"
               className={fieldClass}
               id={id}
+              defaultValue={state.values?.firstName}
               name="firstName"
               required
               type="text"
@@ -60,6 +61,7 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
               autoComplete="family-name"
               className={fieldClass}
               id={id}
+              defaultValue={state.values?.lastName}
               name="lastName"
               required
               type="text"

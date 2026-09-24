@@ -29,14 +29,17 @@ export const appShell = {
     breadcrumb: "Breadcrumb",
     account: "Account",
   },
-  /** Above the administrator's links in the sidebar and the drawer. */
+  /** Above each role's own links in the sidebar and the drawer. */
   manageHeading: "Manage",
+  platformHeading: "Platform",
   menu: {
     open: "Open the menu",
     close: "Close the menu",
     account: "Your account",
     signedInAs: "Signed in as",
     noInstitution: "No institution yet",
+    /** Where a platform administrator who belongs to no institution is working. */
+    platform: "Platform administration",
   },
   roles: {
     INSTITUTION_ADMIN: "Institution administrator",
@@ -85,6 +88,13 @@ export const homeScreen = {
       "Your institution enrols you onto a cohort. Until then you can browse the " +
       "Academy; once you are enrolled, your pathway and progress appear here.",
     action: "Browse the Academy",
+  },
+  platform: {
+    title: "Run the platform",
+    description:
+      "Add an institution and invite the person who will run it. They take it " +
+      "from there: learners, intakes and enrolments are theirs to manage.",
+    action: "Institutions",
   },
   manage: {
     title: "Run your institution",

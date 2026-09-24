@@ -12,7 +12,7 @@ import type {
   PathwayDetail,
   PathwaySummary,
 } from "./contracts";
-import { isNotFound } from "./errors";
+import { isMissingRecord, isNotFound } from "./errors";
 
 /*
   The Academy reads, in one place.
@@ -91,11 +91,22 @@ export async function myJourney(): Promise<Journey[]> {
 }
 
 export async function getAssessment(assessmentId: string): Promise<Assessment> {
-  return orNotFound(apiRequest<Assessment>(`/api/assessments/${encode(assessmentId)}`));
+  return orMissing(apiRequest<Assessment>(`/api/assessments/${encode(assessmentId)}`));
 }
 
 export async function getAttempt(attemptId: string): Promise<Attempt> {
-  return orNotFound(
-    apiRequest<Attempt>(`/api/assessments/attempts/${encode(attemptId)}`),
-  );
+  return orMissing(apiRequest<Attempt>(`/api/assessments/attempts/${encode(attemptId)}`));
+}
+
+/** For reads by an id from the URL, where a malformed id is also not-found. */
+async function orMissing<T>(request: Promise<T>): Promise<T> {
+  try {
+    return await request;
+  } catch (error) {
+    if (isMissingRecord(error)) {
+      notFound();
+    }
+
+    throw error;
+  }
 }

@@ -313,3 +313,32 @@ export type CohortEnrolment = {
 };
 
 export type CohortDetail = CohortSummary & { enrolments: CohortEnrolment[] };
+
+/* ── Platform administration ──────────────────────────────────────────── */
+
+export type InstitutionType =
+  | "SCHOOL"
+  | "TECHNICAL_COLLEGE"
+  | "UNIVERSITY"
+  | "YOUTH_PROGRAMME"
+  | "GOVERNMENT_AGENCY"
+  | "DEVELOPMENT_PARTNER"
+  | "ENTERPRISE"
+  | "OTHER";
+
+export type InstitutionStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
+
+export type Institution = {
+  id: string;
+  slug: string;
+  name: string;
+  type: InstitutionType;
+  status: InstitutionStatus;
+  contactEmail: string;
+  contactPhone: string | null;
+  website: string | null;
+  addressLine: string | null;
+  city: string | null;
+  country: string | null;
+  createdAt: string;
+};

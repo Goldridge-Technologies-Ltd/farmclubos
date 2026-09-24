@@ -6,7 +6,7 @@ import { forwardedClientAddress } from "../api/forwarded-address";
 import type { AuthSession, MembershipSummary } from "../api/contracts";
 import { endSession, readRefreshToken, startSession } from "../session";
 import { safeRedirectPath } from "../session-cookies";
-import { missingValues, text, toFormState, type FormState } from "./form-state";
+import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
 /*
   Every mutation the auth screens make.
@@ -24,9 +24,11 @@ export async function signIn(_previous: FormState, formData: FormData): Promise<
   const password = text(formData, "password");
   const next = safeRedirectPath(text(formData, "next"));
   const missing = missingValues({ email, password });
+  // The email survives a failed attempt; the password never comes back.
+  const keep = (state: FormState) => keepValues(state, formData, ["email"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   try {
@@ -39,7 +41,7 @@ export async function signIn(_previous: FormState, formData: FormData): Promise<
 
     await startSession(session);
   } catch (error) {
-    return toFormState(error, ["email", "password"]);
+    return keep(toFormState(error, ["email", "password"]));
   }
 
   redirect(next);
@@ -76,9 +78,10 @@ export async function acceptInvite(
   const lastName = text(formData, "lastName");
   const password = text(formData, "password");
   const missing = missingValues({ firstName, lastName, password });
+  const keep = (state: FormState) => keepValues(state, formData, ["firstName", "lastName"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   try {
@@ -90,7 +93,7 @@ export async function acceptInvite(
 
     await startSession(session);
   } catch (error) {
-    return toFormState(error, ["firstName", "lastName", "password"]);
+    return keep(toFormState(error, ["firstName", "lastName", "password"]));
   }
 
   redirect("/");
@@ -119,9 +122,10 @@ export async function requestPasswordReset(
 ): Promise<FormState> {
   const email = text(formData, "email");
   const missing = missingValues({ email });
+  const keep = (state: FormState) => keepValues(state, formData, ["email"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   try {
@@ -132,7 +136,7 @@ export async function requestPasswordReset(
       clientAddress: await forwardedClientAddress(),
     });
   } catch (error) {
-    return toFormState(error, ["email"]);
+    return keep(toFormState(error, ["email"]));
   }
 
   /*

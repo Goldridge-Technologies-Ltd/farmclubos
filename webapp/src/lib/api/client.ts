@@ -18,7 +18,22 @@ import { ApiError } from "./errors";
   thrown errors.
 */
 
-type SuccessEnvelope<T> = { success: true; message: string; data: T };
+type SuccessEnvelope<T> = {
+  success: true;
+  message: string;
+  data: T;
+  meta?: { pagination?: PageInfo };
+};
+
+/** What the API says about a paginated list, from `meta.pagination`. */
+export type PageInfo = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type Page<T> = { items: T[]; pagination: PageInfo };
 type FailureEnvelope = {
   success: false;
   error: { code: string; message: string; details?: unknown };
@@ -55,6 +70,35 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T> {
+  return (await send<T>(path, options)).data;
+}
+
+/**
+ * A paginated list, with the totals `apiRequest` would drop. Use it for any
+ * list that can outgrow one page, so a screen can say there is more rather
+ * than silently stopping at the first page.
+ */
+export async function apiPage<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Page<T>> {
+  const envelope = await send<T[]>(path, options);
+  const items = envelope.data;
+
+  return {
+    items,
+    // A list the API did not paginate is one complete page.
+    pagination: envelope.meta?.pagination ?? {
+      page: 1,
+      pageSize: items.length,
+      totalItems: items.length,
+      totalPages: 1,
+    },
+  };
+}
+
+/** One request, returning the success envelope or throwing the failure. */
+async function send<T>(path: string, options: ApiRequestOptions): Promise<SuccessEnvelope<T>> {
   const { method = "GET", body, authenticated = true, tags, signal } = options;
 
   const headers: Record<string, string> = {
@@ -103,7 +147,7 @@ export async function apiRequest<T>(
     );
   }
 
-  return envelope.data;
+  return envelope;
 }
 
 async function readEnvelope<T>(

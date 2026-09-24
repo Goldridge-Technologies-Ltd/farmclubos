@@ -34,6 +34,7 @@ export function ForgotPasswordForm() {
                 autoComplete="username"
                 className={fieldClass}
                 id={id}
+                defaultValue={state.values?.email}
                 name="email"
                 required
                 type="email"

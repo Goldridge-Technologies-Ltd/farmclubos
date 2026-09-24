@@ -110,6 +110,34 @@ export function canManageInstitution(session: SessionContext): boolean {
   );
 }
 
+/**
+ * Running the platform itself: the institutions on it. Shown only to a
+ * platform administrator — see `canAdministerPlatform`.
+ */
+export const platformNavigation: NavItem[] = [
+  {
+    label: "Institutions",
+    href: "/platform/institutions",
+    icon: "governance",
+    description: "Add an institution and invite the person who runs it",
+  },
+];
+
+/**
+ * Whether to offer the platform's own screens.
+ *
+ * The platform role alone decides it. Unlike `canManageInstitution` it needs
+ * no active institution: a platform administrator who belongs to none is
+ * exactly the person who sets the first one up. As there, it only decides
+ * what is shown; the API confirms the role against the database each time.
+ */
+export function canAdministerPlatform(session: SessionContext): boolean {
+  return session.user.platformRole === "PLATFORM_ADMIN";
+}
+
+/** A labelled run of links below the main navigation, for a particular role. */
+export type NavGroup = { heading: string; items: NavItem[] };
+
 /** The user menu's own links. Not in the sidebar; reached from the avatar. */
 export const accountNavigation: NavItem[] = [
   {

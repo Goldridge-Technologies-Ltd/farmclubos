@@ -227,26 +227,29 @@ Clear it with `DELETE FROM "RateLimitCounter";`, or wait out the window.
 ### Walking the learner journey
 
 The seed creates the catalogue but no institution, cohort or enrolment — that
-is deliberate, and it means a fresh database has nobody to enrol. The only step
-that still needs the API directly is the first: creating the institution and
-its first administrator, which is a platform administrator's job
-(`POST /api/institutions`, then an `INSTITUTION_ADMIN` invite — see *Onboarding
-an institution* below). Everything after it happens in the web app.
+is deliberate, and it means a fresh database has nobody to enrol. Every step
+happens in the web app, starting from the platform administrator the seed
+creates (see *Your first platform admin* above).
 
-1. Sign in as the institution administrator. The sidebar gains a **Manage**
-   group: *Members* and *Cohorts*.
-2. **Members** → invite someone as a Learner. They get an email; with
+1. Sign in as the platform administrator. The sidebar has a **Platform**
+   group: **Institutions** → *Add an institution*, then on the institution,
+   invite the person who will run it. With `MAIL_DRIVER=log` the invitation
+   link is printed in the API console.
+2. That person opens the link and sets a name and password. They are now the
+   institution's administrator, and their sidebar has a **Manage** group:
+   *Members* and *Cohorts*.
+3. **Members** → invite someone as a Learner. They get an email; with
    `MAIL_DRIVER=log` the link is printed in the API console instead.
-3. The learner opens the link, sets a name and password, and lands on their
+4. The learner opens the link, sets a name and password, and lands on their
    dashboard, which says they are not enrolled yet.
-4. **Cohorts** → *Open a new intake* → choose a pathway and a name. It opens
+5. **Cohorts** → *Open a new intake* → choose a pathway and a name. It opens
    on the new cohort.
-5. On the cohort, choose the learner under *Enrol a member*. They appear in the
+6. On the cohort, choose the learner under *Enrol a member*. They appear in the
    list at 0%.
-6. As the learner, the dashboard now shows the pathway and a *Continue*
+7. As the learner, the dashboard now shows the pathway and a *Continue*
    button. Mark the lesson complete, then *Start the assessment* on
    *Fundamentals of Agriculture*, answer, and submit.
-7. The learner's */my-journey* and the administrator's cohort page both show
+8. The learner's */my-journey* and the administrator's cohort page both show
    the same progress.
 
 Only *Fundamentals of Agriculture* has a published assessment — the rest are

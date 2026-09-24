@@ -1,5 +1,5 @@
 import { ApiError } from "../api/errors";
-import { missingValues, toFormState } from "./form-state";
+import { keepValues, missingValues, toFormState } from "./form-state";
 
 /*
   If a message is put under the wrong field, or dropped entirely, the form just
@@ -81,5 +81,52 @@ describe("missingValues", () => {
       status: "error",
       errors: { email: "This is required." },
     });
+  });
+});
+
+/*
+  React resets every uncontrolled field once a form's action finishes — even
+  when the action failed. Without the submitted values handed back, a wrong
+  password wipes the email too, and one bad field empties a whole form.
+*/
+describe("keepValues", () => {
+  const formData = (entries: Record<string, string>) => {
+    const data = new FormData();
+    for (const [name, value] of Object.entries(entries)) data.append(name, value);
+    return data;
+  };
+
+  it("hands back the named fields, so the form can show them again", () => {
+    const state = keepValues(
+      { status: "error", message: "The email or password is incorrect." },
+      formData({ email: "ada@example.com", password: "secret passphrase" }),
+      ["email"],
+    );
+
+    expect(state).toEqual({
+      status: "error",
+      message: "The email or password is incorrect.",
+      values: { email: "ada@example.com" },
+    });
+  });
+
+  it("never hands back a field it was not asked for, so a password is never echoed", () => {
+    const state = keepValues(
+      { status: "error" },
+      formData({ email: "ada@example.com", password: "secret passphrase" }),
+      ["email"],
+    );
+
+    expect(JSON.stringify(state)).not.toContain("secret passphrase");
+  });
+
+  it("keeps what was typed, trimmed the way the action read it", () => {
+    expect(
+      keepValues({ status: "error" }, formData({ name: "  Ada  " }), ["name"]).values,
+    ).toEqual({ name: "Ada" });
+  });
+
+  it("gives an empty string for a field that was not sent, rather than dropping it", () => {
+    expect(keepValues({ status: "error" }, formData({}), ["code"]).values).toEqual({ code: "" });
   });
 });

@@ -64,6 +64,23 @@ every one needs the busy, error and success states in
   `CURRENT_PASSWORD_INCORRECT` lands under the password field rather than in a
   banner.
 
+### A refused submission keeps what was typed
+
+React resets every uncontrolled field when a form's action finishes — **even
+when the action failed**. Left alone, a wrong password wipes the email too,
+and one bad field empties a whole form. So:
+
+- The action hands back what was submitted with `keepValues(state, formData,
+  [names])` on every failure. List only what is safe to put back into the
+  page: **never a password**.
+- Each field reads it back as `defaultValue={state.values?.name}`. React resets
+  to the default, so the reset restores what was typed.
+- A `<select>` also needs `key={state.values?.name ?? ""}`. React applies a
+  select's `defaultValue` only when it mounts, so without a remount the reset
+  falls back to the placeholder.
+
+A success returns no `values`, so the form clears, ready for the next entry.
+
 ## 4. Figures
 
 `AGENTS.md` is binding: **in the web app, figures may appear only when they
@@ -164,9 +181,19 @@ trade is worth taking; don't "fix" it by moving the lookup into the proxy.
 ### Reading the API
 
 Screens never call `apiRequest` directly. Each area gets one module in
-`src/lib/api/` — `academy.ts` is the first — whose functions turn the API's
-404 into `notFound()` and let everything else throw. The API being down is not
-the same as a page not existing, and must not look like it.
+`src/lib/api/` — `academy.ts`, `institution.ts`, `platform.ts` — whose
+functions turn "there is nothing here" into `notFound()` and let everything
+else throw. The API being down is not the same as a page not existing, and
+must not look like it.
+
+For a record read by an id from the URL, "nothing here" includes a 400: the
+API's uuid check refuses a malformed id before looking, and retrying will not
+help. `isMissingRecord` covers both. Use it only for reads by id — a 400
+anywhere else is a real validation failure.
+
+A list that can outgrow one page uses `apiPage`, which keeps the totals that
+`apiRequest` drops, so the screen can say "showing 100 of 240" rather than
+silently stopping at the first page.
 
 Nothing in the Academy is cached, deliberately. The catalogue is identical for
 everyone so caching it would be safe in principle, but the client refuses to
@@ -214,6 +241,24 @@ The order of work is fixed by the data: a person must *accept an invitation*
 before they are a member, and must be a member before they can be *enrolled*.
 The enrol form therefore offers a list of members rather than a free email
 field — it cannot be filled in wrongly.
+
+### Running the platform
+
+`/platform/institutions` is where a platform administrator adds an
+institution and invites the person who will run it; that person takes it from
+there on `/institution`. `canAdministerPlatform` decides whether the *Platform*
+group appears, and it needs no active institution: someone who belongs to none
+is exactly who sets the first one up. `/platform/layout.tsx` answers not-found
+to anyone else.
+
+Here the institution **does** come from the URL — choosing among every
+institution is the whole job — which is the one difference from the
+`/institution` screens. It grants nothing: the API confirms the platform role
+against the database on every request.
+
+The sidebar and drawer take their role groups as data (`NavGroup[]`) from
+`AppShell`, which decides them on the server. A new role-specific section is a
+new group there, not a new flag threaded through three components.
 
 ### When content replaces what someone was using
 

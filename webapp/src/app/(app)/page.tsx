@@ -1,27 +1,31 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { EmptyState } from "@farmclub/design-system/EmptyState";
 import { Icon } from "@farmclub/design-system/Icon";
+import { ProgressBar } from "@farmclub/design-system/ProgressBar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { homeScreen } from "@/content/app";
-import { appNavigation } from "@/lib/navigation";
+import { myJourney } from "@/lib/api/academy";
+import { nextLesson } from "@/lib/journey";
+import { appNavigation, canManageInstitution } from "@/lib/navigation";
 import { getSessionContext } from "@/lib/session";
-import Link from "next/link";
 
 export const metadata: Metadata = { title: "Home" };
 
 /*
   The dashboard.
 
-  It carries no figures. A count of lessons, a percentage complete or a number
-  of cohorts may appear here only once it comes from real platform data
-  (AGENTS.md, docs/design-system.md §13), so for now the screen says plainly
-  that there is nothing recorded yet rather than illustrating what it will
-  look like when there is.
+  A learner sees where they are and the one thing to do next; an administrator
+  sees the way into running their institution. Every figure on it is real
+  platform data — the percentage is counted by the API from completed lessons
+  — and someone not yet enrolled is told so rather than shown a 0% that would
+  imply a pathway they do not have.
 */
 export default async function HomePage() {
-  const session = await getSessionContext();
+  const [session, journeys] = await Promise.all([getSessionContext(), myJourney()]);
 
   // The layout has already checked this; repeating it here is what makes the
   // page safe to render on its own, and satisfies the type.
@@ -29,6 +33,9 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
+  const current = journeys[0];
+  const next = current ? nextLesson(current) : null;
+  const canManage = canManageInstitution(session);
   const sections = appNavigation.filter((item) => item.href !== "/");
 
   return (
@@ -39,11 +46,43 @@ export default async function HomePage() {
         heading={homeScreen.greeting(session.user.firstName)}
       />
 
-      <EmptyState
-        description={homeScreen.building.description}
-        icon="grow"
-        title={homeScreen.building.title}
-      />
+      {current ? (
+        <Panel
+          description={homeScreen.continue.cohort(current.cohort.name)}
+          title={current.pathway.title}
+        >
+          {/* Where they are, what is next, then the way to it — in reading order. */}
+          <ProgressBar label={homeScreen.continue.through} value={current.progressPercent} />
+          <p className="mt-4 type-body-sm text-farm-muted">
+            {next
+              ? homeScreen.continue.next(next.title, next.moduleTitle)
+              : homeScreen.continue.finished}
+          </p>
+          <ButtonLink className="mt-6" href={next?.href ?? "/my-journey"} size="md">
+            {next ? homeScreen.continue.action : homeScreen.continue.journey}
+          </ButtonLink>
+        </Panel>
+      ) : canManage ? null : (
+        <EmptyState
+          action={<ButtonLink href="/academy">{homeScreen.notEnrolled.action}</ButtonLink>}
+          description={homeScreen.notEnrolled.description}
+          icon="learn"
+          title={homeScreen.notEnrolled.title}
+        />
+      )}
+
+      {canManage ? (
+        <Panel description={homeScreen.manage.description} title={homeScreen.manage.title}>
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href="/institution/members" icon="none" size="md" variant="secondary">
+              {homeScreen.manage.members}
+            </ButtonLink>
+            <ButtonLink href="/institution/cohorts" icon="none" size="md" variant="secondary">
+              {homeScreen.manage.cohorts}
+            </ButtonLink>
+          </div>
+        </Panel>
+      ) : null}
 
       <Panel description={homeScreen.sections.description} title={homeScreen.sections.heading}>
         <ul className="grid gap-3 sm:grid-cols-2">

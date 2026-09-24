@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { AuthSession, SessionContext } from "./api/contracts";
 import { apiRequest } from "./api/client";
 import { isUnauthorized } from "./api/errors";
@@ -52,7 +53,11 @@ export async function endSession(): Promise<void> {
  * not refresh: a page cannot set a cookie, so `proxy.ts` sends the browser
  * through `/refresh` before the page renders.
  */
-export async function getSessionContext(): Promise<SessionContext | null> {
+/*
+  Memoised for the request: the (app) layout and the page inside it both need
+  the session, and without this each would ask the API separately.
+*/
+export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   if (!(await readAccessToken())) {
     return null;
   }
@@ -68,4 +73,4 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     // as being signed out, and must not silently look like it.
     throw error;
   }
-}
+});

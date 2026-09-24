@@ -227,25 +227,30 @@ Clear it with `DELETE FROM "RateLimitCounter";`, or wait out the window.
 ### Walking the learner journey
 
 The seed creates the catalogue but no institution, cohort or enrolment — that
-is deliberate, and it means a fresh database has nobody to enrol. To see the
-journey end to end you need an institution with two members: an administrator
-to open an intake, and a learner to take it.
+is deliberate, and it means a fresh database has nobody to enrol. The only step
+that still needs the API directly is the first: creating the institution and
+its first administrator, which is a platform administrator's job
+(`POST /api/institutions`, then an `INSTITUTION_ADMIN` invite — see *Onboarding
+an institution* below). Everything after it happens in the web app.
 
-1. Create an institution and invite yourself as its administrator
-   (`POST /api/institutions`, then the invite routes — see below).
-2. Invite a second person as a `LEARNER` and accept the invitation.
-3. As the administrator, open an intake:
-   `POST /api/institutions/{institutionId}/cohorts` with a `pathwaySlug` and a
-   `name`.
-4. Enrol the learner:
-   `POST /api/institutions/{institutionId}/cohorts/{cohortId}/enrolments` with
-   their email. They must already be an active member.
-5. Sign in as the learner. `/academy` now offers "Mark as complete" on a
-   lesson and "Start the assessment" on *Fundamentals of Agriculture*, and
-   `/my-journey` shows what has been recorded.
+1. Sign in as the institution administrator. The sidebar gains a **Manage**
+   group: *Members* and *Cohorts*.
+2. **Members** → invite someone as a Learner. They get an email; with
+   `MAIL_DRIVER=log` the link is printed in the API console instead.
+3. The learner opens the link, sets a name and password, and lands on their
+   dashboard, which says they are not enrolled yet.
+4. **Cohorts** → *Open a new intake* → choose a pathway and a name. It opens
+   on the new cohort.
+5. On the cohort, choose the learner under *Enrol a member*. They appear in the
+   list at 0%.
+6. As the learner, the dashboard now shows the pathway and a *Continue*
+   button. Mark the lesson complete, then *Start the assessment* on
+   *Fundamentals of Agriculture*, answer, and submit.
+7. The learner's */my-journey* and the administrator's cohort page both show
+   the same progress.
 
-Only that module's assessment is published — the rest are drafts — so it is
-the one place the quiz appears.
+Only *Fundamentals of Agriculture* has a published assessment — the rest are
+drafts — so it is the one place the quiz appears.
 
 ### Row-level security
 

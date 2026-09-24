@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { InstitutionStatus, InstitutionType } from "../../../generated/prisma/enums.js";
-import type { InstitutionView } from "../institutions.types.js";
+import { InstitutionStatus, InstitutionType, InstitutionRole } from "../../../generated/prisma/enums.js";
+import type { InstitutionView, MemberView } from "../institutions.types.js";
 
 export class InstitutionDto implements InstitutionView {
   @ApiProperty({ format: "uuid" })
@@ -41,4 +41,24 @@ export class InstitutionDto implements InstitutionView {
 
   @ApiProperty({ type: String, format: "date-time" })
   updatedAt: Date;
+}
+
+export class MemberDto implements MemberView {
+  @ApiProperty({ format: "uuid" })
+  userId: string;
+
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty({ enum: InstitutionRole, enumName: "InstitutionRole" })
+  role: InstitutionRole;
+
+  @ApiProperty({ type: Date, nullable: true, format: "date-time" })
+  joinedAt: Date | null;
 }

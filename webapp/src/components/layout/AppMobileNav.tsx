@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@farmclub/design-system/Icon";
 import { Logo } from "@farmclub/design-system/Logo";
 import { appShell } from "@/content/app";
-import { appNavigation, isActiveNavItem } from "@/lib/navigation";
+import { appNavigation, isActiveNavItem, manageNavigation, type NavItem } from "@/lib/navigation";
 
 /*
   The same sections as the sidebar, as a drawer, below lg.
@@ -18,7 +18,7 @@ import { appNavigation, isActiveNavItem } from "@/lib/navigation";
   while it is open, and Escape closes it and returns focus to the trigger,
   which is the part keyboard users notice when it is missing.
 */
-export function AppMobileNav() {
+export function AppMobileNav({ canManage }: { canManage: boolean }) {
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -94,44 +94,71 @@ export function AppMobileNav() {
               className="flex-1 overflow-y-auto p-4"
             >
               <ul className="grid gap-1">
-                {appNavigation.map((item) => {
-                  const isActive = isActiveNavItem(item.href, pathname);
-
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        aria-current={isActive ? "page" : undefined}
-                        onClick={() => setOpenForPath(null)}
-                        className={[
-                          "flex min-h-12 items-start gap-3 rounded-button px-3 py-3 transition-colors",
-                          isActive
-                            ? "bg-white/10 text-white"
-                            : "text-white/72 hover:bg-white/10 hover:text-white",
-                        ].join(" ")}
-                      >
-                        <Icon
-                          name={item.icon}
-                          size={20}
-                          className={`mt-0.5 shrink-0 ${
-                            isActive ? "text-farm-gold-400" : "text-white/72"
-                          }`}
-                        />
-                        <span className="flex-1">
-                          <span className="block text-sm font-semibold">{item.label}</span>
-                          <span className="mt-0.5 block type-caption text-white/62">
-                            {item.description}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
+                {appNavigation.map((item) => (
+                  <li key={item.href}>
+                    <DrawerLink
+                      item={item}
+                      isActive={isActiveNavItem(item.href, pathname)}
+                      onNavigate={() => setOpenForPath(null)}
+                    />
+                  </li>
+                ))}
               </ul>
+
+              {canManage ? (
+                <>
+                  <p className="mt-7 px-3 type-overline text-white/55">
+                    {appShell.manageHeading}
+                  </p>
+                  <ul className="mt-2 grid gap-1">
+                    {manageNavigation.map((item) => (
+                      <li key={item.href}>
+                        <DrawerLink
+                          item={item}
+                          isActive={isActiveNavItem(item.href, pathname)}
+                          onNavigate={() => setOpenForPath(null)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
             </nav>
           </div>
         </>
       ) : null}
     </div>
+  );
+}
+
+function DrawerLink({
+  item,
+  isActive,
+  onNavigate,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={isActive ? "page" : undefined}
+      onClick={onNavigate}
+      className={[
+        "flex min-h-12 items-start gap-3 rounded-button px-3 py-3 transition-colors",
+        isActive ? "bg-white/10 text-white" : "text-white/72 hover:bg-white/10 hover:text-white",
+      ].join(" ")}
+    >
+      <Icon
+        name={item.icon}
+        size={20}
+        className={`mt-0.5 shrink-0 ${isActive ? "text-farm-gold-400" : "text-white/72"}`}
+      />
+      <span className="flex-1">
+        <span className="block text-sm font-semibold">{item.label}</span>
+        <span className="mt-0.5 block type-caption text-white/62">{item.description}</span>
+      </span>
+    </Link>
   );
 }

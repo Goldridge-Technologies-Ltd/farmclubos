@@ -21,9 +21,9 @@ import {
   InstitutionListQueryDto,
   UpdateInstitutionDto,
 } from "./dto/institution-request.dto.js";
-import { InstitutionDto } from "./dto/institution-response.dto.js";
+import { InstitutionDto, MemberDto } from "./dto/institution-response.dto.js";
 import { InstitutionsService } from "./institutions.service.js";
-import type { InstitutionView } from "./institutions.types.js";
+import type { InstitutionView, MemberView } from "./institutions.types.js";
 
 const UNAUTHORIZED = { status: HttpStatus.UNAUTHORIZED, description: "No valid access token." };
 const NOT_FOUND = {
@@ -91,6 +91,23 @@ export class InstitutionsController {
     @Param("institutionId", ParseUUIDPipe) institutionId: string,
   ): Promise<InstitutionView> {
     return this.institutions.findOne(user, institutionId);
+  }
+
+  @Get(":institutionId/members")
+  @CustomMessage("Members loaded")
+  @ApiOperation({
+    summary: "The institution's active members",
+    description:
+      "Institution administrators and platform admins. Active memberships only: an " +
+      "invited or suspended person cannot be enrolled.",
+  })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Loaded.", type: MemberDto, isArray: true })
+  @ApiErrors(UNAUTHORIZED, NOT_FOUND)
+  listMembers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("institutionId", ParseUUIDPipe) institutionId: string,
+  ): Promise<MemberView[]> {
+    return this.institutions.listMembers(user, institutionId);
   }
 
   @Patch(":institutionId")

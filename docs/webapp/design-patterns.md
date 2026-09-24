@@ -93,7 +93,7 @@ fetches it again to draw chrome.
 | Piece | What it does |
 |---|---|
 | `AppShell` | The frame: fixed sidebar from `lg`, top bar, content column. Owns `main#main-content` |
-| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker |
+| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a *Manage* group for administrators |
 | `AppMobileNav` | The same sections as a drawer below `lg` |
 | `AppTopBar` | Drawer trigger and logo on small screens, active institution on large, account menu |
 | `UserMenu` | The account disclosure: who you are, profile, sign out |
@@ -196,12 +196,53 @@ keystroke, and a failed background save is not surfaced as an error — the
 answers are still in the form and submitting will send them. Shouting about it
 would be alarming and useless.
 
+### Running an institution
+
+The screens under `/institution` — Members and Cohorts — are for whoever can
+manage the active institution: an `INSTITUTION_ADMIN`, or a platform admin
+working inside one. `canManageInstitution` in `src/lib/navigation.ts` decides
+whether the *Manage* group appears; `/institution/layout.tsx` repeats the check
+with `managedInstitution()` and answers not-found to anyone else, as the API
+would.
+
+**The institution always comes from the session, never from the URL or the
+form.** There is no institution id in these routes and none in their hidden
+fields, so there is nothing to edit that reaches another institution. The API
+checks access on every request regardless.
+
+The order of work is fixed by the data: a person must *accept an invitation*
+before they are a member, and must be a member before they can be *enrolled*.
+The enrol form therefore offers a list of members rather than a free email
+field — it cannot be filled in wrongly.
+
+### When content replaces what someone was using
+
+Submitting a quiz turns the page into its result. Wrap content like that in
+`FocusOnMount` (`src/components/ui/`): focus brings it into view wherever the
+page was scrolled, and tells a screen reader something new is there instead of
+leaving them on a button that no longer exists. Only do it on the arrival that
+caused the change — the attempt page does it only with `?submitted=1`, which
+the submit action adds — or every visit would pull focus past the heading.
+
+`html { scroll-padding-top }` in `src/app/globals.css` keeps anything scrolled
+into view, the skip link's target included, clear of the sticky top bar.
+
+### Dates
+
+Format with `formatDay` from `src/lib/format.ts`, which always works in UTC. A
+cohort's dates are plain days; parsed in a local timezone they move back a day
+for anyone west of Greenwich.
+
 ## 7. Not defined yet
 
 These arrive with the screens that need them, and are documented here in the
 same change:
 
 - Switching between institutions when someone belongs to more than one
+- Removing a member, withdrawing a learner, or editing and closing a cohort
+- A browser-driven end-to-end suite. The journey was verified with Playwright
+  driving a local Chrome from outside the repo; adding it here is a decision
+  about a dev dependency, not yet taken
 - Tables, list rows and pagination
 - Dashboard composition, once there is real data to compose
 - A live reference page for the web app, as the site has at `/design-system`

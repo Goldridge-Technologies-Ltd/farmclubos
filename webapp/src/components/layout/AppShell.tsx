@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SessionContext } from "@/lib/api/contracts";
+import { canManageInstitution } from "@/lib/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
 
@@ -19,14 +20,16 @@ export function AppShell({
   session: SessionContext;
   children: ReactNode;
 }) {
+  const canManage = canManageInstitution(session);
+
   return (
     <div className="min-h-dvh bg-farm-cream-50 lg:pl-[17rem]">
       <div className="fixed inset-y-0 left-0 hidden w-[17rem] lg:block">
-        <AppSidebar />
+        <AppSidebar canManage={canManage} />
       </div>
 
       <div className="flex min-h-dvh flex-col">
-        <AppTopBar session={session} />
+        <AppTopBar canManage={canManage} session={session} />
         <main id="main-content" className="flex-1 py-8 sm:py-10">
           <div className="app-container">{children}</div>
         </main>

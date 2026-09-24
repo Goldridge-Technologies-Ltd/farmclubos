@@ -14,7 +14,7 @@ import type {
   UpdateInstitutionDto,
 } from "./dto/institution-request.dto.js";
 import { InstitutionAccessService } from "./institution-access.service.js";
-import type { InstitutionView } from "./institutions.types.js";
+import type { InstitutionView, MemberView } from "./institutions.types.js";
 
 @Injectable()
 export class InstitutionsService {
@@ -84,6 +84,35 @@ export class InstitutionsService {
     const { institution } = await this.access.assertCanView(user, institutionId);
 
     return toInstitutionView(institution);
+  }
+
+  /**
+   * The institution's active members, for the administrator enrolling them.
+   *
+   * Active only: an invited membership has not been accepted and a suspended
+   * one must not be enrolled, so neither is someone an administrator can act on.
+   */
+  async listMembers(user: AuthenticatedUser, institutionId: string): Promise<MemberView[]> {
+    await this.access.assertCanManage(user, institutionId);
+
+    const memberships = await this.prisma.membership.findMany({
+      where: { institutionId, status: "ACTIVE" },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+      select: {
+        role: true,
+        joinedAt: true,
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    return memberships.map(({ role, joinedAt, user: member }) => ({
+      userId: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email,
+      role,
+      joinedAt,
+    }));
   }
 
   async update(

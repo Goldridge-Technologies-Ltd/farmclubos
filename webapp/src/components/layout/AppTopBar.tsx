@@ -13,7 +13,13 @@ import { UserMenu } from "./UserMenu";
   account menu — are client components, which is why the session is resolved
   here and handed down as plain strings.
 */
-export function AppTopBar({ session }: { session: SessionContext }) {
+export function AppTopBar({
+  session,
+  canManage,
+}: {
+  session: SessionContext;
+  canManage: boolean;
+}) {
   const name = `${session.user.firstName} ${session.user.lastName}`.trim();
   const membership = session.memberships.find(
     (item) => item.institutionId === session.activeInstitutionId,
@@ -23,7 +29,7 @@ export function AppTopBar({ session }: { session: SessionContext }) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-farm-border bg-white px-5 sm:px-8">
-      <AppMobileNav />
+      <AppMobileNav canManage={canManage} />
 
       <Link href="/" className="inline-flex lg:hidden" aria-label="FARMCLUB OS home">
         <Logo className="h-7 w-auto" variant="primary" />

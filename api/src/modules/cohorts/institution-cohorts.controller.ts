@@ -1,4 +1,13 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { ApiEnvelope, ApiErrors } from "../../common/decorators/api-envelope.decorator.js";
@@ -6,9 +15,19 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator.js";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { InstitutionAccessService } from "../institutions/institution-access.service.js";
 import { CohortsService } from "./cohorts.service.js";
-import type { CohortSummaryView, EnrolmentView } from "./cohorts.types.js";
+import type {
+  CohortDetailView,
+  CohortListItemView,
+  CohortSummaryView,
+  EnrolmentView,
+} from "./cohorts.types.js";
 import { CreateCohortDto, EnrolDto } from "./dto/cohort-request.dto.js";
-import { CohortSummaryDto, EnrolmentDto } from "./dto/cohort-response.dto.js";
+import {
+  CohortDetailDto,
+  CohortListItemDto,
+  CohortSummaryDto,
+  EnrolmentDto,
+} from "./dto/cohort-response.dto.js";
 
 const FORBIDDEN = {
   status: HttpStatus.FORBIDDEN,
@@ -36,6 +55,46 @@ export class InstitutionCohortsController {
     private readonly cohorts: CohortsService,
     private readonly access: InstitutionAccessService,
   ) {}
+
+  @Get()
+  @CustomMessage("Cohorts loaded")
+  @ApiOperation({ summary: "The institution's cohorts", description: "Newest first." })
+  @ApiParam({ name: "institutionId", format: "uuid" })
+  @ApiEnvelope({
+    status: HttpStatus.OK,
+    description: "Loaded.",
+    type: CohortListItemDto,
+    isArray: true,
+  })
+  @ApiErrors(FORBIDDEN, NOT_FOUND)
+  async listCohorts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("institutionId", ParseUUIDPipe) institutionId: string,
+  ): Promise<CohortListItemView[]> {
+    await this.access.assertCanManage(user, institutionId);
+
+    return this.cohorts.listForInstitution(institutionId);
+  }
+
+  @Get(":cohortId")
+  @CustomMessage("Cohort loaded")
+  @ApiOperation({
+    summary: "One cohort and its learners",
+    description: "Each learner's progress is derived from the lessons they have completed.",
+  })
+  @ApiParam({ name: "institutionId", format: "uuid" })
+  @ApiParam({ name: "cohortId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Loaded.", type: CohortDetailDto })
+  @ApiErrors(FORBIDDEN, NOT_FOUND)
+  async getCohort(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("institutionId", ParseUUIDPipe) institutionId: string,
+    @Param("cohortId", ParseUUIDPipe) cohortId: string,
+  ): Promise<CohortDetailView> {
+    await this.access.assertCanManage(user, institutionId);
+
+    return this.cohorts.getForInstitution(institutionId, cohortId);
+  }
 
   @Post()
   @CustomMessage("Cohort created")

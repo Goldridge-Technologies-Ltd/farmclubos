@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
 import type { Attempt, LessonCompletion } from "../api/contracts";
-import { toFormState, type FormState } from "./form-state";
+import { safeRedirectPath } from "../session-cookies";
+import { text, toFormState, type FormState } from "./form-state";
 
 /*
   The mutations the Academy screens make.
@@ -98,6 +99,9 @@ export async function submitAttempt(
   formData: FormData,
 ): Promise<FormState> {
   const attemptId = String(formData.get("attemptId") ?? "");
+  // Guarded like any redirect target taken from a form: a crafted value must
+  // not send someone off the site.
+  const returnTo = safeRedirectPath(text(formData, "returnTo"), "/my-journey");
   const answers = readAnswers(formData);
 
   try {
@@ -118,7 +122,12 @@ export async function submitAttempt(
     return toFormState(error, []);
   }
 
-  return { status: "success", message: "Submitted." };
+  /*
+    Back to the same attempt, which now renders its result. The marker tells
+    the page this is the moment of submitting, so it moves focus to the score
+    rather than leaving the learner wherever the submit button was.
+  */
+  redirect(`${returnTo}?submitted=1`);
 }
 
 /**

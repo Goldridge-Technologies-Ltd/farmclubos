@@ -48,7 +48,7 @@ describe("CohortsService", () => {
   let prisma: {
     enrolment: { findMany: AsyncMock; findFirst: AsyncMock; upsert: AsyncMock };
     pathway: { findFirst: AsyncMock };
-    cohort: { findFirst: AsyncMock; create: AsyncMock };
+    cohort: { findFirst: AsyncMock; findMany: AsyncMock; create: AsyncMock };
     membership: { findFirst: AsyncMock };
   };
 
@@ -56,7 +56,7 @@ describe("CohortsService", () => {
     prisma = {
       enrolment: { findMany: fn(), findFirst: fn(), upsert: fn() },
       pathway: { findFirst: fn() },
-      cohort: { findFirst: fn(), create: fn() },
+      cohort: { findFirst: fn(), findMany: fn(), create: fn() },
       membership: { findFirst: fn() },
     };
 
@@ -269,6 +269,78 @@ describe("CohortsService", () => {
       await expect(
         service.enrol("institution-1", "cohort-9", { email: "ada@example.com" }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe("listForInstitution", () => {
+    it("lists that institution's cohorts with a real enrolment count", async () => {
+      prisma.cohort.findMany.mockResolvedValue([
+        {
+          id: "cohort-1",
+          name: "September intake",
+          code: null,
+          status: "OPEN",
+          deliveryMode: "BLENDED",
+          startsOn: new Date("2026-09-01T00:00:00Z"),
+          endsOn: null,
+          pathway: { id: "p", slug: "foundation", title: "Foundation", summary: "s", level: "FOUNDATION" },
+          _count: { enrolments: 3 },
+        },
+      ]);
+
+      const [cohort] = await service.listForInstitution("institution-1");
+
+      expect(cohort).toMatchObject({ id: "cohort-1", startsOn: "2026-09-01", enrolmentCount: 3 });
+      const [args] = prisma.cohort.findMany.mock.calls[0] as [{ where: Record<string, unknown> }];
+      expect(args.where).toEqual({ institutionId: "institution-1", archivedAt: null });
+    });
+  });
+
+  describe("getForInstitution", () => {
+    it("returns the cohort with its learners and their real progress", async () => {
+      prisma.cohort.findFirst.mockResolvedValue({
+        id: "cohort-1",
+        name: "September intake",
+        code: null,
+        status: "OPEN",
+        deliveryMode: "BLENDED",
+        startsOn: null,
+        endsOn: null,
+        pathway: { id: "p", slug: "foundation", title: "Foundation", summary: "s", level: "FOUNDATION" },
+        enrolments: [
+          {
+            id: "enrolment-1",
+            status: "ACTIVE",
+            progressPercent: 14,
+            enrolledAt: new Date("2026-09-20T10:00:00Z"),
+            user: { id: "user-2", firstName: "Ada", lastName: "Obi", email: "ada@example.com" },
+          },
+        ],
+      });
+
+      const view = await service.getForInstitution("institution-1", "cohort-1");
+
+      expect(view.enrolments[0]).toEqual({
+        id: "enrolment-1",
+        status: "ACTIVE",
+        progressPercent: 14,
+        enrolledAt: new Date("2026-09-20T10:00:00Z"),
+        learner: { userId: "user-2", firstName: "Ada", lastName: "Obi", email: "ada@example.com" },
+      });
+    });
+
+    it("is a 404 for a cohort of another institution", async () => {
+      prisma.cohort.findFirst.mockResolvedValue(null);
+
+      await expect(service.getForInstitution("institution-1", "cohort-9")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+
+      const [args] = prisma.cohort.findFirst.mock.calls[0] as [{ where: Record<string, unknown> }];
+      // Found through the institution, never by id alone.
+      expect(args.where).toEqual(
+        expect.objectContaining({ id: "cohort-9", institutionId: "institution-1" }),
+      );
     });
   });
 });

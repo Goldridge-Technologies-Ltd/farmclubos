@@ -29,6 +29,8 @@ export const appShell = {
     breadcrumb: "Breadcrumb",
     account: "Account",
   },
+  /** Above the administrator's links in the sidebar and the drawer. */
+  manageHeading: "Manage",
   menu: {
     open: "Open the menu",
     close: "Close the menu",
@@ -65,11 +67,31 @@ export const homeScreen = {
     heading: "Where to go",
     description: "The parts of FARMCLUB OS open to you right now.",
   },
-  building: {
-    title: "Your dashboard is being built",
+  continue: {
+    title: "Continue your pathway",
+    cohort: (name: string) => `Cohort: ${name}`,
+    through: "through this pathway",
+    // Only name the module when it adds something: a module's opening lesson
+    // often shares its title.
+    next: (lesson: string, module: string) =>
+      lesson === module ? `Next: ${lesson}` : `Next: ${lesson}, in ${module}`,
+    action: "Continue",
+    finished: "You have completed every lesson in this pathway.",
+    journey: "See your journey",
+  },
+  notEnrolled: {
+    title: "You are not enrolled on a pathway yet",
     description:
-      "Once you are enrolled in a cohort, this is where your pathway, your " +
-      "next lesson and your progress will appear.",
+      "Your institution enrols you onto a cohort. Until then you can browse the " +
+      "Academy; once you are enrolled, your pathway and progress appear here.",
+    action: "Browse the Academy",
+  },
+  manage: {
+    title: "Run your institution",
+    description:
+      "Invite people to join, open an intake of a pathway, and enrol members onto it.",
+    members: "Members and invitations",
+    cohorts: "Cohorts",
   },
 } as const;
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@farmclub/design-system/Button";
 import { Notice } from "@farmclub/design-system/Notice";
@@ -30,6 +31,7 @@ export function AttemptForm({
   attempt: Attempt;
 }) {
   const [state, action, pending] = useActionState(submitAttempt, idleFormState);
+  const pathname = usePathname();
   const [answers, setAnswers] = useState(() => initialAnswers(attempt));
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const firstRender = useRef(true);
@@ -73,6 +75,7 @@ export function AttemptForm({
   return (
     <form action={action} className="grid gap-6" noValidate>
       <input name="attemptId" type="hidden" value={attempt.id} />
+      <input name="returnTo" type="hidden" value={pathname} />
       <FormStatus busy={pending ? academy.assessment.submitting : undefined} state={state} />
 
       <ol className="grid gap-5">

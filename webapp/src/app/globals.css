@@ -34,3 +34,12 @@
     gap: 2.25rem;
   }
 }
+
+/*
+  The app's top bar is sticky, so anything scrolled into view — a result that
+  takes focus, the skip link's target, an anchor — would otherwise land under
+  it. The padding clears the bar's 4rem height with a little room to spare.
+*/
+html {
+  scroll-padding-top: 5rem;
+}

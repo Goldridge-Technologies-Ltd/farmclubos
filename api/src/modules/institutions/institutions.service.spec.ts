@@ -49,6 +49,7 @@ describe("InstitutionsService", () => {
   let access: { assertPlatformAdmin: AsyncMock; assertCanView: AsyncMock; assertCanManage: AsyncMock };
   let prisma: {
     institution: { findMany: AsyncMock; count: AsyncMock; create: AsyncMock; update: AsyncMock };
+    membership: { findMany: AsyncMock };
     auditEvent: { create: AsyncMock };
     $transaction: jest.Mock<(work: unknown) => Promise<unknown>>;
   };
@@ -57,6 +58,7 @@ describe("InstitutionsService", () => {
     access = { assertPlatformAdmin: fn(), assertCanView: fn(), assertCanManage: fn() };
     prisma = {
       institution: { findMany: fn(), count: fn(), create: fn(), update: fn() },
+      membership: { findMany: fn() },
       auditEvent: { create: fn() },
       $transaction: jest.fn((work: unknown) =>
         Array.isArray(work)
@@ -204,6 +206,45 @@ describe("InstitutionsService", () => {
           metadata: { fields: ["type"] },
         }),
       });
+    });
+  });
+
+  describe("listMembers", () => {
+    it("checks the caller may manage the institution before reading anyone", async () => {
+      access.assertCanManage.mockRejectedValue(new ForbiddenException());
+
+      await expect(service.listMembers(admin, "institution-1")).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.membership.findMany).not.toHaveBeenCalled();
+    });
+
+    it("lists active members of that institution only", async () => {
+      access.assertCanManage.mockResolvedValue({});
+      prisma.membership.findMany.mockResolvedValue([
+        {
+          role: "LEARNER",
+          joinedAt: new Date("2026-09-20T10:00:00Z"),
+          user: { id: "user-2", firstName: "Ada", lastName: "Obi", email: "ada@example.com" },
+        },
+      ]);
+
+      await expect(service.listMembers(admin, "institution-1")).resolves.toEqual([
+        {
+          userId: "user-2",
+          firstName: "Ada",
+          lastName: "Obi",
+          email: "ada@example.com",
+          role: "LEARNER",
+          joinedAt: new Date("2026-09-20T10:00:00Z"),
+        },
+      ]);
+
+      const [args] = prisma.membership.findMany.mock.calls[0] as [
+        { where: Record<string, unknown> },
+      ];
+      // An invited or suspended membership is not someone who can be enrolled.
+      expect(args.where).toEqual({ institutionId: "institution-1", status: "ACTIVE" });
     });
   });
 });

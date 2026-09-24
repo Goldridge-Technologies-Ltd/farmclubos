@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
+  CohortDetailView,
+  CohortListItemView,
   CohortSummaryView,
   CreateCohortInput,
   EnrolInput,
@@ -135,6 +137,67 @@ export class CohortsService {
     });
 
     return toEnrolmentView(enrolment);
+  }
+
+  /** An institution's cohorts, newest first, each with how many are enrolled. */
+  async listForInstitution(institutionId: string): Promise<CohortListItemView[]> {
+    const cohorts = await this.prisma.cohort.findMany({
+      where: { institutionId, archivedAt: null },
+      orderBy: { createdAt: "desc" },
+      select: {
+        ...cohortSelect,
+        // Withdrawn learners are history, not part of the intake's size.
+        _count: { select: { enrolments: { where: { status: { not: "WITHDRAWN" } } } } },
+      },
+    });
+
+    return cohorts.map(({ _count, ...cohort }) => ({
+      ...toCohortView(cohort),
+      enrolmentCount: _count.enrolments,
+    }));
+  }
+
+  /**
+   * One cohort and the learners on it, with their real progress. Found through
+   * the institution, so a cohort id from elsewhere is a 404.
+   */
+  async getForInstitution(institutionId: string, cohortId: string): Promise<CohortDetailView> {
+    const cohort = await this.prisma.cohort.findFirst({
+      where: { id: cohortId, institutionId, archivedAt: null },
+      select: {
+        ...cohortSelect,
+        enrolments: {
+          where: { status: { not: "WITHDRAWN" } },
+          orderBy: { enrolledAt: "asc" },
+          select: {
+            id: true,
+            status: true,
+            progressPercent: true,
+            enrolledAt: true,
+            user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!cohort) {
+      throw notFound();
+    }
+
+    const { enrolments, ...summary } = cohort;
+
+    return {
+      ...toCohortView(summary),
+      enrolments: enrolments.map(({ user, ...enrolment }) => ({
+        ...enrolment,
+        learner: {
+          userId: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        },
+      })),
+    };
   }
 
   async getMine(user: AuthenticatedUser, enrolmentId: string): Promise<EnrolmentView> {

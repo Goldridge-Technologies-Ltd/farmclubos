@@ -6,6 +6,9 @@ import {
   PathwayLevel,
 } from "../../../generated/prisma/enums.js";
 import type {
+  CohortDetailView,
+  CohortEnrolmentView,
+  CohortListItemView,
   CohortPathwayView,
   CohortSummaryView,
   EnrolmentView,
@@ -75,4 +78,45 @@ export class EnrolmentDto implements EnrolmentView {
 
   @ApiProperty({ type: CohortSummaryDto })
   cohort: CohortSummaryDto;
+}
+
+export class CohortListItemDto extends CohortSummaryDto implements CohortListItemView {
+  @ApiProperty({ description: "Learners on the cohort, withdrawn ones excluded." })
+  enrolmentCount: number;
+}
+
+class CohortLearnerDto {
+  @ApiProperty({ format: "uuid" })
+  userId: string;
+
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiProperty()
+  email: string;
+}
+
+export class CohortEnrolmentDto implements CohortEnrolmentView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: EnrolmentStatus, enumName: "EnrolmentStatus" })
+  status: EnrolmentStatus;
+
+  @ApiProperty({ description: "Derived from completed lessons. Never illustrative." })
+  progressPercent: number;
+
+  @ApiProperty({ format: "date-time" })
+  enrolledAt: Date;
+
+  @ApiProperty({ type: CohortLearnerDto })
+  learner: CohortLearnerDto;
+}
+
+export class CohortDetailDto extends CohortSummaryDto implements CohortDetailView {
+  @ApiProperty({ type: [CohortEnrolmentDto] })
+  enrolments: CohortEnrolmentDto[];
 }

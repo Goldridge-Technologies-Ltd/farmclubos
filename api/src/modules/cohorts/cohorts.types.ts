@@ -62,3 +62,20 @@ export type CreateCohortInput = {
 
 /** Enrolling one of the institution's own members onto a cohort. */
 export type EnrolInput = { email: string };
+
+/** A cohort in an institution's own list. The count is real rows. */
+export type CohortListItemView = CohortSummaryView & { enrolmentCount: number };
+
+/** One learner on a cohort, as the institution sees them. */
+export type CohortEnrolmentView = {
+  id: string;
+  status: EnrolmentStatus;
+  /** Derived from completed lessons. */
+  progressPercent: number;
+  enrolledAt: Date;
+  learner: { userId: string; firstName: string; lastName: string; email: string };
+};
+
+export type CohortDetailView = CohortSummaryView & {
+  enrolments: CohortEnrolmentView[];
+};

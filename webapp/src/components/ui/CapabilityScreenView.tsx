@@ -2,7 +2,7 @@ import { EmptyState } from "@farmclub/design-system/EmptyState";
 import { Icon } from "@farmclub/design-system/Icon";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import type { CapabilityScreen } from "@/content/app";
+import { capabilitiesHeading, type CapabilityScreen } from "@/content/app";
 
 /*
   Experience, Mentorship and Enterprise, before their data exists.
@@ -25,7 +25,7 @@ export function CapabilityScreenView({ screen }: { screen: CapabilityScreen }) {
         heading={screen.heading}
       />
 
-      <Panel title="What this section does">
+      <Panel title={capabilitiesHeading}>
         <ul className="grid gap-5 sm:grid-cols-3">
           {screen.capabilities.map((capability) => (
             <li key={capability.title}>

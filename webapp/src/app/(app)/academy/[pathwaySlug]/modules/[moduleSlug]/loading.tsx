@@ -1,9 +1,10 @@
 import { Skeleton } from "@farmclub/design-system/Skeleton";
+import { academy } from "@/content/academy";
 
 export default function ModuleLoading() {
   return (
     <div aria-busy="true" className="app-stack" role="status">
-      <span className="sr-only">Loading the module</span>
+      <span className="sr-only">{academy.loading.module}</span>
       <div className="max-w-2xl">
         <Skeleton className="w-40" variant="text" />
         <Skeleton className="mt-3 h-8 w-72" variant="block" />

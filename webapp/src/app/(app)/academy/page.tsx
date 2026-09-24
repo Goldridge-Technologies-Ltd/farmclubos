@@ -49,7 +49,7 @@ export default async function AcademyPage() {
                 <p className="mt-2 type-body-sm text-farm-muted">{pathway.summary}</p>
 
                 <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-farm-green-800">
-                  Open pathway
+                  {academy.openPathway}
                   <Icon
                     name="arrow-right"
                     size={16}

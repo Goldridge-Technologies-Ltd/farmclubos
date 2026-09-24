@@ -25,7 +25,7 @@ export function AppSidebar({ groups }: { groups: NavGroup[] }) {
   return (
     <div className="flex h-full flex-col bg-farm-green-950">
       <div className="flex h-16 shrink-0 items-center border-b border-white/12 px-6">
-        <Link href="/" className="inline-flex" aria-label="FARMCLUB OS home">
+        <Link href="/" className="inline-flex" aria-label={appShell.homeLink}>
           <Logo className="h-7 w-auto" variant="reversed" />
         </Link>
       </div>

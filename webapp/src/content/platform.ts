@@ -3,8 +3,8 @@
   institutions and invites the person who runs each one.
 
   No example names an institution, a place or a partner: an illustrative
-  "Greenfield College, Lagos" in a placeholder reads as a real customer and a
-  real location (AGENTS.md, Content Restrictions). Hints describe the field
+  college and town in a placeholder reads as a real customer in a real
+  location (AGENTS.md, Content Restrictions). Hints describe the field
   instead.
 */
 

@@ -133,7 +133,7 @@ export function UserMenu({ name, email, role, institution }: UserMenuProps) {
               className="flex min-h-12 w-full items-center gap-2.5 rounded-button px-3 py-2.5 text-left text-sm font-medium text-farm-charcoal transition-colors hover:bg-farm-cream-50 hover:text-farm-green-800"
             >
               <Icon name="logout" size={18} className="text-farm-green-800" />
-              Sign out
+              {appShell.menu.signOut}
             </button>
           </form>
         </div>

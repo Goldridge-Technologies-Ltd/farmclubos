@@ -23,6 +23,8 @@ export type AuthContent = {
   forgotPassword: AuthScreen & { backToSignIn: string };
   resetPassword: AuthScreen & { expired: string };
   acceptInvite: {
+    loading: string;
+    loadError: { heading: string; description: string; retry: string };
     heading: (institution: string) => string;
     description: (institution: string, role: string) => string;
     submitLabel: string;
@@ -94,6 +96,18 @@ export const authContent: AuthContent = {
   },
 
   acceptInvite: {
+
+    loading: "Loading your invitation",
+
+    loadError: {
+
+      heading: "We could not load your invitation",
+
+      description: "Something went wrong reaching FARMCLUB OS. Your invitation is unaffected.",
+
+      retry: "Try again",
+
+    },
     heading: (institution) => `Join ${institution}`,
     description: (institution, role) =>
       `You have been invited to join ${institution} on FARMCLUB OS as ${role}. Choose a password to finish setting up your account.`,

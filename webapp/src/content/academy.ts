@@ -13,6 +13,16 @@ export const academy = {
     "Structured pathways that take you from the fundamentals of agriculture to " +
     "running a production enterprise. Work through a pathway module by module.",
   crumb: "Academy",
+  openPathway: "Open pathway",
+
+  /** Announced while each level loads; the Skeletons themselves are silent. */
+  loading: {
+    catalogue: "Loading the Academy",
+    pathway: "Loading the pathway",
+    module: "Loading the module",
+    lesson: "Loading the lesson",
+    assessment: "Loading the assessment",
+  },
 
   levels: {
     FOUNDATION: "Foundation",
@@ -71,6 +81,8 @@ export const academy = {
   },
 
   lesson: {
+    /** Labels the previous/next navigation at the foot of a lesson. */
+    navigation: "Lessons in this module",
     previous: "Previous lesson",
     next: "Next lesson",
     backToModule: "Back to the module",

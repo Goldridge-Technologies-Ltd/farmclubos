@@ -22,6 +22,9 @@ export type CapabilityScreen = {
 };
 
 export const appShell = {
+  skipLink: "Skip to main content",
+  /** The logo link, which carries no visible text of its own. */
+  homeLink: "FARMCLUB OS home",
   /** Labelled landmarks, so a screen reader can tell the regions apart. */
   landmarks: {
     sidebar: "Sections",
@@ -38,6 +41,7 @@ export const appShell = {
     account: "Your account",
     signedInAs: "Signed in as",
     noInstitution: "No institution yet",
+    signOut: "Sign out",
     /** Where a platform administrator who belongs to no institution is working. */
     platform: "Platform administration",
   },
@@ -51,6 +55,28 @@ export const appShell = {
     NONE: "Member",
   },
 } as const;
+
+/** Announced while a screen's data loads; each Skeleton itself is silent. */
+export const loadingLabel = "Loading";
+
+/** What the root error boundary shows, outside any section of the app. */
+export const rootErrorScreen = {
+  heading: "Something went wrong",
+  description:
+    "We could not finish that. Try again, and if it keeps happening, tell your " +
+    "institution’s administrator.",
+  retry: "Try again",
+} as const;
+
+export const notFoundScreen = {
+  title: "Page not found",
+  description:
+    "The page you were looking for does not exist, or you no longer have access to it.",
+  action: "Go to your dashboard",
+} as const;
+
+/** The heading over a section's capabilities, before its data exists. */
+export const capabilitiesHeading = "What this section does";
 
 export const errorScreen = {
   title: "That did not load",

@@ -48,8 +48,14 @@ export function Field({
   const describedBy =
     [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") || undefined;
 
+  /*
+    content-start: beside a taller neighbour in a two-column row — one with a
+    hint or an error — the row stretches this field to match, and a plain grid
+    would share the extra height out among its rows, swelling the input.
+    Packing the rows at the top keeps every control its own height.
+  */
   return (
-    <div className={`grid gap-1.5 ${className}`.trim()}>
+    <div className={`grid content-start gap-1.5 ${className}`.trim()}>
       <label className="text-xs font-semibold text-farm-green-950" htmlFor={name}>
         {label}
         {required ? (

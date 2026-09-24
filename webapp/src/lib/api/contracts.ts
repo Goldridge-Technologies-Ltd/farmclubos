@@ -169,3 +169,108 @@ export type Enrolment = {
   completedAt: string | null;
   cohort: CohortSummary;
 };
+
+/* ── Progress ─────────────────────────────────────────────────────────────
+   Every figure comes from rows the API counted. Nothing here is estimated.
+*/
+
+export type ProgressStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+export type AttemptStatus = "IN_PROGRESS" | "SUBMITTED" | "GRADED" | "ABANDONED";
+export type QuestionType =
+  | "SINGLE_CHOICE"
+  | "MULTIPLE_CHOICE"
+  | "TRUE_FALSE"
+  | "SHORT_ANSWER";
+
+export type LessonProgress = {
+  lessonId: string;
+  slug: string;
+  title: string;
+  status: ProgressStatus;
+  completedAt: string | null;
+};
+
+export type ModuleProgress = {
+  moduleId: string;
+  slug: string;
+  title: string;
+  sequence: number;
+  status: ProgressStatus;
+  lessonsCompleted: number;
+  lessonCount: number;
+  lessons: LessonProgress[];
+};
+
+export type Journey = {
+  enrolmentId: string;
+  status: EnrolmentStatus;
+  progressPercent: number;
+  cohort: { id: string; name: string };
+  pathway: { id: string; slug: string; title: string };
+  modules: ModuleProgress[];
+};
+
+export type LessonCompletion = {
+  lessonId: string;
+  status: ProgressStatus;
+  completedAt: string | null;
+  moduleStatus: ProgressStatus;
+  progressPercent: number;
+};
+
+/* ── Assessments ──────────────────────────────────────────────────────────
+   No type here carries an option's correctness. A learner is told whether
+   their own answer was right, never which answer was.
+*/
+
+export type AssessmentOption = { id: string; label: string; sequence: number };
+
+export type AssessmentQuestion = {
+  id: string;
+  prompt: string;
+  helpText: string | null;
+  type: QuestionType;
+  points: number;
+  sequence: number;
+  /** Empty for a written answer. */
+  options: AssessmentOption[];
+};
+
+export type Assessment = {
+  id: string;
+  slug: string;
+  title: string;
+  instructions: string | null;
+  kind: AssessmentKind;
+  authoringStatus: AuthoringStatus;
+  passMarkPercent: number;
+  maxAttempts: number | null;
+  timeLimitMinutes: number | null;
+  pathway: PathwayRef;
+  module: PathwayRef;
+  questions: AssessmentQuestion[];
+  attemptsUsed: number;
+  canAttempt: boolean;
+};
+
+export type AttemptResponse = {
+  questionId: string;
+  selectedOptionIds: string[];
+  textAnswer: string | null;
+  isCorrect: boolean | null;
+  pointsAwarded: number | null;
+};
+
+export type Attempt = {
+  id: string;
+  assessmentId: string;
+  attemptNumber: number;
+  status: AttemptStatus;
+  startedAt: string;
+  submittedAt: string | null;
+  /** Out of the points that could be graded automatically. */
+  scorePercent: number | null;
+  passed: boolean | null;
+  questionsAwaitingReview: number;
+  responses: AttemptResponse[];
+};

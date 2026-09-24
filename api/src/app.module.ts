@@ -6,11 +6,13 @@ import { PrismaModule } from "./lib/database/prisma.module.js";
 import { MailModule } from "./lib/mail/mail.module.js";
 import { RateLimitModule } from "./lib/rate-limit/rate-limit.module.js";
 import { AcademyModule } from "./modules/academy/academy.module.js";
+import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { CohortsModule } from "./modules/cohorts/cohorts.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
 import { InvitesModule } from "./modules/invites/invites.module.js";
+import { ProgressModule } from "./modules/progress/progress.module.js";
 import { UsersModule } from "./modules/users/users.module.js";
 
 @Module({
@@ -25,11 +27,13 @@ import { UsersModule } from "./modules/users/users.module.js";
     MailModule,
     RateLimitModule,
     AcademyModule,
+    AssessmentsModule,
     AuthModule,
     CohortsModule,
     HealthModule,
     InstitutionsModule,
     InvitesModule,
+    ProgressModule,
     UsersModule,
   ],
   providers: globalProviders,

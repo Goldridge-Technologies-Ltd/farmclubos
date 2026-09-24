@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
 import type { CohortSummary, IssuedInvite } from "../api/contracts";
 import { managedInstitution } from "../api/institution";
-import { missingValues, text, toFormState, type FormState } from "./form-state";
+import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
 /*
   What an institution administrator does: invite people, open intakes, and
@@ -26,9 +26,10 @@ export async function inviteMember(
   const email = text(formData, "email");
   const role = text(formData, "role");
   const missing = missingValues({ email, role });
+  const keep = (state: FormState) => keepValues(state, formData, ["email", "role"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   const institution = await managedInstitution();
@@ -50,7 +51,7 @@ export async function inviteMember(
         }
       : { status: "success", message: `Invitation sent to ${invite.email}.` };
   } catch (error) {
-    return toFormState(error, ["email", "role"]);
+    return keep(toFormState(error, ["email", "role"]));
   }
 }
 
@@ -96,9 +97,11 @@ export async function createCohort(
   const pathwaySlug = text(formData, "pathwaySlug");
   const name = text(formData, "name");
   const missing = missingValues({ pathwaySlug, name });
+  const keep = (state: FormState) =>
+    keepValues(state, formData, ["pathwaySlug", "name", "code", "deliveryMode", "startsOn", "endsOn"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   const code = text(formData, "code");
@@ -106,7 +109,7 @@ export async function createCohort(
   const endsOn = text(formData, "endsOn");
 
   if (startsOn && endsOn && endsOn < startsOn) {
-    return { status: "error", errors: { endsOn: "The end date is before the start date." } };
+    return keep({ status: "error", errors: { endsOn: "The end date is before the start date." } });
   }
 
   const institution = await managedInstitution();
@@ -127,7 +130,7 @@ export async function createCohort(
       },
     });
   } catch (error) {
-    return toFormState(error, ["pathwaySlug", "name", "code", "startsOn", "endsOn"]);
+    return keep(toFormState(error, ["pathwaySlug", "name", "code", "startsOn", "endsOn"]));
   }
 
   revalidatePath("/institution/cohorts");
@@ -141,9 +144,10 @@ export async function enrolMember(
   const cohortId = text(formData, "cohortId");
   const email = text(formData, "email");
   const missing = missingValues({ email });
+  const keep = (state: FormState) => keepValues(state, formData, ["email"]);
 
   if (missing) {
-    return missing;
+    return keep(missing);
   }
 
   const institution = await managedInstitution();
@@ -159,6 +163,6 @@ export async function enrolMember(
 
     return { status: "success", message: `${email} is enrolled.` };
   } catch (error) {
-    return toFormState(error, ["email"]);
+    return keep(toFormState(error, ["email"]));
   }
 }

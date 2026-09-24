@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { Button } from "@farmclub/design-system/Button";
 import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
@@ -11,20 +11,17 @@ import { inviteMember } from "@/lib/actions/institution";
 
 const ROLES = ["LEARNER", "FACILITATOR", "MENTOR", "INSTITUTION_ADMIN"] as const;
 
-/** Sends an invitation. Clears itself after a success, ready for the next one. */
+/*
+  Sends an invitation. React clears the form once the action finishes; after a
+  failure the fields come back from `state.values`, so nothing typed is lost,
+  and after a success they come back empty, ready for the next person.
+*/
 export function InviteMemberForm() {
   const [state, action, pending] = useActionState(inviteMember, idleFormState);
-  const formRef = useRef<HTMLFormElement>(null);
   const copy = institutionContent.members.invite;
 
-  useEffect(() => {
-    if (state.status === "success") {
-      formRef.current?.reset();
-    }
-  }, [state]);
-
   return (
-    <form ref={formRef} action={action} className="grid gap-4" noValidate>
+    <form action={action} className="grid gap-4" noValidate>
       <FormStatus busy={pending ? copy.busy : undefined} state={state} />
 
       <div className="grid gap-4 sm:grid-cols-[1fr_14rem]">
@@ -36,6 +33,7 @@ export function InviteMemberForm() {
               autoComplete="off"
               className={fieldClass}
               id={id}
+              defaultValue={state.values?.email}
               name="email"
               required
               type="email"
@@ -49,10 +47,13 @@ export function InviteMemberForm() {
               aria-describedby={describedBy}
               aria-invalid={invalid}
               className={fieldClass}
-              defaultValue="LEARNER"
+              defaultValue={state.values?.role ?? "LEARNER"}
               id={id}
               name="role"
               required
+              // React applies a select's defaultValue only when it mounts;
+              // keyed so a failed submit remounts it with the choice made.
+              key={state.values?.role ?? ""}
             >
               {ROLES.map((role) => (
                 <option key={role} value={role}>

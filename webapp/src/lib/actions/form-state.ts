@@ -14,12 +14,31 @@ export type FormState = {
   message?: string;
   /** Keyed by the input's name, shown under that field. */
   errors?: Record<string, string>;
+  /**
+   * What was submitted, for the fields worth showing again. React resets
+   * every uncontrolled field when a form's action finishes, even after a
+   * failure; a field whose `defaultValue` is its value here is reset to what
+   * was typed rather than to nothing. Never holds a password.
+   */
+  values?: Record<string, string>;
 };
 
 export const idleFormState: FormState = { status: "idle" };
 
 export function text(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
+}
+
+/**
+ * A failure, with the named fields handed back so the form can show them
+ * again. List only what is safe to put back into the page — never a password.
+ */
+export function keepValues(
+  state: FormState,
+  formData: FormData,
+  names: readonly string[],
+): FormState {
+  return { ...state, values: Object.fromEntries(names.map((name) => [name, text(formData, name)])) };
 }
 
 /** Catches an empty submission before troubling the API with it. */

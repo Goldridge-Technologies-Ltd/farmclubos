@@ -37,11 +37,13 @@ export function EnrolMemberForm({
             aria-describedby={describedBy}
             aria-invalid={invalid}
             className={fieldClass}
-            defaultValue=""
+            defaultValue={state.values?.email ?? ""}
             id={id}
-            // Re-mounted after each enrolment, so the list the server sends
-            // back — without the person just enrolled — is what is shown.
-            key={candidates.map((candidate) => candidate.email).join(",")}
+            // Re-mounted when the list changes — after an enrolment the server
+            // sends it back without the person just added — or when a failed
+            // submit returns a choice, since React applies a select's
+            // defaultValue only when it mounts.
+            key={`${candidates.map((candidate) => candidate.email).join(",")}|${state.values?.email ?? ""}`}
             name="email"
             required
           >

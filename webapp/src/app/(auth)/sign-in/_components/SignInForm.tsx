@@ -40,6 +40,7 @@ export function SignInForm({ next, afterReset }: { next: string; afterReset: boo
             autoComplete="username"
             className={fieldClass}
             id={id}
+            defaultValue={state.values?.email}
             name="email"
             required
             type="email"

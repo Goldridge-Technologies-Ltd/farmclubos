@@ -1,4 +1,5 @@
-import { appNavigation, isActiveNavItem } from "./navigation";
+import { appNavigation, canManageInstitution, isActiveNavItem, manageNavigation } from "./navigation";
+import type { SessionContext } from "./api/contracts";
 
 /*
   One array drives the sidebar, the mobile drawer and the breadcrumb trail, so
@@ -37,6 +38,69 @@ describe("appNavigation", () => {
   it("starts every href at the root, because they drive Link and the matcher", () => {
     for (const item of appNavigation) {
       expect(item.href.startsWith("/")).toBe(true);
+    }
+  });
+});
+
+/*
+  Who is shown the institution's management screens. The API checks every
+  request properly; this only decides whether the links appear. Getting it
+  wrong either way is visible — a learner offered screens that 404, or an
+  administrator with no way in to enrol anyone.
+*/
+describe("canManageInstitution", () => {
+  const session = (overrides: Partial<SessionContext> = {}): SessionContext => ({
+    user: {
+      id: "user-1",
+      email: "ada@example.com",
+      firstName: "Ada",
+      lastName: "Obi",
+      platformRole: "NONE",
+    },
+    activeInstitutionId: "institution-1",
+    institutionRole: "LEARNER",
+    memberships: [],
+    ...overrides,
+  });
+
+  it("is true for an institution administrator", () => {
+    expect(canManageInstitution(session({ institutionRole: "INSTITUTION_ADMIN" }))).toBe(true);
+  });
+
+  it.each(["LEARNER", "FACILITATOR", "MENTOR"] as const)("is false for a %s", (role) => {
+    expect(canManageInstitution(session({ institutionRole: role }))).toBe(false);
+  });
+
+  it("is true for a platform admin working inside an institution", () => {
+    expect(
+      canManageInstitution(
+        session({
+          institutionRole: "LEARNER",
+          user: { ...session().user, platformRole: "PLATFORM_ADMIN" },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false with no active institution, whatever the role — there is nothing to manage", () => {
+    expect(
+      canManageInstitution(
+        session({
+          activeInstitutionId: null,
+          institutionRole: null,
+          user: { ...session().user, platformRole: "PLATFORM_ADMIN" },
+        }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("manageNavigation", () => {
+  it("never shares an href with the main navigation", () => {
+    const main = new Set(appNavigation.map((item) => item.href));
+
+    for (const item of manageNavigation) {
+      expect(main.has(item.href)).toBe(false);
     }
   });
 });

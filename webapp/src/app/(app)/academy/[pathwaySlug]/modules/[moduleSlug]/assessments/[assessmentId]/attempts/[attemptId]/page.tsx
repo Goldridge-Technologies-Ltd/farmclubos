@@ -6,6 +6,7 @@ import { ProgressBar } from "@farmclub/design-system/ProgressBar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { AttemptForm } from "@/components/learning/AttemptForm";
+import { FocusOnMount } from "@/components/ui/FocusOnMount";
 import { StartAttemptForm } from "@/components/learning/StartAttemptForm";
 import { academy } from "@/content/academy";
 import { getAssessment, getAttempt } from "@/lib/api/academy";
@@ -17,6 +18,8 @@ type PageProps = {
     assessmentId: string;
     attemptId: string;
   }>;
+  /** `submitted` is set only on the redirect straight after submitting. */
+  searchParams: Promise<{ submitted?: string }>;
 };
 
 export const metadata: Metadata = { title: "Assessment" };
@@ -26,8 +29,9 @@ export const metadata: Metadata = { title: "Assessment" };
   been submitted. The same route serves both, because after submitting there
   is nothing to navigate to — the attempt is the thing being looked at.
 */
-export default async function AttemptPage({ params }: PageProps) {
+export default async function AttemptPage({ params, searchParams }: PageProps) {
   const { pathwaySlug, moduleSlug, assessmentId, attemptId } = await params;
+  const { submitted } = await searchParams;
   const [assessment, attempt] = await Promise.all([
     getAssessment(assessmentId),
     getAttempt(attemptId),
@@ -56,6 +60,20 @@ export default async function AttemptPage({ params }: PageProps) {
   }
 
   const score = attempt.scorePercent ?? 0;
+  const resultPanel = (
+    <Panel title={academy.assessment.result.heading}>
+      {/* A real score from a graded attempt — the only kind of figure allowed. */}
+      <ProgressBar label={academy.assessment.result.heading} value={score} />
+      <p className="mt-4 type-body-sm text-farm-muted">
+        {academy.assessment.result.againstPassMark(assessment.passMarkPercent)}
+      </p>
+      {attempt.questionsAwaitingReview > 0 ? (
+        <Notice className="mt-4" tone="info">
+          {academy.assessment.result.awaitingReview(attempt.questionsAwaitingReview)}
+        </Notice>
+      ) : null}
+    </Panel>
+  );
   const answered = new Map(attempt.responses.map((response) => [response.questionId, response]));
 
   return (
@@ -71,18 +89,7 @@ export default async function AttemptPage({ params }: PageProps) {
         heading={assessment.title}
       />
 
-      <Panel title={academy.assessment.result.heading}>
-        {/* A real score from a graded attempt — the only kind of figure allowed. */}
-        <ProgressBar label={academy.assessment.result.heading} value={score} />
-        <p className="mt-4 type-body-sm text-farm-muted">
-          {academy.assessment.result.againstPassMark(assessment.passMarkPercent)}
-        </p>
-        {attempt.questionsAwaitingReview > 0 ? (
-          <Notice className="mt-4" tone="info">
-            {academy.assessment.result.awaitingReview(attempt.questionsAwaitingReview)}
-          </Notice>
-        ) : null}
-      </Panel>
+      {submitted ? <FocusOnMount>{resultPanel}</FocusOnMount> : resultPanel}
 
       <Panel>
         <ol className="grid gap-4">

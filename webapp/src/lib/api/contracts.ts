@@ -274,3 +274,42 @@ export type Attempt = {
   questionsAwaitingReview: number;
   responses: AttemptResponse[];
 };
+
+/* ── Institution administration ───────────────────────────────────────── */
+
+export type Member = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: InstitutionRole;
+  joinedAt: string | null;
+};
+
+export type InviteStatus = "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+
+export type Invite = {
+  id: string;
+  email: string;
+  role: InstitutionRole;
+  status: InviteStatus;
+  expiresAt: string;
+  createdAt: string;
+  invitedBy: { id: string; firstName: string; lastName: string };
+};
+
+/** FAILED means the invite exists but its email did not go: resend it. */
+export type IssuedInvite = Invite & { emailStatus: "SENT" | "FAILED" };
+
+export type CohortListItem = CohortSummary & { enrolmentCount: number };
+
+export type CohortEnrolment = {
+  id: string;
+  status: EnrolmentStatus;
+  /** Derived from completed lessons by the API. */
+  progressPercent: number;
+  enrolledAt: string;
+  learner: { userId: string; firstName: string; lastName: string; email: string };
+};
+
+export type CohortDetail = CohortSummary & { enrolments: CohortEnrolment[] };

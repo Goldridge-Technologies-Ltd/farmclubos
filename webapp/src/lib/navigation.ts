@@ -1,4 +1,5 @@
 import type { IconName } from "@farmclub/design-system/Icon";
+import type { SessionContext } from "./api/contracts";
 
 /*
   The app's primary navigation, in one place.
@@ -70,6 +71,44 @@ export const appNavigation: NavItem[] = [
     description: "Funding built on a proven track record",
   },
 ];
+
+/**
+ * Running an institution: who belongs to it, and the intakes they are
+ * enrolled on. Shown only to someone who can manage the active institution —
+ * see `canManageInstitution`.
+ */
+export const manageNavigation: NavItem[] = [
+  {
+    label: "Members",
+    href: "/institution/members",
+    icon: "join",
+    description: "Invite people and see who has joined",
+  },
+  {
+    label: "Cohorts",
+    href: "/institution/cohorts",
+    icon: "calendar",
+    description: "Open an intake and enrol learners onto it",
+  },
+];
+
+/**
+ * Whether to offer the institution's management screens.
+ *
+ * Only a presentation decision: the API checks every request against the
+ * database, so a wrong answer here shows a link that 404s rather than opening
+ * anything. It needs an active institution, because that is what is managed.
+ */
+export function canManageInstitution(session: SessionContext): boolean {
+  if (!session.activeInstitutionId) {
+    return false;
+  }
+
+  return (
+    session.institutionRole === "INSTITUTION_ADMIN" ||
+    session.user.platformRole === "PLATFORM_ADMIN"
+  );
+}
 
 /** The user menu's own links. Not in the sidebar; reached from the avatar. */
 export const accountNavigation: NavItem[] = [

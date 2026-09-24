@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@farmclub/design-system/Icon";
 import { Logo } from "@farmclub/design-system/Logo";
 import { appShell } from "@/content/app";
-import { appNavigation, isActiveNavItem } from "@/lib/navigation";
+import { appNavigation, isActiveNavItem, manageNavigation } from "@/lib/navigation";
 
 /*
   The permanent sidebar, from lg upwards. Below that the same items appear in
@@ -14,7 +14,7 @@ import { appNavigation, isActiveNavItem } from "@/lib/navigation";
   It is a client component only because the active item depends on the current
   path. Nothing else here is interactive.
 */
-export function AppSidebar() {
+export function AppSidebar({ canManage }: { canManage: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -33,6 +33,19 @@ export function AppSidebar() {
             </li>
           ))}
         </ul>
+
+        {canManage ? (
+          <>
+            <p className="mt-7 px-3 type-overline text-white/55">{appShell.manageHeading}</p>
+            <ul className="mt-2 grid gap-1">
+              {manageNavigation.map((item) => (
+                <li key={item.href}>
+                  <SidebarLink item={item} isActive={isActiveNavItem(item.href, pathname)} />
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </nav>
     </div>
   );

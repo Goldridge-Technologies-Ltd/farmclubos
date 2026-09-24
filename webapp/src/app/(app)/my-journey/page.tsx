@@ -72,7 +72,12 @@ export default async function MyJourneyPage() {
                   key={pathwayModule.moduleId}
                   className="rounded-card border border-farm-border p-5"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  {/*
+                    Stacked on a phone, side by side from sm. flex-wrap alone
+                    put a short title's count beside it and a long one's below,
+                    so neighbouring cards disagreed.
+                  */}
+                  <div className="grid gap-1 sm:flex sm:items-start sm:justify-between sm:gap-3">
                     <Link
                       className="text-base font-semibold text-farm-green-950 transition-colors hover:text-farm-green-800"
                       href={`/academy/${journey.pathway.slug}/modules/${pathwayModule.slug}`}

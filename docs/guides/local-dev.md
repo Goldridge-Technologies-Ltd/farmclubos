@@ -6,8 +6,10 @@ How to run FARMCLUB OS on your machine. Contribution rules are in
 ## Prerequisites
 
 - **Node.js 22.x** (Next.js 16 needs 20.9 or later; development runs on 22)
-- **npm 11** — ships with Node 22
+- **npm 10** — ships with Node 22
 - **Git**
+- **A PostgreSQL database**: a Supabase project, or Docker for the local one in
+  `docker-compose.yml` (see [Database](#database))
 
 ## Setup
 
@@ -27,6 +29,18 @@ npm install <package> --workspace webapp
 ```
 
 `npm install` also sets up the Git hooks, through the root `prepare` script.
+
+Then create the two environment files from their examples:
+
+```bash
+cp api/.env.example api/.env
+cp webapp/.env.example webapp/.env.local
+```
+
+`api/.env` needs three values before the API will start — `DATABASE_URL` (see
+[Database](#database)), and `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`, two
+different values each from `openssl rand -base64 32`. Every variable is in the
+[table below](#environment-variables). `webapp/.env.local` works as copied.
 
 ## Running the apps
 
@@ -74,19 +88,23 @@ scripts pass it). `api/AGENTS.md` has the detail.
 npm run lint
 npm run type-check
 npm test
+npm run test:e2e --workspace api
 npm run build
 ```
 
 Each runs in every workspace; add `--workspace <name>` for one. Run them from
-the root before opening a pull request.
+the root before opening a pull request. `test:e2e` drives the API's HTTP
+contracts through Supertest with the database stubbed, so it needs no
+connection.
 
 ## Git hooks
 
 Installed with husky when you run `npm install`:
 
 - **pre-commit** — for each workspace with staged changes, runs its lint,
-  type-check and tests through `lint-staged`. A workspace that doesn't exist
-  yet (such as `api/` before it is scaffolded) is skipped.
+  type-check and tests through `lint-staged`. They check the whole workspace
+  as it is on disk, unstaged edits included, so a commit that leaves part of a
+  change unstaged is not proven to build on its own.
 - **commit-msg** — checks the Conventional Commits format described in
   `CONTRIBUTING.md`.
 - **pre-commit** also scans every staged file for credentials, so a real value
@@ -120,7 +138,7 @@ one exists and fill in your own values.
 | `PASSWORD_RESET_MAX_REQUESTS` | `api/.env` | Reset emails allowed per email address inside the window. Defaults to `5`. A forwarded client address gets ten times this. |
 | `PASSWORD_RESET_THROTTLE_WINDOW_SECONDS` | `api/.env` | The reset window, and the length of the block. Defaults to `3600` (one hour). |
 | `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; see below. |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`, `SEED_ADMIN_LAST_NAME` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; the names are optional. See below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
 | `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
@@ -180,8 +198,8 @@ or more). Add both to `api/.env`, then:
 npm run db:seed --workspace api
 ```
 
-Sign in with `POST /api/auth/login`. The seed refuses to create an admin in
-production, and re-running it never changes an existing account's password.
+Sign in at http://localhost:3001/sign-in. The seed refuses to create an admin
+in production, and re-running it never changes an existing account's password.
 
 ### Throttling sign-in
 
@@ -224,7 +242,18 @@ done
 
 Clear it with `DELETE FROM "RateLimitCounter";`, or wait out the window.
 
-### Walking the learner journey
+### Row-level security
+
+Supabase serves the `public` schema over HTTPS through PostgREST, so a table
+created by Prisma with RLS off is readable by anyone holding the project's anon
+key, without ever touching the API. The `enable_row_level_security` migration
+turns RLS on for every table with **no policies** and revokes the `anon` and
+`authenticated` grants. The API is unaffected — it connects as the table owner,
+which bypasses RLS — and so does the Supabase Studio table editor.
+
+**A new table needs the same treatment in a follow-up migration.**
+
+## Walking the whole journey
 
 The seed creates the catalogue but no institution, cohort or enrolment — that
 is deliberate, and it means a fresh database has nobody to enrol. Every step
@@ -255,17 +284,6 @@ creates (see *Your first platform admin* above).
 Only *Fundamentals of Agriculture* has a published assessment — the rest are
 drafts — so it is the one place the quiz appears.
 
-### Row-level security
-
-Supabase serves the `public` schema over HTTPS through PostgREST, so a table
-created by Prisma with RLS off is readable by anyone holding the project's anon
-key, without ever touching the API. The `enable_row_level_security` migration
-turns RLS on for every table with **no policies** and revokes the `anon` and
-`authenticated` grants. The API is unaffected — it connects as the table owner,
-which bypasses RLS — and so does the Supabase Studio table editor.
-
-**A new table needs the same treatment in a follow-up migration.**
-
 ## Known issues
 
 - **`npm audit` reports 4 high-severity advisories** (`mysql2`,
@@ -290,7 +308,10 @@ unless it is public — the API is secure by default.
 Swagger talks to the API directly. The web app never does: it holds the tokens
 in its own httpOnly cookies and calls the API server-to-server.
 
-### Onboarding an institution, end to end
+### Onboarding an institution through the API
+
+The web app does this now — see [Walking the whole journey](#walking-the-whole-journey).
+These are the same steps against the API directly, for testing it on its own:
 
 1. Sign in as the platform admin and authorise Swagger with the access token.
 2. `POST /api/institutions` creates the institution.

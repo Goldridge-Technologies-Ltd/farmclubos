@@ -13,8 +13,17 @@ Scope"): authentication, user profiles, learning programmes, enterprise tools,
 innovation challenges, market connections, finance applications,
 institutional dashboards, impact reporting and administrative tools.
 
-It is currently a scaffold: one placeholder page that proves the shared
-tokens, fonts, brand assets and components load. It runs on port 3001.
+Today it covers Phase 1's Learn and Institution layers: sign-in and
+invitations, the Academy (pathways, modules, lessons and assessments), a
+learner's progress, the screens an institution administrator runs cohorts and
+enrolment from, and the platform screens institutions are added from. The
+other sections of the ecosystem are in the navigation as capability pages. It
+runs on port 3001.
+
+It talks to `api/` through a backend-for-frontend: the browser never calls the
+API. This app holds the session in its own httpOnly cookies and calls the API
+server-to-server, so every mutation is a Server Action and every read happens
+on the server.
 
 Apply Next.js App Router patterns and architecture decisions, not generic
 React or single-page-app approaches.
@@ -93,9 +102,14 @@ All application code lives in `src/`. Config files (`next.config.ts`,
   and font imports. Set page titles and descriptions with the Metadata API.
 - Don't put business logic in the webapp that belongs in `api/`; the webapp
   calls the API through `src/lib/api/client.ts`.
-- The API wraps every response in `{ success, data, meta }`, and failures in
-  `{ success, error }`. Unwrap that once in `src/lib/api/client.ts` so the rest
-  of the app works with plain data.
+- The API wraps every response in `{ success, message, data, meta }`, and
+  failures in `{ success, error, meta }`. Unwrap that once in
+  `src/lib/api/client.ts` so the rest of the app works with plain data; use
+  `apiPage` there for a list that reports `meta.pagination`.
+- A form's action hands back what was submitted on a failure (`keepValues`),
+  and each field reads it back as its `defaultValue`; a `<select>` is also
+  keyed on it. React resets every field once an action finishes, even a failed
+  one — see `docs/webapp/design-patterns.md` §3.
 
 ## Testing
 
@@ -103,8 +117,9 @@ All application code lives in `src/`. Config files (`next.config.ts`,
   silently, such as form validation, permission-dependent rendering or data
   shaping in `src/lib/`. Don't test markup, styling or wiring, and don't
   retest shared components already covered in `packages/design-system/`.
-- Jest with React Testing Library is the setup, added when the first case
-  appears. Do not introduce Vitest or a second runner.
+- Jest is the runner (`npm run test --workspace webapp`). Add React Testing
+  Library with the first test of a rendered component — none has earned one
+  yet. Do not introduce Vitest or a second runner.
 - Test behaviour through the rendered UI rather than implementation details.
 
 <!-- BEGIN:nextjs-agent-rules -->

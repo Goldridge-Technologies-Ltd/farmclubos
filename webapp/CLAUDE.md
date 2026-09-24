@@ -44,7 +44,9 @@ All application code lives in `src/`. Config files (`next.config.ts`, `tsconfig.
 - Every route segment that loads data gets a `loading.tsx` and `error.tsx`; use `notFound()` for missing resources.
 - Use `next/link`, `next/image` and `next/font` instead of raw `<a>`, `<img>` and font imports. Set page titles and descriptions with the Metadata API.
 - Don't put business logic in the webapp that belongs in `api/`; the webapp calls the API through `src/lib/api/client.ts`.
-- The API wraps every response in `{ success, data, meta }`, and failures in `{ success, error }`. Unwrap that once in `src/lib/api/client.ts` so the rest of the app works with plain data.
+- The API wraps every response in `{ success, message, data, meta }`, and failures in `{ success, error, meta }`. Unwrap that once in `src/lib/api/client.ts` so the rest of the app works with plain data; `apiPage` keeps a list's `meta.pagination`.
+- The browser never calls the API. Reads happen on the server and every mutation is a Server Action, because the session lives in httpOnly cookies only the server can read.
+- A form's action hands back what was submitted on a failure (`keepValues`), and each field reads it as its `defaultValue`; a `<select>` is also keyed on it. React resets every field once an action finishes, even a failed one — see `docs/webapp/design-patterns.md` §3.
 
 ## Testing
 
@@ -52,7 +54,8 @@ All application code lives in `src/`. Config files (`next.config.ts`, `tsconfig.
   silently, such as form validation, permission-dependent rendering or data
   shaping in `src/lib/`. Don't test markup, styling or wiring, and don't
   retest shared components already covered in `packages/design-system/`.
-- Jest with React Testing Library is the setup, added when the first case
-  appears. Do not introduce Vitest or a second runner.
+- Jest is the runner. Add React Testing Library with the first test of a
+  rendered component — none has earned one yet. Do not introduce Vitest or a
+  second runner.
 - Test behaviour through the rendered UI rather than implementation details.
 

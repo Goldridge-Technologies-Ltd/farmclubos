@@ -17,6 +17,8 @@ NestJS 12 project. Express adapter.
 - Use `@CurrentUser()` and `@ClientInfo()`, never `request.user` or headers directly.
 - Opaque tokens (refresh, invite, reset) are only ever stored as a SHA-256 hash. Never store, log or return a raw token.
 - Document every route with `@ApiEnvelope()` and `@ApiErrors()`.
+- Throttle credential endpoints through `RateLimitService`, keyed on the account rather than the caller's address — behind the web app every request comes from one address.
+- Progress belongs to an enrolment, never a user; resolve the enrolment from the caller, their active institution and the pathway. `progressPercent` is recomputed from rows, never incremented.
 
 ## Role
 
@@ -44,6 +46,7 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
 - Every infrastructure integration gets its own module and service:
   - `src/lib/database/prisma.module.ts` + `prisma.service.ts`
   - `src/lib/mail/mail.module.ts` + `mail.service.ts`
+  - `src/lib/rate-limit/rate-limit.module.ts` + `rate-limit.service.ts`
 - Mark infrastructure modules `@Global()`, export their service, and import each module once in `AppModule`.
 - Feature modules go in `src/modules/<name>/`. Feature modules are not `@Global()`; import them where they are needed and export only what other modules use.
 - Shared guards, interceptors, pipes, filters and decorators go in `src/common/`.
@@ -52,6 +55,7 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
 - Read configuration through `ConfigService`, never `process.env` inside feature code.
 - Throw Nest's built-in HTTP exceptions (`NotFoundException`, `BadRequestException`, …) rather than returning error objects.
 - Generate files with the Nest CLI from `api/`, pointing at the feature folder: `nest g module modules/<name>`, `nest g service modules/<name>`, `nest g controller modules/<name>` (or `nest g resource modules/<name>` for a full CRUD feature).
-- Controllers return plain data. A `ResponseTransformInterceptor` in `src/common/interceptors/` wraps every success into `{ success, data, meta }`, and an exception filter in `src/common/filters/` wraps failures into `{ success, error }`. Never build the envelope by hand.
-- Document every endpoint with `@ApiOperation` and `@ApiResponse`; the Swagger UI depends on them.
+- Controllers return plain data. A `ResponseTransformInterceptor` in `src/common/interceptors/` wraps every success into `{ success, message, data, meta }`, and an exception filter in `src/common/filters/` wraps failures into `{ success, error, meta }`. Set the message with `@CustomMessage()` ("Success" without it). Never build the envelope by hand.
+- A list that can outgrow one page returns a `PaginatedResult`; its totals land in `meta.pagination`.
+- Document every endpoint with `@ApiOperation`, `@ApiEnvelope()` and `@ApiErrors()`; the Swagger UI depends on them.
 - If you change a response shape or endpoint that `webapp/` consumes, update the webapp side in the same change.

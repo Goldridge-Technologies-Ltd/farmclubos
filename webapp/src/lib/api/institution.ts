@@ -5,7 +5,7 @@ import { canManageInstitution } from "../navigation";
 import { getSessionContext } from "../session";
 import { apiRequest } from "./client";
 import type { CohortDetail, CohortListItem, Invite, Member } from "./contracts";
-import { isNotFound } from "./errors";
+import { isMissingRecord } from "./errors";
 
 /*
   The reads behind the institution's management screens.
@@ -59,7 +59,7 @@ export async function getCohort(institutionId: string, cohortId: string): Promis
       `/api/institutions/${institutionId}/cohorts/${encodeURIComponent(cohortId)}`,
     );
   } catch (error) {
-    if (isNotFound(error)) {
+    if (isMissingRecord(error)) {
       notFound();
     }
 

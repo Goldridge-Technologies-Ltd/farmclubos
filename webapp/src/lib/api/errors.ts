@@ -33,6 +33,18 @@ export function isNotFound(error: unknown): boolean {
 }
 
 /**
+ * True when a read by id failed because there is nothing to find: a 404, or a
+ * 400 because the id in the URL is not one the API would even parse. Both are
+ * not-found to a person; neither is fixed by trying again.
+ *
+ * Only for reads of one record by an id from the URL. A 400 anywhere else is a
+ * real validation failure and must not be quietly turned into a 404.
+ */
+export function isMissingRecord(error: unknown): boolean {
+  return isApiError(error) && (error.status === 404 || error.status === 400);
+}
+
+/**
  * The per-field messages behind a VALIDATION_FAILED response, if any. The API
  * sends them as an array of strings from its validation pipe.
  */

@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { homeScreen } from "@/content/app";
 import { myJourney } from "@/lib/api/academy";
-import { nextLesson } from "@/lib/journey";
+import { finishingAfterClose, nextLesson } from "@/lib/journey";
 import { appNavigation, canAdministerPlatform, canManageInstitution } from "@/lib/navigation";
 import { getSessionContext } from "@/lib/session";
 
@@ -49,7 +49,11 @@ export default async function HomePage() {
 
       {current ? (
         <Panel
-          description={homeScreen.continue.cohort(current.cohort.name)}
+          description={
+            finishingAfterClose(current)
+              ? homeScreen.continue.cohortClosed(current.cohort.name)
+              : homeScreen.continue.cohort(current.cohort.name)
+          }
           title={current.pathway.title}
         >
           {/* Where they are, what is next, then the way to it — in reading order. */}

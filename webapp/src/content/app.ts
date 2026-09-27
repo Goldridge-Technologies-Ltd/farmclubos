@@ -109,6 +109,8 @@ export const homeScreen = {
   continue: {
     title: "Continue your pathway",
     cohort: (name: string) => `Cohort: ${name}`,
+    cohortClosed: (name: string) =>
+      `Cohort: ${name}. It has closed to new learners; you can still finish.`,
     through: "through this pathway",
     // Only name the module when it adds something: a module's opening lesson
     // often shares its title.
@@ -155,6 +157,8 @@ export const journeyScreen = {
     action: "Browse the Academy",
   },
   cohort: (name: string) => `Cohort: ${name}`,
+  cohortClosed: (name: string) =>
+    `Cohort: ${name}. It has closed to new learners; you can still finish.`,
   through: "through this pathway",
   moduleProgress: (done: number, total: number) =>
     `${done} of ${total} ${total === 1 ? "lesson" : "lessons"} complete`,

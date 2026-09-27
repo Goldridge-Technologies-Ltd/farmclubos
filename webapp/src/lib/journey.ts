@@ -1,4 +1,5 @@
 import type { Journey } from "./api/contracts";
+import { isCohortClosed } from "./cohorts";
 
 export type NextLesson = { href: string; title: string; moduleTitle: string };
 
@@ -22,4 +23,13 @@ export function nextLesson(journey: Journey): NextLesson | null {
   }
 
   return null;
+}
+
+/**
+ * On an intake that has since closed, with the pathway not yet finished. A
+ * close stops new enrolments, not the learners already on it, so they are
+ * told they can carry on rather than left to guess.
+ */
+export function finishingAfterClose(journey: Journey): boolean {
+  return isCohortClosed(journey.cohort.status) && journey.status !== "COMPLETED";
 }

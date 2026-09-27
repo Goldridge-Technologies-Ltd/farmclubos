@@ -214,7 +214,8 @@ export type Journey = {
   enrolmentId: string;
   status: EnrolmentStatus;
   progressPercent: number;
-  cohort: { id: string; name: string };
+  /** A closed intake takes nobody new; its learners can still finish. */
+  cohort: { id: string; name: string; status: CohortStatus };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgress[];
 };

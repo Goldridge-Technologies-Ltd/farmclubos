@@ -313,6 +313,8 @@ export type CohortEnrolment = {
   /** Derived from completed lessons by the API. */
   progressPercent: number;
   enrolledAt: string;
+  /** Set while withdrawn: when it happened. */
+  withdrawnAt: string | null;
   learner: { userId: string; firstName: string; lastName: string; email: string };
 };
 

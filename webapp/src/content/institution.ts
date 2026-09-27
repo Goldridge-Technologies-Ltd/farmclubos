@@ -10,6 +10,11 @@ function openPlaces(count: number): string {
   return `${count} open cohort ${count === 1 ? "place" : "places"}`;
 }
 
+/** "1 learner", "2 learners". */
+function learners(count: number): string {
+  return `${count} ${count === 1 ? "learner" : "learners"}`;
+}
+
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -92,7 +97,17 @@ export const institutionContent = {
       title: "No cohorts yet",
       description: "Open an intake of a pathway to start enrolling learners onto it.",
     },
-    enrolled: (count: number) => `${count} ${count === 1 ? "learner" : "learners"}`,
+    current: {
+      title: "Current",
+      empty: "No intake is open at the moment. Open a new one to enrol learners.",
+    },
+    past: {
+      title: "Closed",
+      description:
+        "Intakes that have closed. Nobody new can join them; learners already on them can " +
+        "still finish.",
+    },
+    enrolled: (count: number) => learners(count),
     dates: (startsOn: string | null, endsOn: string | null) =>
       startsOn && endsOn
         ? `${startsOn} to ${endsOn}`
@@ -103,7 +118,8 @@ export const institutionContent = {
       PLANNED: "Planned",
       OPEN: "Open",
       RUNNING: "Running",
-      COMPLETED: "Completed",
+      // What closing an intake does; "Completed" would read as every learner finishing.
+      COMPLETED: "Closed",
       CANCELLED: "Cancelled",
     },
     deliveryModes: {
@@ -135,14 +151,37 @@ export const institutionContent = {
   },
 
   cohort: {
+    edit: "Edit details",
     learnersTitle: "Learners",
     learnersEmpty: "Nobody is enrolled yet. Enrol a member below.",
+    learnersEmptyClosed: "Nobody was enrolled on this intake.",
     progressLabel: (name: string) => `${name}'s progress`,
     enrolmentStatuses: {
       INVITED: "Invited",
       ACTIVE: "Active",
       COMPLETED: "Completed",
       WITHDRAWN: "Withdrawn",
+    },
+    withdraw: {
+      label: "Withdraw",
+      confirm: "Withdraw",
+      busy: "Withdrawing…",
+      consequence: (name: string, cohort: string) =>
+        `Withdraw ${name} from ${cohort}? ${name} will no longer be able to open it. ` +
+        `Progress is kept, and enrolling ${name} again picks up where it stopped.`,
+      done: (name: string) => `${name} has been withdrawn. Progress is kept.`,
+    },
+    withdrawn: {
+      title: "Withdrawn",
+      description:
+        "Learners taken off this intake. Their progress is kept, and enrolling one again " +
+        "picks up where it stopped.",
+      date: (date: string) => `Withdrawn ${date}`,
+      enrolAgain: "Enrol again",
+      busy: "Enrolling…",
+      done: (name: string) => `${name} is enrolled again. Progress carries on from where it stopped.`,
+      /** In place of Enrol again, for someone who has since left the institution. */
+      notAMember: "No longer a member of your institution",
     },
     enrol: {
       title: "Enrol a member",
@@ -154,7 +193,45 @@ export const institutionContent = {
       submit: "Enrol",
       busy: "Enrolling…",
       everyoneEnrolled: "Every member of your institution is already on this cohort.",
+      everyoneEnrolledOrWithdrawn:
+        "Every member of your institution is on this cohort, or listed under Withdrawn.",
       inviteLink: "Invite someone",
     },
+    close: {
+      title: "Close this intake",
+      description:
+        "Close it once everyone joining has been enrolled. Nobody new can be enrolled after " +
+        "that, but learners on it can still finish, and you can reopen it.",
+      label: "Close the intake",
+      confirm: "Close the intake",
+      busy: "Closing…",
+      consequence: (cohort: string, stillWorking: number) =>
+        `Close ${cohort}? Nobody new can be enrolled onto it.` +
+        (stillWorking > 0
+          ? ` The ${learners(stillWorking)} working through it can still finish.`
+          : "") +
+        " You can reopen it later.",
+      done: (cohort: string) => `${cohort} is closed. Learners on it can still finish.`,
+    },
+    closed: {
+      title: "This intake is closed",
+      description:
+        "Nobody new can be enrolled, and learners already on it can still finish their " +
+        "pathway. Reopen it to enrol more learners, or to enrol a withdrawn learner again.",
+      reopen: "Reopen the intake",
+      busy: "Reopening…",
+      done: (cohort: string) => `${cohort} is open again. You can enrol learners onto it.`,
+    },
+  },
+
+  editCohort: {
+    heading: "Edit details",
+    description:
+      "The pathway cannot be changed: the progress of everyone on this intake belongs to it. " +
+      "To run a different pathway, open a new intake.",
+    pathway: "Pathway",
+    submit: "Save changes",
+    busy: "Saving…",
+    cancel: "Cancel",
   },
 } as const;

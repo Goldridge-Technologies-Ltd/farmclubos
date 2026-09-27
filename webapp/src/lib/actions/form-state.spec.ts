@@ -45,6 +45,28 @@ describe("toFormState", () => {
     expect(state.message).toBe("PasswordConfirmation should not be empty.");
   });
 
+  it("puts a refusal about one field under that field, found by its code", () => {
+    const state = toFormState(
+      new ApiError(409, "CODE_TAKEN", "Another cohort in this institution already uses that code."),
+      ["name", "code"],
+      { CODE_TAKEN: "code" },
+    );
+
+    expect(state.errors).toEqual({
+      code: "Another cohort in this institution already uses that code.",
+    });
+    expect(state.message).toBeUndefined();
+  });
+
+  it("leaves a code it was not given a field for above the form", () => {
+    const state = toFormState(new ApiError(404, "NOT_FOUND", "Cohort not found."), ["code"], {
+      CODE_TAKEN: "code",
+    });
+
+    expect(state.message).toBe("Cohort not found.");
+    expect(state.errors).toBeUndefined();
+  });
+
   it("shows the API's own sentence when the failure is not a validation one", () => {
     const state = toFormState(
       new ApiError(401, "INVALID_CREDENTIALS", "The email or password is incorrect."),

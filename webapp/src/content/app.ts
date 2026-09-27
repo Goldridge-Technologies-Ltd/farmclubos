@@ -56,6 +56,11 @@ export const appShell = {
   },
 } as const;
 
+/** The fixed words of an action that asks before it acts (`ConfirmAction`). */
+export const confirmActionCopy = {
+  cancel: "Cancel",
+} as const;
+
 /** Announced while a screen's data loads; each Skeleton itself is silent. */
 export const loadingLabel = "Loading";
 

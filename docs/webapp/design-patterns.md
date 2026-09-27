@@ -113,7 +113,7 @@ fetches it again to draw chrome.
 | `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a group per role below the main links — *Manage*, *Platform* — passed in by `AppShell` |
 | `AppMobileNav` | The same sections as a drawer below `lg` |
 | `AppTopBar` | Drawer trigger and logo on small screens, active institution on large, account menu |
-| `UserMenu` | The account disclosure: who you are, profile, sign out |
+| `UserMenu` | The account disclosure: who you are, the institutions to switch between, profile, sign out |
 | `PageHeader` | Crumbs, eyebrow, the page's only `h1`, description, actions |
 | `Breadcrumbs` | The trail for nested screens. Crumbs are passed in, never derived from the URL |
 | `Panel` | The basic content surface: flat white, hairline border |
@@ -214,7 +214,45 @@ going back to a module would show a lesson you just completed as outstanding.
 
 A control that would fail is not shown. The completion button and the
 assessment launcher appear only for someone enrolled on that pathway;
-everyone else is told why, which is more use than a button that 404s.
+everyone else is told why, which is more use than a button that 404s. The
+same goes for the lifecycle below: no *Remove* for an institution's only
+administrator, and no *Enrol again* on a closed intake or for someone who has
+left the institution. Each says why in a line instead.
+
+### Asking before acting
+
+An action that takes something away — removing a member, withdrawing a
+learner, closing an intake — asks first, with `ConfirmAction`
+(`src/components/ui/`). **In place, not in a modal:** the button is replaced
+by what will happen and two buttons, *go ahead* and *Cancel*, so the question
+sits beside the thing it concerns and there is no focus trap to get wrong.
+
+- **Focus** moves to *go ahead*, which carries the consequence as its
+  `aria-describedby`, so a screen reader reads the question with the button.
+  *Cancel* or Escape puts the original button back and focuses it.
+- **The consequence** says what goes with it, in real counts ("2 open cohort
+  places will be withdrawn"), and what is kept ("progress is kept"). It names
+  the person rather than using a pronoun, which the platform does not know.
+- **A row of the same buttons** is told apart by a `target`, read after the
+  label but not shown: "Remove, Ada Obi".
+- **Open, it takes the whole row** — `col-span-full w-full` — so the sentence
+  is never squeezed into the column the button sat in.
+
+`ActionButton` is the same without the question, for a one-press action that
+takes nothing away: reopening an intake, enrolling someone again.
+
+**The result is reported to the page, not beside the button.** The row a
+control sat in usually leaves the list it was in, taking any message with it
+and dropping focus to the top of the document. So a page that uses either
+wraps itself in `ActionOutcome`, puts one `ActionOutcomeMessage` under its
+header, and a success is shown there and takes focus (as `FocusOnMount`
+does). A refusal stays with the control, which is still on the page.
+
+`useReportedAction` makes the report once the action answers, inside
+`startTransition`. After an `await`, an update is no longer part of the
+action's transition unless wrapped again; unwrapped, the message arrived
+about 400ms ahead of the refreshed page it describes, and a closed intake
+briefly showed its Close button again.
 
 ### Autosave
 
@@ -241,6 +279,39 @@ The order of work is fixed by the data: a person must *accept an invitation*
 before they are a member, and must be a member before they can be *enrolled*.
 The enrol form therefore offers a list of members rather than a free email
 field — it cannot be filled in wrongly.
+
+The rest of an intake's life happens on the same two screens:
+
+- **Members** — *Remove* beside each member, asking first. Their open cohort
+  places go with them; their progress stays, and a new invitation brings them
+  back. Removing yourself goes home afterwards, since these screens are no
+  longer yours.
+- **A cohort** — *Withdraw* beside each learner still working through it.
+  Withdrawn learners are listed apart, with the date and their progress, and
+  *Enrol again* resumes it. *Close the intake* at the foot stops new
+  enrolments; a closed intake says so at the top with *Reopen*, and hides the
+  enrol form. *Edit details* is its own screen, with every field but the
+  pathway, which is shown and explained.
+- **The cohort list** puts closed intakes under their own heading, and a
+  closed intake's badge reads *Closed* — "Completed" would read as every
+  learner finishing.
+- **A learner on a closed intake** is told on their dashboard and on My
+  Journey that it has closed to new learners and they can still finish,
+  unless they already have.
+
+### Switching institution
+
+Someone in more than one institution sees them in the account menu, the
+current one marked with `aria-current`, and picks one there: the choice
+belongs to the account, not to any screen. The list also appears when no
+institution is active but one is available, as after removing yourself.
+
+The Server Action posts to `/api/auth/switch-institution` and replaces **only
+the access-token cookie** (`writeAccessTokenCookie`). The refresh token is
+untouched, and the API records the choice on the session, so the next
+refresh stays in it. It then goes home — the page they were on may belong to
+the institution they just left — and the menu, open "for this route and
+institution", closes itself as the institution changes.
 
 ### Running the platform
 
@@ -283,8 +354,6 @@ for anyone west of Greenwich.
 These arrive with the screens that need them, and are documented here in the
 same change:
 
-- Switching between institutions when someone belongs to more than one
-- Removing a member, withdrawing a learner, or editing and closing a cohort
 - The institution dashboard: reporting on learners and progress across
   cohorts, a later milestone
 - Tables and pagination controls: lists are one page today, and say so when

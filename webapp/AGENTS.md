@@ -15,10 +15,11 @@ institutional dashboards, impact reporting and administrative tools.
 
 Today it covers Phase 1's Learn and Institution layers: sign-in and
 invitations, the Academy (pathways, modules, lessons and assessments), a
-learner's progress, the screens an institution administrator runs cohorts and
-enrolment from, and the platform screens institutions are added from. The
-other sections of the ecosystem are in the navigation as capability pages. It
-runs on port 3001.
+learner's progress, the screens an institution administrator runs members and
+cohorts from (inviting, enrolling, withdrawing, removing, editing and closing
+an intake), switching between institutions for someone in more than one, and
+the platform screens institutions are added from. The other sections of the
+ecosystem are in the navigation as capability pages. It runs on port 3001.
 
 It talks to `api/` through a backend-for-frontend: the browser never calls the
 API. This app holds the session in its own httpOnly cookies and calls the API

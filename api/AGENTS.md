@@ -62,6 +62,25 @@ variables differ.
   No machine can grade it; counting it as wrong would cap an otherwise perfect
   attempt and fail the learner for it. The attempt reports how many are
   waiting for a person instead.
+- **Taking someone out keeps the record.** Nothing in the admin lifecycle
+  deletes a row:
+  - *Removing a member* sets the membership to `LEFT` and, in the same
+    transaction, withdraws their open enrolments there (`INVITED`, `ACTIVE`);
+    a `COMPLETED` one records work done and is left alone. A fresh invitation
+    reactivates the membership.
+  - *Withdrawing* sets an enrolment to `WITHDRAWN` with `withdrawnAt`, and its
+    progress stays. Enrolling the same person again reactivates that
+    enrolment rather than creating one, so the progress resumes.
+  - *Closing a cohort* sets it to `COMPLETED`: nobody new can be enrolled, and
+    every enrolment on it is untouched, so learners can finish. Reopening sets
+    it back to `OPEN`.
+  - *Editing a cohort* never changes its pathway, which every enrolment's
+    progress hangs off.
+- **Repeating a lifecycle action is done, not an error, and is not a second
+  event.** Withdrawing someone already withdrawn keeps the original date;
+  closing a closed cohort, removing someone already gone, or saving an edit
+  that changes nothing writes and records nothing. An edit records only the
+  fields that actually changed.
 - **The Academy catalogue is the exception to tenancy, not to access control.**
   A pathway belongs to no institution, so `AcademyService` filters on
   publication rather than `institutionId`: `{ status: "PUBLISHED",
@@ -99,6 +118,15 @@ variables differ.
   by `InstitutionsModule`. It reads memberships from the database, so a
   suspension takes effect at once, and it answers 404 to a non-member and 403
   to a member who lacks the role.
+- **Every learner-side lookup checks the membership as well**, through
+  `ownEnrolment()` (`src/common/auth/own-enrolment.ts`): the enrolment is the
+  caller's, in their active institution, the institution is active, and their
+  membership in it is still ACTIVE. Without that last part, someone removed
+  from an institution could carry on learning in it until their access token
+  ran out. Use it for any new query that finds "the caller's" enrolment.
+- **An institution always keeps one active administrator.** Removing the last
+  is refused with 409 `LAST_ADMINISTRATOR`; anyone else can be removed, the
+  caller included.
 - Read the caller with `@CurrentUser()` and the session details with
   `@ClientInfo()`. Never read `request.user` or headers directly.
 - Refresh, invite and password-reset tokens are opaque and only ever stored as

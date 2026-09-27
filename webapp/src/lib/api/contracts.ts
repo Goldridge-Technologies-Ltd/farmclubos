@@ -284,7 +284,11 @@ export type Member = {
   email: string;
   role: InstitutionRole;
   joinedAt: string | null;
+  /** Their cohort places here that are not finished: what removing them withdraws. */
+  openEnrolments: number;
 };
+
+export type RemovedMember = { userId: string; enrolmentsWithdrawn: number };
 
 export type InviteStatus = "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
 

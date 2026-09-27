@@ -5,6 +5,15 @@
   words around them, including plurals, so a screen never says "1 learners".
 */
 
+/** "1 open cohort place", "2 open cohort places". */
+function openPlaces(count: number): string {
+  return `${count} open cohort ${count === 1 ? "place" : "places"}`;
+}
+
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export const institutionContent = {
   crumb: "Manage",
 
@@ -33,6 +42,33 @@ export const institutionContent = {
       title: "Members",
       empty: "Nobody has joined yet. Invite someone above.",
       joined: (date: string) => `Joined ${date}`,
+      /** In place of Remove: an institution always keeps one administrator. */
+      onlyAdministrator: "The only administrator",
+    },
+    remove: {
+      label: "Remove",
+      confirm: "Remove",
+      busy: "Removing…",
+      consequence: (name: string, institution: string, openEnrolments: number) =>
+        `Remove ${name} from ${institution}? ${name} will lose access straight away` +
+        (openEnrolments > 0
+          ? `, and ${openPlaces(openEnrolments)} will be withdrawn; progress is kept.`
+          : ".") +
+        ` A new invitation brings ${name} back.`,
+      consequenceForYou: (institution: string, openEnrolments: number) =>
+        `Remove yourself from ${institution}? You will lose access to it straight away, ` +
+        "these screens included" +
+        (openEnrolments > 0
+          ? `, and your ${openPlaces(openEnrolments)} will be withdrawn; progress is kept.`
+          : ".") +
+        " Another administrator can invite you back.",
+      done: (name: string, institution: string, enrolmentsWithdrawn: number) =>
+        `${name} has been removed from ${institution}.` +
+        (enrolmentsWithdrawn > 0
+          ? ` ${capitalise(openPlaces(enrolmentsWithdrawn))} ${
+              enrolmentsWithdrawn === 1 ? "was" : "were"
+            } withdrawn.`
+          : ""),
     },
     pending: {
       title: "Waiting to accept",

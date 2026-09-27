@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
-import type { CohortSummary, IssuedInvite } from "../api/contracts";
+import { institutionContent } from "@/content/institution";
+import type { CohortSummary, IssuedInvite, RemovedMember } from "../api/contracts";
 import { managedInstitution } from "../api/institution";
+import { getSessionContext } from "../session";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
 /*
@@ -87,6 +89,48 @@ async function inviteCommand(
   } catch (error) {
     return toFormState(error, []);
   }
+}
+
+/**
+ * Takes someone out of the institution. The API withdraws their open cohort
+ * places in the same step, so every screen under /institution is refreshed.
+ *
+ * Someone who removes themselves can no longer see these screens, so they go
+ * home rather than to a page that now answers not-found.
+ */
+export async function removeMember(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = text(formData, "userId");
+  // Only for the message: who they are is decided by the id.
+  const name = text(formData, "name");
+  const [institution, session] = await Promise.all([managedInstitution(), getSessionContext()]);
+  let removed: RemovedMember;
+
+  try {
+    removed = await apiRequest<RemovedMember>(
+      `/api/institutions/${institution.id}/members/${userId}/remove`,
+      { method: "POST" },
+    );
+  } catch (error) {
+    return toFormState(error, []);
+  }
+
+  revalidatePath("/institution", "layout");
+
+  if (session?.user.id === userId) {
+    redirect("/");
+  }
+
+  return {
+    status: "success",
+    message: institutionContent.members.remove.done(
+      name,
+      institution.name,
+      removed.enrolmentsWithdrawn,
+    ),
+  };
 }
 
 /** Opens an intake, then goes to it so learners can be enrolled straight away. */

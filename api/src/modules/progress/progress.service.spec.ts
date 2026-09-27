@@ -174,6 +174,7 @@ describe("ProgressService", () => {
       cohort: {
         id: "cohort-1",
         name: "September intake",
+        status: "OPEN",
         pathway: {
           id: "pathway-1",
           slug: "foundation",
@@ -226,6 +227,22 @@ describe("ProgressService", () => {
       const [journey] = await service.myJourney(learner);
 
       expect(journey.modules[0].lessonsCompleted).toBe(0);
+    });
+
+    it("says when the intake has closed, which does not stop the learner", async () => {
+      prisma.enrolment.findMany.mockResolvedValue([
+        { ...enrolmentRow, cohort: { ...enrolmentRow.cohort, status: "COMPLETED" } },
+      ]);
+      prisma.lessonProgress.findMany.mockResolvedValue([]);
+
+      const [journey] = await service.myJourney(learner);
+
+      expect(journey.cohort).toEqual({
+        id: "cohort-1",
+        name: "September intake",
+        status: "COMPLETED",
+      });
+      expect(journey.status).toBe("ACTIVE");
     });
 
     it("returns nothing for someone with no active institution", async () => {

@@ -106,6 +106,7 @@ export class ProgressService {
           select: {
             id: true,
             name: true,
+            status: true,
             pathway: {
               select: {
                 id: true,
@@ -184,7 +185,11 @@ export class ProgressService {
         enrolmentId: enrolment.id,
         status: enrolment.status,
         progressPercent: enrolment.progressPercent,
-        cohort: { id: enrolment.cohort.id, name: enrolment.cohort.name },
+        cohort: {
+          id: enrolment.cohort.id,
+          name: enrolment.cohort.name,
+          status: enrolment.cohort.status,
+        },
         pathway: enrolment.cohort.pathway,
         modules,
       };

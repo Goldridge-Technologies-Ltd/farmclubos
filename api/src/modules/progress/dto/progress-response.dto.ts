@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  CohortStatus,
   EnrolmentStatus,
   ProgressStatus,
 } from "../../../generated/prisma/enums.js";
@@ -59,6 +60,13 @@ class JourneyCohortDto {
 
   @ApiProperty()
   name: string;
+
+  @ApiProperty({
+    enum: CohortStatus,
+    enumName: "CohortStatus",
+    description: "COMPLETED or CANCELLED: closed to new learners, but open to finish.",
+  })
+  status: CohortStatus;
 }
 
 class JourneyPathwayDto {

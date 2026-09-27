@@ -73,9 +73,24 @@ export type CohortEnrolmentView = {
   /** Derived from completed lessons. */
   progressPercent: number;
   enrolledAt: Date;
+  /** Set while they are withdrawn; cleared if they are enrolled again. */
+  withdrawnAt: Date | null;
   learner: { userId: string; firstName: string; lastName: string; email: string };
 };
 
 export type CohortDetailView = CohortSummaryView & {
   enrolments: CohortEnrolmentView[];
+};
+
+/**
+ * A change to a cohort. Absent means unchanged; `null` clears an optional
+ * field. The pathway is deliberately not here: learners' progress hangs off
+ * it, so it is fixed once the cohort exists.
+ */
+export type UpdateCohortInput = {
+  name?: string;
+  code?: string | null;
+  deliveryMode?: DeliveryMode;
+  startsOn?: string | null;
+  endsOn?: string | null;
 };

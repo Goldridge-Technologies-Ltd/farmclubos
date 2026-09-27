@@ -30,6 +30,10 @@ describe("InstitutionCohortsController", () => {
     getForInstitution: fn(),
     createCohort: fn(),
     enrol: fn(),
+    updateCohort: fn(),
+    closeCohort: fn(),
+    reopenCohort: fn(),
+    withdraw: fn(),
   };
   const access = { assertCanManage: fn() };
 
@@ -79,5 +83,60 @@ describe("InstitutionCohortsController", () => {
 
     expect(cohorts.listForInstitution).toHaveBeenCalledWith("institution-1");
     expect(cohorts.getForInstitution).toHaveBeenCalledWith("institution-1", "cohort-1");
+  });
+
+  it("refuses every lifecycle change without access, before touching anything", async () => {
+    access.assertCanManage.mockRejectedValue(new ForbiddenException());
+
+    await expect(
+      controller.updateCohort(admin, "institution-2", "cohort-1", { name: "x" }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(controller.closeCohort(admin, "institution-2", "cohort-1")).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(controller.reopenCohort(admin, "institution-2", "cohort-1")).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(
+      controller.withdraw(admin, "institution-2", "cohort-1", "enrolment-1"),
+    ).rejects.toThrow(ForbiddenException);
+
+    expect(cohorts.updateCohort).not.toHaveBeenCalled();
+    expect(cohorts.closeCohort).not.toHaveBeenCalled();
+    expect(cohorts.reopenCohort).not.toHaveBeenCalled();
+    expect(cohorts.withdraw).not.toHaveBeenCalled();
+  });
+
+  it("passes the acting admin through, so every change is recorded against them", async () => {
+    access.assertCanManage.mockResolvedValue({});
+    for (const call of Object.values(cohorts)) {
+      call.mockResolvedValue({});
+    }
+
+    await controller.createCohort(admin, "institution-1", { pathwaySlug: "p", name: "n" });
+    await controller.enrol(admin, "institution-1", "cohort-1", { email: "a@example.com" });
+    await controller.updateCohort(admin, "institution-1", "cohort-1", { name: "x" });
+    await controller.closeCohort(admin, "institution-1", "cohort-1");
+    await controller.reopenCohort(admin, "institution-1", "cohort-1");
+    await controller.withdraw(admin, "institution-1", "cohort-1", "enrolment-1");
+
+    expect(cohorts.createCohort).toHaveBeenCalledWith("admin-1", "institution-1", {
+      pathwaySlug: "p",
+      name: "n",
+    });
+    expect(cohorts.enrol).toHaveBeenCalledWith("admin-1", "institution-1", "cohort-1", {
+      email: "a@example.com",
+    });
+    expect(cohorts.updateCohort).toHaveBeenCalledWith("admin-1", "institution-1", "cohort-1", {
+      name: "x",
+    });
+    expect(cohorts.closeCohort).toHaveBeenCalledWith("admin-1", "institution-1", "cohort-1");
+    expect(cohorts.reopenCohort).toHaveBeenCalledWith("admin-1", "institution-1", "cohort-1");
+    expect(cohorts.withdraw).toHaveBeenCalledWith(
+      "admin-1",
+      "institution-1",
+      "cohort-1",
+      "enrolment-1",
+    );
   });
 });

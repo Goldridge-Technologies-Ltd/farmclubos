@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
@@ -21,9 +22,9 @@ import {
   InstitutionListQueryDto,
   UpdateInstitutionDto,
 } from "./dto/institution-request.dto.js";
-import { InstitutionDto, MemberDto } from "./dto/institution-response.dto.js";
+import { InstitutionDto, MemberDto, RemovedMemberDto } from "./dto/institution-response.dto.js";
 import { InstitutionsService } from "./institutions.service.js";
-import type { InstitutionView, MemberView } from "./institutions.types.js";
+import type { InstitutionView, MemberView, RemovedMemberView } from "./institutions.types.js";
 
 const UNAUTHORIZED = { status: HttpStatus.UNAUTHORIZED, description: "No valid access token." };
 const NOT_FOUND = {
@@ -108,6 +109,31 @@ export class InstitutionsController {
     @Param("institutionId", ParseUUIDPipe) institutionId: string,
   ): Promise<MemberView[]> {
     return this.institutions.listMembers(user, institutionId);
+  }
+
+  @Post(":institutionId/members/:userId/remove")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Member removed")
+  @ApiOperation({
+    summary: "Remove someone from the institution",
+    description:
+      "Their membership becomes LEFT and their open cohort places here are withdrawn; " +
+      "finished ones are kept, and so is their progress. Access ends at once. A fresh " +
+      "invitation brings them back. The last administrator cannot be removed.",
+  })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Removed.", type: RemovedMemberDto })
+  @ApiErrors(
+    UNAUTHORIZED,
+    { status: HttpStatus.FORBIDDEN, description: "INSUFFICIENT_ROLE." },
+    NOT_FOUND,
+    { status: HttpStatus.CONFLICT, description: "LAST_ADMINISTRATOR." },
+  )
+  removeMember(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("institutionId", ParseUUIDPipe) institutionId: string,
+    @Param("userId", ParseUUIDPipe) userId: string,
+  ): Promise<RemovedMemberView> {
+    return this.institutions.removeMember(user, institutionId, userId);
   }
 
   @Patch(":institutionId")

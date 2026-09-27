@@ -29,7 +29,14 @@ const INVITE_ID = "0192f1c4-7b2e-7d3a-9c1e-5b8a2f4e6d11";
 describe("Onboarding (e2e)", () => {
   let app: INestApplication;
   let signAccessToken: (claims: object) => Promise<string>;
-  const institutions = { create: fn(), list: fn(), findOne: fn(), update: fn() };
+  const institutions = {
+    create: fn(),
+    list: fn(),
+    findOne: fn(),
+    update: fn(),
+    listMembers: fn(),
+    removeMember: fn(),
+  };
   const invites = {
     issue: fn(), list: fn(), resend: fn(), revoke: fn(),
     lookup: fn(), accept: fn(), join: fn(),
@@ -137,6 +144,47 @@ describe("Onboarding (e2e)", () => {
         .expect(400);
 
       expect(institutions.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("removing a member", () => {
+    const MEMBER_ID = "01a0d0d8-0000-7000-8000-00000000000a";
+
+    it("removes them, and says what it withdrew", async () => {
+      institutions.removeMember.mockResolvedValue({ userId: MEMBER_ID, enrolmentsWithdrawn: 2 });
+
+      const response = await request(server())
+        .post(`/api/institutions/${INSTITUTION_ID}/members/${MEMBER_ID}/remove`)
+        .set("authorization", `Bearer ${await platformAdmin()}`)
+        .expect(200);
+
+      expect(asSuccess(response.body)).toMatchObject({
+        message: "Member removed",
+        data: { userId: MEMBER_ID, enrolmentsWithdrawn: 2 },
+      });
+    });
+
+    it("passes a refusal through with its code", async () => {
+      const { ConflictException } = await import("@nestjs/common");
+      institutions.removeMember.mockRejectedValue(
+        new ConflictException({ code: "LAST_ADMINISTRATOR", message: "Keep one." }),
+      );
+
+      const response = await request(server())
+        .post(`/api/institutions/${INSTITUTION_ID}/members/${MEMBER_ID}/remove`)
+        .set("authorization", `Bearer ${await platformAdmin()}`)
+        .expect(409);
+
+      expect(asFailure(response.body).error.code).toBe("LAST_ADMINISTRATOR");
+    });
+
+    it("refuses a member id that is not a uuid before reaching the service", async () => {
+      await request(server())
+        .post(`/api/institutions/${INSTITUTION_ID}/members/not-an-id/remove`)
+        .set("authorization", `Bearer ${await platformAdmin()}`)
+        .expect(400);
+
+      expect(institutions.removeMember).not.toHaveBeenCalled();
     });
   });
 

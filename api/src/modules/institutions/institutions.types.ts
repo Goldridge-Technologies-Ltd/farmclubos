@@ -28,4 +28,13 @@ export type MemberView = {
   email: string;
   role: InstitutionRole;
   joinedAt: Date | null;
+  /** Their open cohort places here — what removing them would withdraw. */
+  openEnrolments: number;
+};
+
+/** What removing someone did. */
+export type RemovedMemberView = {
+  userId: string;
+  /** Open cohort places withdrawn with them; 0 when they had none. */
+  enrolmentsWithdrawn: number;
 };

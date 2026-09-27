@@ -20,7 +20,14 @@ const user: AuthenticatedUser = {
 
 describe("InstitutionsController", () => {
   let controller: InstitutionsController;
-  const institutions = { create: fn(), list: fn(), findOne: fn(), update: fn() };
+  const institutions = {
+    create: fn(),
+    list: fn(),
+    findOne: fn(),
+    update: fn(),
+    listMembers: fn(),
+    removeMember: fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -60,5 +67,22 @@ describe("InstitutionsController", () => {
     // Members reach these too; the service decides per institution.
     expect(rolesFor("findOne")).toBeUndefined();
     expect(rolesFor("update")).toBeUndefined();
+  });
+
+  it("lists members for the caller in the token, never a user from the request", async () => {
+    institutions.listMembers.mockResolvedValue([]);
+
+    await controller.listMembers(user, "institution-1");
+
+    expect(institutions.listMembers).toHaveBeenCalledWith(user, "institution-1");
+  });
+
+  it("removes the person named in the path, acting as the caller", async () => {
+    institutions.removeMember.mockResolvedValue({ userId: "user-2", enrolmentsWithdrawn: 1 });
+
+    await expect(
+      controller.removeMember(user, "institution-1", "user-2"),
+    ).resolves.toEqual({ userId: "user-2", enrolmentsWithdrawn: 1 });
+    expect(institutions.removeMember).toHaveBeenCalledWith(user, "institution-1", "user-2");
   });
 });

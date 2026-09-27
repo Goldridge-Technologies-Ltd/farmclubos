@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { ForbiddenException } from "@nestjs/common";
+import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PaginatedResult } from "../../common/http/api-response.js";
@@ -49,7 +49,8 @@ describe("InstitutionsService", () => {
   let access: { assertPlatformAdmin: AsyncMock; assertCanView: AsyncMock; assertCanManage: AsyncMock };
   let prisma: {
     institution: { findMany: AsyncMock; count: AsyncMock; create: AsyncMock; update: AsyncMock };
-    membership: { findMany: AsyncMock };
+    membership: { findMany: AsyncMock; findUnique: AsyncMock; update: AsyncMock; count: AsyncMock };
+    enrolment: { updateMany: AsyncMock };
     auditEvent: { create: AsyncMock };
     $transaction: jest.Mock<(work: unknown) => Promise<unknown>>;
   };
@@ -58,7 +59,8 @@ describe("InstitutionsService", () => {
     access = { assertPlatformAdmin: fn(), assertCanView: fn(), assertCanManage: fn() };
     prisma = {
       institution: { findMany: fn(), count: fn(), create: fn(), update: fn() },
-      membership: { findMany: fn() },
+      membership: { findMany: fn(), findUnique: fn(), update: fn(), count: fn() },
+      enrolment: { updateMany: fn() },
       auditEvent: { create: fn() },
       $transaction: jest.fn((work: unknown) =>
         Array.isArray(work)
@@ -225,7 +227,13 @@ describe("InstitutionsService", () => {
         {
           role: "LEARNER",
           joinedAt: new Date("2026-09-20T10:00:00Z"),
-          user: { id: "user-2", firstName: "Ada", lastName: "Obi", email: "ada@example.com" },
+          user: {
+            id: "user-2",
+            firstName: "Ada",
+            lastName: "Obi",
+            email: "ada@example.com",
+            _count: { enrolments: 2 },
+          },
         },
       ]);
 
@@ -237,6 +245,7 @@ describe("InstitutionsService", () => {
           email: "ada@example.com",
           role: "LEARNER",
           joinedAt: new Date("2026-09-20T10:00:00Z"),
+          openEnrolments: 2,
         },
       ]);
 
@@ -247,4 +256,137 @@ describe("InstitutionsService", () => {
       expect(args.where).toEqual({ institutionId: "institution-1", status: "ACTIVE" });
     });
   });
+
+  describe("listMembers' open enrolments", () => {
+    it("counts only this institution's open cohort places, for the removal warning", async () => {
+      access.assertCanManage.mockResolvedValue({});
+      prisma.membership.findMany.mockResolvedValue([]);
+
+      await service.listMembers(admin, "institution-1");
+
+      const [args] = prisma.membership.findMany.mock.calls[0] as [
+        { select: { user: { select: { _count: { select: { enrolments: { where: unknown } } } } } } },
+      ];
+      // Another institution's places are not this one's to withdraw, and a
+      // finished or withdrawn one is not open.
+      expect(args.select.user.select._count.select.enrolments.where).toEqual({
+        institutionId: "institution-1",
+        status: { in: ["INVITED", "ACTIVE"] },
+      });
+    });
+  });
+
+  describe("removeMember", () => {
+    const learnerMembership = { id: "membership-2", role: "LEARNER", status: "ACTIVE" };
+
+    beforeEach(() => {
+      access.assertCanManage.mockResolvedValue({});
+      prisma.membership.findUnique.mockResolvedValue(learnerMembership);
+      prisma.membership.update.mockResolvedValue({});
+      prisma.enrolment.updateMany.mockResolvedValue({ count: 2 });
+      prisma.membership.count.mockResolvedValue(1);
+    });
+
+    it("checks the caller may manage the institution before touching anyone", async () => {
+      access.assertCanManage.mockRejectedValue(new ForbiddenException());
+
+      await expect(service.removeMember(admin, "institution-1", "user-2")).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.membership.update).not.toHaveBeenCalled();
+    });
+
+    it("marks the membership LEFT rather than deleting it, so the record stays", async () => {
+      await service.removeMember(admin, "institution-1", "user-2");
+
+      const [args] = prisma.membership.update.mock.calls[0] as [
+        { where: { id: string }; data: { status: string } },
+      ];
+      expect(args).toMatchObject({ where: { id: "membership-2" }, data: { status: "LEFT" } });
+    });
+
+    it("withdraws their open enrolments here, and nowhere else", async () => {
+      const result = await service.removeMember(admin, "institution-1", "user-2");
+
+      const [args] = prisma.enrolment.updateMany.mock.calls[0] as [
+        { where: Record<string, unknown>; data: { status: string; withdrawnAt: Date } },
+      ];
+      // Completed enrolments are untouched: they record work actually done.
+      expect(args.where).toEqual({
+        userId: "user-2",
+        institutionId: "institution-1",
+        status: { in: ["INVITED", "ACTIVE"] },
+      });
+      expect(args.data.status).toBe("WITHDRAWN");
+      expect(args.data.withdrawnAt).toBeInstanceOf(Date);
+      expect(result).toMatchObject({ userId: "user-2", enrolmentsWithdrawn: 2 });
+    });
+
+    it("records who removed whom, and what it withdrew", async () => {
+      await service.removeMember(admin, "institution-1", "user-2");
+
+      const [args] = prisma.auditEvent.create.mock.calls[0] as [
+        { data: { action: string; actorUserId: string; metadata: Record<string, unknown> } },
+      ];
+      expect(args.data).toMatchObject({
+        action: "membership.removed",
+        actorUserId: "admin-1",
+        metadata: { userId: "user-2", role: "LEARNER", enrolmentsWithdrawn: 2 },
+      });
+    });
+
+    it("refuses to remove the last administrator, which would leave nobody to run it", async () => {
+      prisma.membership.findUnique.mockResolvedValue({
+        id: "membership-1",
+        role: "INSTITUTION_ADMIN",
+        status: "ACTIVE",
+      });
+      prisma.membership.count.mockResolvedValue(0);
+
+      await expect(service.removeMember(admin, "institution-1", "user-1")).rejects.toMatchObject({
+        response: { code: "LAST_ADMINISTRATOR" },
+      });
+      expect(prisma.membership.update).not.toHaveBeenCalled();
+    });
+
+    it("lets an administrator go when another remains, themselves included", async () => {
+      prisma.membership.findUnique.mockResolvedValue({
+        id: "membership-1",
+        role: "INSTITUTION_ADMIN",
+        status: "ACTIVE",
+      });
+      prisma.membership.count.mockResolvedValue(1);
+
+      await service.removeMember(admin, "institution-1", "admin-1");
+
+      const [args] = prisma.membership.count.mock.calls[0] as [{ where: Record<string, unknown> }];
+      // Counts the *other* active administrators.
+      expect(args.where).toMatchObject({
+        institutionId: "institution-1",
+        role: "INSTITUTION_ADMIN",
+        status: "ACTIVE",
+        userId: { not: "admin-1" },
+      });
+      expect(prisma.membership.update).toHaveBeenCalled();
+    });
+
+    it("treats removing someone already gone as done, not an error", async () => {
+      prisma.membership.findUnique.mockResolvedValue({ ...learnerMembership, status: "LEFT" });
+
+      await expect(service.removeMember(admin, "institution-1", "user-2")).resolves.toMatchObject({
+        enrolmentsWithdrawn: 0,
+      });
+      expect(prisma.membership.update).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+    });
+
+    it("is a 404 for someone who was never a member here", async () => {
+      prisma.membership.findUnique.mockResolvedValue(null);
+
+      await expect(service.removeMember(admin, "institution-1", "user-9")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
 });
+

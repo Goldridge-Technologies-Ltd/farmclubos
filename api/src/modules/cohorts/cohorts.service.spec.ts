@@ -647,5 +647,18 @@ describe("CohortsService", () => {
         service.withdraw("admin-1", "institution-1", "cohort-1", "enrolment-9"),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
+
+    it("leaves someone already withdrawn as they were, the date included", async () => {
+      prisma.enrolment.findFirst.mockResolvedValue(withdrawnRow);
+
+      const view = await service.withdraw("admin-1", "institution-1", "cohort-1", "enrolment-1");
+
+      expect(prisma.enrolment.update).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+      expect(view).toMatchObject({
+        status: "WITHDRAWN",
+        withdrawnAt: new Date("2026-09-27T10:00:00Z"),
+      });
+    });
   });
 });

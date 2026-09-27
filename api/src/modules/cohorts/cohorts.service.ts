@@ -209,7 +209,7 @@ export class CohortsService {
   ): Promise<CohortEnrolmentView> {
     const enrolment = await this.prisma.enrolment.findFirst({
       where: { id: enrolmentId, cohortId, institutionId, cohort: { archivedAt: null } },
-      select: { id: true, status: true },
+      select: cohortEnrolmentSelect,
     });
 
     if (!enrolment) {
@@ -223,6 +223,11 @@ export class CohortsService {
       });
     }
 
+    // Withdrawing twice is done, not an error — and keeps the date it happened.
+    if (enrolment.status === "WITHDRAWN") {
+      return toCohortEnrolmentView(enrolment);
+    }
+
     const row = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.enrolment.update({
         where: { id: enrolment.id },
@@ -230,11 +235,9 @@ export class CohortsService {
         select: cohortEnrolmentSelect,
       });
 
-      if (enrolment.status !== "WITHDRAWN") {
-        await audit(tx, actorId, institutionId, "enrolment.withdrawn", "Enrolment", enrolment.id, {
-          cohortId,
-        });
-      }
+      await audit(tx, actorId, institutionId, "enrolment.withdrawn", "Enrolment", enrolment.id, {
+        cohortId,
+      });
 
       return updated;
     });

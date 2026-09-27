@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
+import { ownEnrolment } from "../../common/auth/own-enrolment.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
   CohortDetailView,
@@ -36,8 +37,7 @@ export class CohortsService {
 
     const rows = await this.prisma.enrolment.findMany({
       where: {
-        userId: user.userId,
-        institutionId: user.institutionId,
+        ...ownEnrolment(user.userId, user.institutionId),
         status: { in: [...VISIBLE_STATUSES] },
         cohort: { archivedAt: null },
       },
@@ -208,8 +208,7 @@ export class CohortsService {
     const row = await this.prisma.enrolment.findFirst({
       where: {
         id: enrolmentId,
-        userId: user.userId,
-        institutionId: user.institutionId,
+        ...ownEnrolment(user.userId, user.institutionId),
       },
       select: enrolmentSelect,
     });

@@ -390,4 +390,26 @@ describe("AssessmentsService", () => {
       );
     });
   });
+
+  describe("a member who has been removed", () => {
+    it("cannot start or read an assessment", async () => {
+      prisma.enrolment.findFirst.mockResolvedValue(null);
+
+      await service.getAssessment(learner, "assessment-1").catch(() => undefined);
+
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { user: unknown } }];
+      expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+
+    it("cannot reach an attempt they already started", async () => {
+      prisma.assessmentAttempt.findFirst.mockResolvedValue(null);
+
+      await service.getAttempt(learner, "attempt-1").catch(() => undefined);
+
+      const [args] = prisma.assessmentAttempt.findFirst.mock.calls[0] as [
+        { where: { enrolment: { user: unknown } } },
+      ];
+      expect(args.where.enrolment.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+  });
 });

@@ -242,4 +242,24 @@ describe("ProgressService", () => {
       expect(prisma.lessonProgress.findMany).not.toHaveBeenCalled();
     });
   });
+
+  describe("a member who has been removed", () => {
+    it("cannot record progress, even with a token that still names the institution", async () => {
+      prisma.enrolment.findFirst.mockResolvedValue(null);
+
+      await service.completeLesson(learner, "lesson-1").catch(() => undefined);
+
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { user: unknown } }];
+      expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+
+    it("is not shown their journey", async () => {
+      prisma.enrolment.findMany.mockResolvedValue([]);
+
+      await service.myJourney(learner);
+
+      const [args] = prisma.enrolment.findMany.mock.calls[0] as [{ where: { user: unknown } }];
+      expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+  });
 });

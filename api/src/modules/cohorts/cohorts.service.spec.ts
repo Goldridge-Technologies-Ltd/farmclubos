@@ -343,4 +343,31 @@ describe("CohortsService", () => {
       );
     });
   });
+
+  /*
+    A removed member's token still names the institution for up to fifteen
+    minutes. Both reads must ask the database whether they still belong.
+  */
+  describe("a member who has been removed", () => {
+    it("is not shown their enrolments", async () => {
+      prisma.enrolment.findMany.mockResolvedValue([]);
+
+      await service.listMine(learner);
+
+      const [args] = prisma.enrolment.findMany.mock.calls[0] as [
+        { where: { user: unknown; institution: unknown } },
+      ];
+      expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+      expect(args.where.institution).toEqual({ status: "ACTIVE", archivedAt: null });
+    });
+
+    it("cannot open one by id either", async () => {
+      prisma.enrolment.findFirst.mockResolvedValue(null);
+
+      await service.getMine(learner, "enrolment-1").catch(() => undefined);
+
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { user: unknown } }];
+      expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+  });
 });

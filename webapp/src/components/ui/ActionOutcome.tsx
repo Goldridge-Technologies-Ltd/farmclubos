@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useActionState, useCallback, useContext, useRef, useState } from "react";
+import {
+  createContext,
+  startTransition,
+  useActionState,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { Notice } from "@farmclub/design-system/Notice";
 import { idleFormState, type FormState } from "@/lib/actions/form-state";
@@ -66,6 +74,10 @@ export function ActionOutcomeMessage() {
  * watching the state: the response carrying the result also re-renders the
  * page without the control's row, so the control is unmounted before an
  * effect of its own could run.
+ *
+ * It is made inside a transition. After an `await`, an update is no longer
+ * part of the action's transition unless wrapped again, and on its own it
+ * would show "closed" a moment before the page it describes had caught up.
  */
 export function useReportedAction(action: FormAction) {
   const { report } = useOutcome();
@@ -74,7 +86,9 @@ export function useReportedAction(action: FormAction) {
     const result = await action(previous, formData);
 
     if (result.status === "success" && result.message) {
-      report(result.message);
+      const message = result.message;
+
+      startTransition(() => report(message));
     }
 
     return result;

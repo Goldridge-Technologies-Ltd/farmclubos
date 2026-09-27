@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { startTransition, useId, useState } from "react";
 import { Button } from "@farmclub/design-system/Button";
 import { FormStatus } from "@/components/form/FormStatus";
 import { HiddenFields } from "@/components/form/HiddenFields";
@@ -95,7 +95,9 @@ function Confirmation({
     const result = await action(previous, formData);
 
     if (result.status === "success") {
-      onDone();
+      // In the action's transition, so it closes as the refreshed page arrives
+      // rather than showing the button again beforehand (see useReportedAction).
+      startTransition(onDone);
     }
 
     return result;

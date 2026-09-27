@@ -465,10 +465,8 @@ describe("CohortsService", () => {
   });
 
   describe("updateCohort", () => {
-    const current = { id: "cohort-1", startsOn: new Date("2026-09-01T00:00:00Z"), endsOn: null };
-
     beforeEach(() => {
-      prisma.cohort.findFirst.mockResolvedValue(current);
+      prisma.cohort.findFirst.mockResolvedValue(cohortRow({ code: "SEP-26" }));
       prisma.cohort.update.mockResolvedValue({ ...cohortRow(), name: "Renamed" });
     });
 
@@ -501,8 +499,37 @@ describe("CohortsService", () => {
       prisma.cohort.update.mockRejectedValue(uniqueViolation());
 
       await expect(
-        service.updateCohort("admin-1", "institution-1", "cohort-1", { code: "SEP-26" }),
+        service.updateCohort("admin-1", "institution-1", "cohort-1", { code: "OCT-26" }),
       ).rejects.toMatchObject({ response: { code: "CODE_TAKEN" } });
+    });
+
+    it("leaves out what is unchanged, since the web app sends every field", async () => {
+      await service.updateCohort("admin-1", "institution-1", "cohort-1", {
+        name: "Renamed",
+        code: "SEP-26",
+        deliveryMode: "BLENDED",
+        startsOn: "2026-09-01",
+        endsOn: null,
+      });
+
+      const [args] = prisma.cohort.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ name: "Renamed" });
+      const [audit] = prisma.auditEvent.create.mock.calls[0] as [
+        { data: { metadata: { fields: string[] } } },
+      ];
+      expect(audit.data.metadata.fields).toEqual(["name"]);
+    });
+
+    it("writes and records nothing when nothing changed", async () => {
+      const view = await service.updateCohort("admin-1", "institution-1", "cohort-1", {
+        name: "September intake",
+        code: "SEP-26",
+        startsOn: "2026-09-01",
+      });
+
+      expect(prisma.cohort.update).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+      expect(view).toMatchObject({ name: "September intake", code: "SEP-26", startsOn: "2026-09-01" });
     });
 
     it("records what changed", async () => {

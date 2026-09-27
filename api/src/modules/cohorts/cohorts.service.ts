@@ -118,6 +118,10 @@ export class CohortsService {
   /**
    * Changes a cohort's name, code, delivery mode or dates. Never its pathway:
    * every learner's progress hangs off it.
+   *
+   * Only what actually differs is written and recorded. The web app sends
+   * every field each time, and an audit trail listing fields nobody changed
+   * would be no use to anyone reading it.
    */
   async updateCohort(
     actorId: string,
@@ -127,31 +131,41 @@ export class CohortsService {
   ): Promise<CohortSummaryView> {
     const current = await this.prisma.cohort.findFirst({
       where: { id: cohortId, institutionId, archivedAt: null },
-      select: { id: true, startsOn: true, endsOn: true },
+      select: cohortSelect,
     });
 
     if (!current) {
       throw notFound();
     }
 
+    const code = input.code === undefined ? undefined : input.code || null;
+    const startsOn = input.startsOn === undefined ? undefined : toDate(input.startsOn);
+    const endsOn = input.endsOn === undefined ? undefined : toDate(input.endsOn);
     const data: Prisma.CohortUpdateInput = {};
 
-    if (input.name !== undefined) data.name = input.name;
-    if (input.code !== undefined) data.code = input.code || null;
-    if (input.deliveryMode !== undefined) data.deliveryMode = input.deliveryMode;
-    if (input.startsOn !== undefined) data.startsOn = toDate(input.startsOn);
-    if (input.endsOn !== undefined) data.endsOn = toDate(input.endsOn);
+    if (input.name !== undefined && input.name !== current.name) data.name = input.name;
+    if (code !== undefined && code !== current.code) data.code = code;
+    if (input.deliveryMode !== undefined && input.deliveryMode !== current.deliveryMode) {
+      data.deliveryMode = input.deliveryMode;
+    }
+    if (startsOn !== undefined && !sameDay(startsOn, current.startsOn)) data.startsOn = startsOn;
+    if (endsOn !== undefined && !sameDay(endsOn, current.endsOn)) data.endsOn = endsOn;
 
     // Judged against the dates the cohort would end up with, so moving only
     // the end date is checked against the start already there.
-    const startsOn = input.startsOn === undefined ? current.startsOn : toDate(input.startsOn);
-    const endsOn = input.endsOn === undefined ? current.endsOn : toDate(input.endsOn);
+    const finalStart = startsOn === undefined ? current.startsOn : startsOn;
+    const finalEnd = endsOn === undefined ? current.endsOn : endsOn;
 
-    if (startsOn && endsOn && endsOn < startsOn) {
+    if (finalStart && finalEnd && finalEnd < finalStart) {
       throw new BadRequestException({
         code: "DATES_OUT_OF_ORDER",
         message: "The end date is before the start date.",
       });
+    }
+
+    // Saving what is already there is done, not an event.
+    if (Object.keys(data).length === 0) {
+      return toCohortView(current);
     }
 
     const cohort = await this.prisma
@@ -543,6 +557,11 @@ type CohortRow = Omit<CohortSummaryView, "startsOn" | "endsOn"> & {
 
 function toCohortView(row: CohortRow): CohortSummaryView {
   return { ...row, startsOn: toPlainDate(row.startsOn), endsOn: toPlainDate(row.endsOn) };
+}
+
+/** Two stored days, either of which may be unset. */
+function sameDay(a: Date | null, b: Date | null): boolean {
+  return a === null || b === null ? a === b : a.getTime() === b.getTime();
 }
 
 /** A plain `YYYY-MM-DD` becomes midnight UTC, so no timezone can shift the day. */

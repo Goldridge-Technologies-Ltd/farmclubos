@@ -1,10 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
 import { forwardedClientAddress } from "../api/forwarded-address";
-import type { AuthSession, MembershipSummary } from "../api/contracts";
-import { endSession, readRefreshToken, startSession } from "../session";
+import type { AuthSession, MembershipSummary, SwitchedInstitution } from "../api/contracts";
+import { endSession, readRefreshToken, replaceAccessToken, startSession } from "../session";
 import { safeRedirectPath } from "../session-cookies";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
@@ -66,6 +67,35 @@ export async function signOut(): Promise<void> {
 
   await endSession();
   redirect("/sign-in");
+}
+
+/**
+ * Moves the session to another institution the person belongs to, then goes
+ * home: the page they were on may belong to the institution they just left.
+ *
+ * Only the access token changes. The API records the choice on the session,
+ * so the next refresh stays in it, and the refresh token is left alone.
+ */
+export async function switchInstitution(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const institutionId = text(formData, "institutionId");
+
+  try {
+    const switched = await apiRequest<SwitchedInstitution>("/api/auth/switch-institution", {
+      method: "POST",
+      body: { institutionId },
+    });
+
+    await replaceAccessToken(switched.accessToken, switched.accessTokenExpiresAt);
+  } catch (error) {
+    return toFormState(error, []);
+  }
+
+  // Every screen reads the active institution, so none of them may be reused.
+  revalidatePath("/", "layout");
+  redirect("/");
 }
 
 /** Creates an account from an invitation and signs the new person in. */

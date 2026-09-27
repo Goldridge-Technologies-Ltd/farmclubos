@@ -51,6 +51,15 @@ export type AuthSession = SessionContext & {
   refreshTokenExpiresAt: string;
 };
 
+/** What switching institution returns: a new access token, and nothing else. */
+export type SwitchedInstitution = {
+  accessToken: string;
+  /** ISO 8601. */
+  accessTokenExpiresAt: string;
+  activeInstitutionId: string;
+  institutionRole: InstitutionRole;
+};
+
 export type InviteLookup = {
   email: string;
   role: InstitutionRole;

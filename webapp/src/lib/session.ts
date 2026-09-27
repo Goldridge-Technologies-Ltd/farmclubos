@@ -9,6 +9,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
   clearSessionCookies,
+  writeAccessTokenCookie,
   writeSessionCookies,
 } from "./session-cookies";
 
@@ -35,6 +36,11 @@ export async function readRefreshToken(): Promise<string | undefined> {
 /** Stores a freshly issued pair. Server Actions and Route Handlers only. */
 export async function startSession(session: AuthSession): Promise<void> {
   writeSessionCookies(await cookies(), session);
+}
+
+/** Swaps in a new access token, keeping the refresh token. Actions only. */
+export async function replaceAccessToken(accessToken: string, expiresAt: string): Promise<void> {
+  writeAccessTokenCookie(await cookies(), accessToken, expiresAt);
 }
 
 /** Forgets the session here. Ending it on the API is a separate call. */

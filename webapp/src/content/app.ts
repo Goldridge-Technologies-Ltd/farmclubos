@@ -44,6 +44,11 @@ export const appShell = {
     signOut: "Sign out",
     /** Where a platform administrator who belongs to no institution is working. */
     platform: "Platform administration",
+    /** Above the institutions to switch between, for someone in more than one. */
+    institutions: "Your institutions",
+    /** Read before an institution's name on its button; not shown. */
+    switchTo: "Switch to",
+    switching: "Switching…",
   },
   roles: {
     INSTITUTION_ADMIN: "Institution administrator",

@@ -1,5 +1,11 @@
 import { jest } from "@jest/globals";
-import { maxAgeSeconds, safeRedirectPath, sessionCookieOptions } from "./session-cookies";
+import {
+  ACCESS_TOKEN_COOKIE,
+  maxAgeSeconds,
+  safeRedirectPath,
+  sessionCookieOptions,
+  writeAccessTokenCookie,
+} from "./session-cookies";
 
 /*
   A wrong lifetime here is invisible: the session either dies on the next click
@@ -59,6 +65,27 @@ describe("sessionCookieOptions", () => {
     } finally {
       Object.defineProperty(process.env, "NODE_ENV", { value: original, configurable: true });
     }
+  });
+});
+
+/*
+  Switching institution replaces the access token alone. Touching the refresh
+  cookie there would sign the person out at the next refresh, fifteen minutes
+  later, with nothing to connect it to what they did.
+*/
+describe("writeAccessTokenCookie", () => {
+  it("writes the access token and leaves the refresh token alone", () => {
+    const set = jest.fn();
+    const expiresAt = new Date(Date.now() + 900_000).toISOString();
+
+    writeAccessTokenCookie({ set }, "new-access-token", expiresAt);
+
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(set).toHaveBeenCalledWith(
+      ACCESS_TOKEN_COOKIE,
+      "new-access-token",
+      expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }),
+    );
   });
 });
 

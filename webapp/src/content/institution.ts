@@ -82,7 +82,11 @@ export const institutionContent = {
       expires: (date: string) => `Link valid until ${date}`,
       resend: "Resend",
       revoke: "Revoke",
+      /** Read after Resend and Revoke, so a list of them can be told apart. */
+      target: (email: string) => `the invitation to ${email}`,
       working: "Working…",
+      // Shown at the top of the page: the invitation has left the list it sat in.
+      revoked: (email: string) => `The invitation to ${email} was revoked. Its link no longer works.`,
     },
   },
 

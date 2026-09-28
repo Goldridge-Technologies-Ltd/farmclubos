@@ -75,7 +75,12 @@ export async function revokeInvite(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return inviteCommand(formData, "revoke", "Revoked. The link no longer works.");
+  return inviteCommand(
+    formData,
+    "revoke",
+    // The email is only for the message; the id decides which invitation.
+    institutionContent.members.pending.revoked(text(formData, "email")),
+  );
 }
 
 async function inviteCommand(
@@ -83,7 +88,7 @@ async function inviteCommand(
   command: "resend" | "revoke",
   done: string,
 ): Promise<FormState> {
-  const inviteId = text(formData, "inviteId");
+  const inviteId = encodeURIComponent(text(formData, "inviteId"));
   const institution = await managedInstitution();
 
   try {

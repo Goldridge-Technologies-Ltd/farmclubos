@@ -243,10 +243,12 @@ takes nothing away: reopening an intake, enrolling someone again.
 
 **The result is reported to the page, not beside the button.** The row a
 control sat in usually leaves the list it was in, taking any message with it
-and dropping focus to the top of the document. So a page that uses either
+and dropping focus to the top of the document. So a page that uses either —
+or `InviteActions`, whose *Revoke* takes an invitation off the waiting list —
 wraps itself in `ActionOutcome`, puts one `ActionOutcomeMessage` under its
 header, and a success is shown there and takes focus (as `FocusOnMount`
-does). A refusal stays with the control, which is still on the page.
+does). A refusal stays with the control, which is still on the page, and so
+does a result whose row stays, such as *Resend*'s.
 
 `useReportedAction` makes the report once the action answers, inside
 `startTransition`. After an `await`, an update is no longer part of the

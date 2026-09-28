@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { institutionContent } from "@/content/institution";
 import { apiRequest } from "../api/client";
 import type { Institution, IssuedInvite } from "../api/contracts";
 import { assertPlatformAdministrator } from "../api/platform";
@@ -106,7 +107,12 @@ export async function revokeInstitutionInvite(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return inviteCommand(formData, "revoke", "Revoked. The link no longer works.");
+  return inviteCommand(
+    formData,
+    "revoke",
+    // The email is only for the message; the id decides which invitation.
+    institutionContent.members.pending.revoked(text(formData, "email")),
+  );
 }
 
 async function inviteCommand(
@@ -114,8 +120,8 @@ async function inviteCommand(
   command: "resend" | "revoke",
   done: string,
 ): Promise<FormState> {
-  const institutionId = text(formData, "institutionId");
-  const inviteId = text(formData, "inviteId");
+  const institutionId = encodeURIComponent(text(formData, "institutionId"));
+  const inviteId = encodeURIComponent(text(formData, "inviteId"));
 
   await assertPlatformAdministrator();
 

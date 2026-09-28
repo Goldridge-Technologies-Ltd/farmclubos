@@ -68,6 +68,7 @@ export default async function MembersPage() {
                     </p>
                   </div>
                   <InviteActions
+                    email={invite.email}
                     inviteId={invite.id}
                     resendAction={resendInvite}
                     revokeAction={revokeInvite}

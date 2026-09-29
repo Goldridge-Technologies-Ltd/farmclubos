@@ -1,11 +1,11 @@
 import type { Journey } from "./api/contracts";
-import { nextLesson } from "./journey";
+import { finishingAfterClose, nextLesson } from "./journey";
 
 const journey = (modules: Journey["modules"]): Journey => ({
   enrolmentId: "enrolment-1",
   status: "ACTIVE",
   progressPercent: 0,
-  cohort: { id: "cohort-1", name: "September intake" },
+  cohort: { id: "cohort-1", name: "September intake", status: "OPEN" },
   pathway: { id: "pathway-1", slug: "foundation", title: "Foundation" },
   modules,
 });
@@ -67,5 +67,29 @@ describe("nextLesson", () => {
 
   it("is null for a pathway with nothing published", () => {
     expect(nextLesson(journey([]))).toBeNull();
+  });
+});
+
+/*
+  Telling someone who has finished that they "can still finish" is wrong, and
+  saying nothing to someone mid-pathway leaves them wondering if it has ended.
+*/
+describe("finishingAfterClose", () => {
+  const closed = (status: Journey["status"]): Journey => ({
+    ...journey([]),
+    status,
+    cohort: { id: "cohort-1", name: "September intake", status: "COMPLETED" },
+  });
+
+  it("is true for someone still working through an intake that has closed", () => {
+    expect(finishingAfterClose(closed("ACTIVE"))).toBe(true);
+  });
+
+  it("is false for someone who has finished it", () => {
+    expect(finishingAfterClose(closed("COMPLETED"))).toBe(false);
+  });
+
+  it("is false while the intake is open", () => {
+    expect(finishingAfterClose(journey([]))).toBe(false);
   });
 });

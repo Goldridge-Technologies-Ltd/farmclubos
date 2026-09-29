@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PaginatedResult } from "../../common/http/api-response.js";
@@ -14,7 +19,7 @@ import type {
   UpdateInstitutionDto,
 } from "./dto/institution-request.dto.js";
 import { InstitutionAccessService } from "./institution-access.service.js";
-import type { InstitutionView, MemberView } from "./institutions.types.js";
+import type { InstitutionView, MemberView, RemovedMemberView } from "./institutions.types.js";
 
 @Injectable()
 export class InstitutionsService {
@@ -101,7 +106,16 @@ export class InstitutionsService {
       select: {
         role: true,
         joinedAt: true,
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            // What removing them would withdraw: this institution's open places.
+            _count: { select: { enrolments: { where: openEnrolmentsIn(institutionId) } } },
+          },
+        },
       },
     });
 
@@ -112,7 +126,94 @@ export class InstitutionsService {
       email: member.email,
       role,
       joinedAt,
+      openEnrolments: member._count.enrolments,
     }));
+  }
+
+  /**
+   * Removes someone from an institution.
+   *
+   * Their membership becomes LEFT — never deleted, since everything they did
+   * references it — and, in the same transaction, their open cohort places
+   * here are withdrawn. A finished enrolment is left alone: it records work
+   * actually done. Access ends at once, because every learner-side lookup
+   * checks the membership against the database (see ownEnrolment). A fresh
+   * invitation brings them back, with no cohort places until an administrator
+   * enrols them again, which resumes their progress.
+   *
+   * An institution always keeps at least one active administrator; removing
+   * the last is refused. Anyone else can go, the caller included.
+   */
+  async removeMember(
+    user: AuthenticatedUser,
+    institutionId: string,
+    memberUserId: string,
+  ): Promise<RemovedMemberView> {
+    await this.access.assertCanManage(user, institutionId);
+
+    const membership = await this.prisma.membership.findUnique({
+      where: { userId_institutionId: { userId: memberUserId, institutionId } },
+      select: { id: true, role: true, status: true },
+    });
+
+    if (!membership) {
+      throw new NotFoundException({
+        code: "NOT_FOUND",
+        message: "That person is not a member of this institution.",
+      });
+    }
+
+    // Removing someone already gone is done, not an error.
+    if (membership.status !== "ACTIVE") {
+      return { userId: memberUserId, enrolmentsWithdrawn: 0 };
+    }
+
+    if (membership.role === "INSTITUTION_ADMIN") {
+      const otherAdministrators = await this.prisma.membership.count({
+        where: {
+          institutionId,
+          role: "INSTITUTION_ADMIN",
+          status: "ACTIVE",
+          userId: { not: memberUserId },
+        },
+      });
+
+      if (otherAdministrators === 0) {
+        throw new ConflictException({
+          code: "LAST_ADMINISTRATOR",
+          message:
+            "An institution must keep at least one administrator. Invite another " +
+            "administrator before removing this one.",
+        });
+      }
+    }
+
+    const now = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.membership.update({
+        where: { id: membership.id },
+        data: { status: "LEFT" },
+      });
+
+      const { count } = await tx.enrolment.updateMany({
+        where: { userId: memberUserId, ...openEnrolmentsIn(institutionId) },
+        data: { status: "WITHDRAWN", withdrawnAt: now },
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          institutionId,
+          actorUserId: user.userId,
+          action: "membership.removed",
+          entityType: "Membership",
+          entityId: membership.id,
+          metadata: { userId: memberUserId, role: membership.role, enrolmentsWithdrawn: count },
+        },
+      });
+
+      return { userId: memberUserId, enrolmentsWithdrawn: count };
+    });
   }
 
   async update(
@@ -200,4 +301,9 @@ export function toInstitutionView(institution: Institution): InstitutionView {
     createdAt: institution.createdAt,
     updatedAt: institution.updatedAt,
   };
+}
+
+/** A member's open cohort places in one institution — invited or active. */
+function openEnrolmentsIn(institutionId: string) {
+  return { institutionId, status: { in: ["INVITED" as const, "ACTIVE" as const] } };
 }

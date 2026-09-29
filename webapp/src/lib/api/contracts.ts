@@ -51,6 +51,15 @@ export type AuthSession = SessionContext & {
   refreshTokenExpiresAt: string;
 };
 
+/** What switching institution returns: a new access token, and nothing else. */
+export type SwitchedInstitution = {
+  accessToken: string;
+  /** ISO 8601. */
+  accessTokenExpiresAt: string;
+  activeInstitutionId: string;
+  institutionRole: InstitutionRole;
+};
+
 export type InviteLookup = {
   email: string;
   role: InstitutionRole;
@@ -205,7 +214,8 @@ export type Journey = {
   enrolmentId: string;
   status: EnrolmentStatus;
   progressPercent: number;
-  cohort: { id: string; name: string };
+  /** A closed intake takes nobody new; its learners can still finish. */
+  cohort: { id: string; name: string; status: CohortStatus };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgress[];
 };
@@ -284,7 +294,11 @@ export type Member = {
   email: string;
   role: InstitutionRole;
   joinedAt: string | null;
+  /** Their cohort places here that are not finished: what removing them withdraws. */
+  openEnrolments: number;
 };
+
+export type RemovedMember = { userId: string; enrolmentsWithdrawn: number };
 
 export type InviteStatus = "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
 
@@ -309,6 +323,8 @@ export type CohortEnrolment = {
   /** Derived from completed lessons by the API. */
   progressPercent: number;
   enrolledAt: string;
+  /** Set while withdrawn: when it happened. */
+  withdrawnAt: string | null;
   learner: { userId: string; firstName: string; lastName: string; email: string };
 };
 

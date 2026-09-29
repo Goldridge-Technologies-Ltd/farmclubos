@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { ProgressStatus } from "../../generated/prisma/enums.js";
+import { ownEnrolment } from "../../common/auth/own-enrolment.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
   JourneyView,
@@ -92,8 +93,7 @@ export class ProgressService {
 
     const enrolments = await this.prisma.enrolment.findMany({
       where: {
-        userId: user.userId,
-        institutionId: user.institutionId,
+        ...ownEnrolment(user.userId, user.institutionId),
         status: { in: ["INVITED", "ACTIVE", "COMPLETED"] },
         cohort: { archivedAt: null },
       },
@@ -106,6 +106,7 @@ export class ProgressService {
           select: {
             id: true,
             name: true,
+            status: true,
             pathway: {
               select: {
                 id: true,
@@ -184,7 +185,11 @@ export class ProgressService {
         enrolmentId: enrolment.id,
         status: enrolment.status,
         progressPercent: enrolment.progressPercent,
-        cohort: { id: enrolment.cohort.id, name: enrolment.cohort.name },
+        cohort: {
+          id: enrolment.cohort.id,
+          name: enrolment.cohort.name,
+          status: enrolment.cohort.status,
+        },
         pathway: enrolment.cohort.pathway,
         modules,
       };
@@ -206,8 +211,7 @@ export class ProgressService {
 
     const enrolment = await this.prisma.enrolment.findFirst({
       where: {
-        userId: user.userId,
-        institutionId: user.institutionId,
+        ...ownEnrolment(user.userId, user.institutionId),
         status: { in: ["INVITED", "ACTIVE"] },
         cohort: { pathwayId, archivedAt: null },
       },

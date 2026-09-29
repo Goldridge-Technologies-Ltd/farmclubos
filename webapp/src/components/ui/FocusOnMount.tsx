@@ -13,7 +13,14 @@ import { useEffect, useRef, type ReactNode } from "react";
   The focus ring is left alone (docs/design-system.md §3.2): browsers only
   draw it for keyboard users, which is exactly who needs to see where they are.
 */
-export function FocusOnMount({ children }: { children: ReactNode }) {
+export function FocusOnMount({
+  children,
+  className = "rounded-panel",
+}: {
+  children: ReactNode;
+  /** The radius of what it wraps, so the focus ring follows its corners. */
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,7 +28,7 @@ export function FocusOnMount({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={ref} className="rounded-panel" tabIndex={-1}>
+    <div ref={ref} className={className} tabIndex={-1}>
       {children}
     </div>
   );

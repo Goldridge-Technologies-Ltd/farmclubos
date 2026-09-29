@@ -43,7 +43,7 @@ export function AppTopBar({
       {/*
         The institution is shown because someone can belong to more than one,
         and which one they are acting in changes what every screen returns.
-        Switching between them arrives with the screens that need it.
+        The account menu is where they switch.
       */}
       <p className="hidden truncate text-sm font-semibold text-farm-green-950 lg:block">
         {institution}
@@ -51,8 +51,13 @@ export function AppTopBar({
 
       <div className="ml-auto">
         <UserMenu
+          activeInstitutionId={session.activeInstitutionId}
           email={session.user.email}
           institution={institution}
+          institutions={session.memberships.map((item) => ({
+            id: item.institutionId,
+            name: item.institutionName,
+          }))}
           name={name}
           role={appShell.roles[role]}
         />

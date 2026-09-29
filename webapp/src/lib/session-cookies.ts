@@ -71,16 +71,25 @@ export type SessionTokens = {
 };
 
 export function writeSessionCookies(target: CookieWriter, tokens: SessionTokens): void {
-  target.set(
-    ACCESS_TOKEN_COOKIE,
-    tokens.accessToken,
-    sessionCookieOptions(tokens.accessTokenExpiresAt),
-  );
+  writeAccessTokenCookie(target, tokens.accessToken, tokens.accessTokenExpiresAt);
   target.set(
     REFRESH_TOKEN_COOKIE,
     tokens.refreshToken,
     sessionCookieOptions(tokens.refreshTokenExpiresAt),
   );
+}
+
+/**
+ * The access token alone, for switching institution: the API re-issues only
+ * that, and records the choice on the session so later refreshes keep it. The
+ * refresh cookie is left exactly as it was.
+ */
+export function writeAccessTokenCookie(
+  target: CookieWriter,
+  accessToken: string,
+  expiresAt: string,
+): void {
+  target.set(ACCESS_TOKEN_COOKIE, accessToken, sessionCookieOptions(expiresAt));
 }
 
 export function clearSessionCookies(target: CookieClearer): void {

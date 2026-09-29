@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { journeyScreen } from "@/content/app";
 import { myJourney } from "@/lib/api/academy";
+import { finishingAfterClose } from "@/lib/journey";
 
 export const metadata: Metadata = { title: "My Journey" };
 
@@ -52,7 +53,9 @@ export default async function MyJourneyPage() {
                   </Link>
                 </h2>
                 <p className="mt-1.5 type-caption text-farm-muted">
-                  {journeyScreen.cohort(journey.cohort.name)}
+                  {finishingAfterClose(journey)
+                    ? journeyScreen.cohortClosed(journey.cohort.name)
+                    : journeyScreen.cohort(journey.cohort.name)}
                 </p>
               </div>
               <Badge tone={journey.status === "COMPLETED" ? "success" : "green"}>

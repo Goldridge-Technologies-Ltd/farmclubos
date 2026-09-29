@@ -284,6 +284,31 @@ creates (see *Your first platform admin* above).
 Only *Fundamentals of Agriculture* has a published assessment — the rest are
 drafts — so it is the one place the quiz appears.
 
+## Running an intake through its life
+
+Carrying on as the institution administrator, with the learner signed in in
+another browser:
+
+1. **Withdraw.** On the cohort, *Withdraw* beside the learner asks first, then
+   moves them under *Withdrawn* with their progress. The learner's dashboard
+   and */my-journey* stop showing the pathway straight away — no sign-out
+   needed, because every learner-side lookup checks the membership and the
+   enrolment in the database.
+2. **Enrol again**, beside them under *Withdrawn*. Their progress picks up
+   where it stopped.
+3. **Close.** *Close the intake*, at the foot of the cohort, asks first. The
+   enrol form disappears, the cohort moves under *Closed* on the list, and the
+   learner is told the intake has closed and they can still finish — which
+   they can. *Reopen the intake* undoes it.
+4. **Edit details**, at the top of the cohort: everything but the pathway. A
+   code another intake uses is refused under the code field.
+5. **Remove.** On *Members*, beside anyone but the only administrator. It says
+   how many open cohort places go with them; they lose access at once, keep
+   their progress, and a new invitation brings them back.
+6. **Switch institution.** Invite the same email from a second institution
+   and accept it — an existing account signs in to join. The account menu then
+   lists both, and choosing one lands on the dashboard there.
+
 ## Known issues
 
 - **`npm audit` reports 4 high-severity advisories** (`mysql2`,

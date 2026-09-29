@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { QuestionType } from "../../generated/prisma/enums.js";
+import { ownEnrolment } from "../../common/auth/own-enrolment.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
   AnswerInput,
@@ -304,10 +305,7 @@ export class AssessmentsService {
     const attempt = await this.prisma.assessmentAttempt.findFirst({
       where: {
         id: attemptId,
-        enrolment: {
-          userId: user.userId,
-          institutionId: user.institutionId,
-        },
+        enrolment: ownEnrolment(user.userId, user.institutionId),
       },
       select: attemptSelect,
     });
@@ -329,8 +327,7 @@ export class AssessmentsService {
 
     const enrolment = await this.prisma.enrolment.findFirst({
       where: {
-        userId: user.userId,
-        institutionId: user.institutionId,
+        ...ownEnrolment(user.userId, user.institutionId),
         status: { in: ["INVITED", "ACTIVE"] },
         cohort: { pathwayId, archivedAt: null },
       },

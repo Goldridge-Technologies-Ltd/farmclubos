@@ -112,6 +112,14 @@ export class CohortEnrolmentDto implements CohortEnrolmentView {
   @ApiProperty({ format: "date-time" })
   enrolledAt: Date;
 
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    format: "date-time",
+    description: "Set while withdrawn; cleared when enrolled again.",
+  })
+  withdrawnAt: Date | null;
+
   @ApiProperty({ type: CohortLearnerDto })
   learner: CohortLearnerDto;
 }

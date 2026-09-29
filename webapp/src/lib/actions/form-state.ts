@@ -1,4 +1,4 @@
-import { userMessage, validationMessages } from "../api/errors";
+import { isApiError, userMessage, validationMessages } from "../api/errors";
 
 /*
   What a form shows after a submission, and how an API failure becomes that.
@@ -60,8 +60,21 @@ export function missingValues(values: Record<string, string>): FormState | null 
  * placed under its own field where the name matches. Anything that matches no
  * field — and any failure that is not a validation failure, such as
  * INVALID_CREDENTIALS — goes above the form instead, so it is never lost.
+ *
+ * `byCode` names the field a refusal belongs to when its code says which,
+ * such as `{ CODE_TAKEN: "code" }`, so it lands beside what needs changing.
  */
-export function toFormState(error: unknown, fields: string[]): FormState {
+export function toFormState(
+  error: unknown,
+  fields: string[],
+  byCode: Record<string, string> = {},
+): FormState {
+  const codeField = isApiError(error) ? byCode[error.code] : undefined;
+
+  if (codeField) {
+    return { status: "error", errors: { [codeField]: sentence(userMessage(error)) } };
+  }
+
   const details = validationMessages(error);
   const errors: Record<string, string> = {};
   const unmatched: string[] = [];

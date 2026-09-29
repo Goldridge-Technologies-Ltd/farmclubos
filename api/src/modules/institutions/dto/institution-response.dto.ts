@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { InstitutionStatus, InstitutionType, InstitutionRole } from "../../../generated/prisma/enums.js";
-import type { InstitutionView, MemberView } from "../institutions.types.js";
+import type { InstitutionView, MemberView, RemovedMemberView } from "../institutions.types.js";
 
 export class InstitutionDto implements InstitutionView {
   @ApiProperty({ format: "uuid" })
@@ -61,4 +61,15 @@ export class MemberDto implements MemberView {
 
   @ApiProperty({ type: Date, nullable: true, format: "date-time" })
   joinedAt: Date | null;
+
+  @ApiProperty({ description: "Their open cohort places here — what removing them withdraws." })
+  openEnrolments: number;
+}
+
+export class RemovedMemberDto implements RemovedMemberView {
+  @ApiProperty({ format: "uuid" })
+  userId: string;
+
+  @ApiProperty({ description: "Open cohort places withdrawn with them." })
+  enrolmentsWithdrawn: number;
 }

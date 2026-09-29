@@ -1,4 +1,8 @@
-import type { EnrolmentStatus, ProgressStatus } from "../../generated/prisma/enums.js";
+import type {
+  CohortStatus,
+  EnrolmentStatus,
+  ProgressStatus,
+} from "../../generated/prisma/enums.js";
 
 /*
   A learner's progress through the pathway they are enrolled on.
@@ -33,7 +37,11 @@ export type JourneyView = {
   status: EnrolmentStatus;
   /** Derived from completed lessons, not stored optimistically. */
   progressPercent: number;
-  cohort: { id: string; name: string };
+  /**
+   * The intake's status too: a closed one takes nobody new, but its learners
+   * can still finish, and should be told which it is.
+   */
+  cohort: { id: string; name: string; status: CohortStatus };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgressView[];
 };

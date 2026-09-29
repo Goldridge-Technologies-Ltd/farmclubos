@@ -44,6 +44,11 @@ export const appShell = {
     signOut: "Sign out",
     /** Where a platform administrator who belongs to no institution is working. */
     platform: "Platform administration",
+    /** Above the institutions to switch between, for someone in more than one. */
+    institutions: "Your institutions",
+    /** Read before an institution's name on its button; not shown. */
+    switchTo: "Switch to",
+    switching: "Switching…",
   },
   roles: {
     INSTITUTION_ADMIN: "Institution administrator",
@@ -54,6 +59,11 @@ export const appShell = {
     CONTENT_MANAGER: "Content manager",
     NONE: "Member",
   },
+} as const;
+
+/** The fixed words of an action that asks before it acts (`ConfirmAction`). */
+export const confirmActionCopy = {
+  cancel: "Cancel",
 } as const;
 
 /** Announced while a screen's data loads; each Skeleton itself is silent. */
@@ -99,6 +109,8 @@ export const homeScreen = {
   continue: {
     title: "Continue your pathway",
     cohort: (name: string) => `Cohort: ${name}`,
+    cohortClosed: (name: string) =>
+      `Cohort: ${name}. It has closed to new learners; you can still finish.`,
     through: "through this pathway",
     // Only name the module when it adds something: a module's opening lesson
     // often shares its title.
@@ -145,6 +157,8 @@ export const journeyScreen = {
     action: "Browse the Academy",
   },
   cohort: (name: string) => `Cohort: ${name}`,
+  cohortClosed: (name: string) =>
+    `Cohort: ${name}. It has closed to new learners; you can still finish.`,
   through: "through this pathway",
   moduleProgress: (done: number, total: number) =>
     `${done} of ${total} ${total === 1 ? "lesson" : "lessons"} complete`,

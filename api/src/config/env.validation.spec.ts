@@ -117,12 +117,53 @@ describe("validate", () => {
     });
   });
 
+  describe("storage", () => {
+    const storage = {
+      STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
+      STORAGE_BUCKET: "farmclub-media",
+      STORAGE_ACCESS_KEY_ID: "key-id",
+      STORAGE_SECRET_ACCESS_KEY: "secret",
+    };
+
+    it("is optional outside production, where uploads say storage is not set up", () => {
+      const config = validate(required);
+
+      expect(config.STORAGE_ENDPOINT).toBeUndefined();
+      expect(config.STORAGE_REGION).toBe("auto");
+    });
+
+    it("accepts a complete set of storage settings", () => {
+      expect(validate({ ...required, ...storage }).STORAGE_BUCKET).toBe("farmclub-media");
+    });
+
+    it("refuses half a configuration, which would only fail at the first upload", () => {
+      expect(() => validate({ ...required, STORAGE_BUCKET: "farmclub-media" })).toThrow(
+        /STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY/,
+      );
+    });
+
+    it("requires storage in production, where lessons cannot do without it", () => {
+      expect(() =>
+        validate({
+          ...required,
+          NODE_ENV: "production",
+          MAIL_DRIVER: "smtp",
+          SMTP_HOST: "smtp.example.com",
+        }),
+      ).toThrow(/storage/);
+    });
+  });
+
   it("keeps a value that is supplied", () => {
     const config = validate({
       ...required,
       NODE_ENV: "production",
       MAIL_DRIVER: "smtp",
       SMTP_HOST: "smtp.example.com",
+      STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
+      STORAGE_BUCKET: "farmclub-media",
+      STORAGE_ACCESS_KEY_ID: "key-id",
+      STORAGE_SECRET_ACCESS_KEY: "secret",
       CORS_ORIGINS: "https://app.farmclubos.com",
       DIRECT_URL: "postgresql://user:pw@localhost:5432/farmclub",
     });

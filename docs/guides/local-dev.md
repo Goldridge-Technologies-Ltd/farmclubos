@@ -383,10 +383,6 @@ another browser:
 
 ## Known issues
 
-- **`npm audit` reports `next` 16.3.5 as critical**: remote code execution
-  in `next/og`'s `ImageResponse` (GHSA-vcvr-r3jv-pc5j). Neither app uses
-  `next/og`, so the code is not reachable, but upgrade both apps together to
-  16.3.6 or later.
 - **`npm audit` reports high-severity advisories in dev-only tools.**
   `mysql2` and `deepmerge-ts` reach us only through the Prisma **CLI**, which
   is a devDependency, so neither ships to production. Neither code path is

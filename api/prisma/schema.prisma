@@ -157,6 +157,7 @@ model User {
   messageReads       MentorshipMessageRead[]
   enterprises        EnterpriseProfile[]
   documentsUploaded  EnterpriseProjectDocument[]
+  mediaUploaded      MediaAsset[]
   stateChanges       LearnerStateChange[]
   emails             EmailMessage[]
 
@@ -372,6 +373,25 @@ enum LessonKind {
   PRACTICAL
 }
 
+enum LessonSceneKind {
+  VIDEO
+  NOTES
+}
+
+/// Which of its scene's slots a file fills.
+enum MediaPurpose {
+  VIDEO
+  CAPTIONS
+  POSTER
+}
+
+enum MediaAssetStatus {
+  /// Asked for; the upload may not have happened.
+  PENDING
+  /// Uploaded and checked.
+  READY
+}
+
 enum AssessmentKind {
   QUIZ
   SUBMISSION
@@ -417,6 +437,9 @@ model PathwayModule {
   summary    String?
   sequence   Int
   status     PublishStatus @default(DRAFT)
+  /// When it was first published. Until then its slug follows its title;
+  /// after, the slug is fixed so links to it keep working.
+  publishedAt DateTime?
   archivedAt DateTime?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -445,15 +468,96 @@ model Lesson {
   durationMinutes Int?
   sequence   Int
   status     PublishStatus   @default(DRAFT)
+  /// When it was first published; see PathwayModule.publishedAt.
+  publishedAt DateTime?
   archivedAt DateTime?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
   module   PathwayModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress LessonProgress[]
+  scenes   LessonScene[]
 
   @@unique([moduleId, slug])
   @@index([moduleId, sequence])
+}
+
+/// One screen of a lesson, in order. A VIDEO scene plays a video with its
+/// captions and a still image; a NOTES scene is reading text. Later kinds —
+/// questions, concept cards — join the same list rather than reshaping it.
+///
+/// A scene is shown to learners only once it is complete: a video with all
+/// three files, or notes with a body. See the academy module's readyScene.
+model LessonScene {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  lessonId        String          @db.Uuid
+  kind            LessonSceneKind
+  sequence        Int
+  title           String
+  /// In the notes' formatting syntax: a NOTES scene's text, or a VIDEO
+  /// scene's short supporting lines. Null when empty, never "".
+  body            String?
+  /// Made from the captions file when it is uploaded, so the two agree.
+  transcript      String?
+  videoAssetId    String?         @unique @db.Uuid
+  captionsAssetId String?         @unique @db.Uuid
+  posterAssetId   String?         @unique @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  lesson   Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  video    MediaAsset?     @relation("SceneVideo", fields: [videoAssetId], references: [id], onDelete: SetNull)
+  captions MediaAsset?     @relation("SceneCaptions", fields: [captionsAssetId], references: [id], onDelete: SetNull)
+  poster   MediaAsset?     @relation("ScenePoster", fields: [posterAssetId], references: [id], onDelete: SetNull)
+  assets   MediaAsset[]    @relation("SceneAssets")
+  progress SceneProgress[]
+
+  @@index([lessonId, sequence])
+}
+
+/// A file in storage, belonging to one scene. The row is made when an upload
+/// is asked for (PENDING) and becomes READY once the API has checked what
+/// arrived; only a READY file is ever attached to its scene.
+model MediaAsset {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  sceneId      String           @db.Uuid
+  purpose      MediaPurpose
+  status       MediaAssetStatus @default(PENDING)
+  /// Its key in the bucket, made by the API — never from the file's name.
+  storageKey   String           @unique
+  contentType  String
+  sizeBytes    Int
+  /// The name it was uploaded with, only to show the content team.
+  fileName     String
+  uploadedById String?          @db.Uuid
+  readyAt      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  scene      LessonScene  @relation("SceneAssets", fields: [sceneId], references: [id], onDelete: Cascade)
+  uploadedBy User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  videoOf    LessonScene? @relation("SceneVideo")
+  captionsOf LessonScene? @relation("SceneCaptions")
+  posterOf   LessonScene? @relation("ScenePoster")
+
+  @@index([sceneId, purpose, status])
+}
+
+/// A scene an enrolled learner has finished, so they resume where they
+/// stopped. Belongs to the enrolment, as all progress does.
+model SceneProgress {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  enrolmentId String   @db.Uuid
+  sceneId     String   @db.Uuid
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  enrolment Enrolment   @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  scene     LessonScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@unique([enrolmentId, sceneId])
+  @@index([sceneId])
 }
 
 model Assessment {
@@ -617,6 +721,7 @@ model Enrolment {
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   institution    Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   lessonProgress LessonProgress[]
+  sceneProgress  SceneProgress[]
   moduleProgress ModuleProgress[]
   attempts       AssessmentAttempt[]
   bookings       Booking[]

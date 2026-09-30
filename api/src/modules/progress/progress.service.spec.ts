@@ -26,9 +26,10 @@ describe("ProgressService", () => {
     enrolment: { update: AsyncMock; updateMany: AsyncMock };
   };
   let prisma: {
-    lesson: { findFirst: AsyncMock };
-    enrolment: { findFirst: AsyncMock; findMany: AsyncMock };
-    lessonProgress: { findMany: AsyncMock };
+    lesson: { findFirst: AsyncMock; count: AsyncMock };
+    enrolment: { findFirst: AsyncMock; findMany: AsyncMock; update: AsyncMock };
+    lessonProgress: { findMany: AsyncMock; count: AsyncMock };
+    moduleProgress: { updateMany: AsyncMock };
     $transaction: jest.Mock<(work: unknown) => Promise<unknown>>;
   };
 
@@ -41,9 +42,10 @@ describe("ProgressService", () => {
     };
 
     prisma = {
-      lesson: { findFirst: fn() },
-      enrolment: { findFirst: fn(), findMany: fn() },
-      lessonProgress: { findMany: fn() },
+      lesson: { findFirst: fn(), count: fn() },
+      enrolment: { findFirst: fn(), findMany: fn(), update: fn() },
+      lessonProgress: { findMany: fn(), count: fn() },
+      moduleProgress: { updateMany: fn() },
       $transaction: jest.fn(async (work: unknown) =>
         (work as (client: typeof tx) => Promise<unknown>)(tx),
       ),
@@ -277,6 +279,86 @@ describe("ProgressService", () => {
 
       const [args] = prisma.enrolment.findMany.mock.calls[0] as [{ where: { user: unknown } }];
       expect(args.where.user).toEqual({ memberships: { some: { institutionId: "institution-1", status: "ACTIVE" } } });
+    });
+  });
+
+  /*
+    Publishing, unpublishing or archiving a lesson changes how many there are,
+    so every enrolment's percentage has to follow — or a learner at "2 of 7"
+    keeps a percentage from when there were seven after an eighth arrives.
+  */
+  describe("recomputePathway", () => {
+    beforeEach(() => {
+      prisma.enrolment.findMany.mockResolvedValue([{ id: "enrolment-1" }, { id: "enrolment-2" }]);
+    });
+
+    it("recalculates each enrolment's percentage from what is published now", async () => {
+      prisma.lesson.count.mockResolvedValue(8);
+      prisma.lessonProgress.count.mockResolvedValueOnce(2).mockResolvedValueOnce(4);
+
+      await service.recomputePathway("pathway-1");
+
+      expect(prisma.enrolment.update).toHaveBeenCalledWith({
+        where: { id: "enrolment-1" },
+        data: { progressPercent: 25 },
+      });
+      expect(prisma.enrolment.update).toHaveBeenCalledWith({
+        where: { id: "enrolment-2" },
+        data: { progressPercent: 50 },
+      });
+    });
+
+    it("covers every enrolment on the pathway's cohorts, withdrawn ones included", async () => {
+      prisma.lesson.count.mockResolvedValue(8);
+      prisma.lessonProgress.count.mockResolvedValue(0);
+
+      await service.recomputePathway("pathway-1");
+
+      const [args] = prisma.enrolment.findMany.mock.calls[0] as [{ where: unknown }];
+      expect(args.where).toEqual({ cohort: { pathwayId: "pathway-1" } });
+    });
+
+    it("changes only the percentage — never whether someone started or finished", async () => {
+      prisma.lesson.count.mockResolvedValue(4);
+      prisma.lessonProgress.count.mockResolvedValue(4);
+
+      await service.recomputePathway("pathway-1");
+
+      const [first] = prisma.enrolment.update.mock.calls[0] as [{ data: object }];
+      expect(first.data).toEqual({ progressPercent: 100 });
+      expect(tx.enrolment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("is 0% on a pathway with nothing published, not a division by zero", async () => {
+      prisma.lesson.count.mockResolvedValue(0);
+      prisma.lessonProgress.count.mockResolvedValue(0);
+
+      await service.recomputePathway("pathway-1");
+
+      const [first] = prisma.enrolment.update.mock.calls[0] as [{ data: object }];
+      expect(first.data).toEqual({ progressPercent: 0 });
+    });
+
+    it("brings a changed module's status up to date for anyone who has one", async () => {
+      // The module: three lessons, all done by enrolment-1 and one by enrolment-2.
+      prisma.lesson.count.mockResolvedValueOnce(8).mockResolvedValueOnce(3);
+      prisma.lessonProgress.count
+        .mockResolvedValueOnce(3) // enrolment-1, module
+        .mockResolvedValueOnce(5) // enrolment-1, pathway
+        .mockResolvedValueOnce(1) // enrolment-2, module
+        .mockResolvedValueOnce(2); // enrolment-2, pathway
+
+      await service.recomputePathway("pathway-1", "module-1");
+
+      // Completed only where it was not already, so the first date stands.
+      expect(prisma.moduleProgress.updateMany).toHaveBeenCalledWith({
+        where: { enrolmentId: "enrolment-1", moduleId: "module-1", status: { not: "COMPLETED" } },
+        data: { status: "COMPLETED", completedAt: expect.any(Date) },
+      });
+      expect(prisma.moduleProgress.updateMany).toHaveBeenCalledWith({
+        where: { enrolmentId: "enrolment-2", moduleId: "module-1" },
+        data: { status: "IN_PROGRESS", completedAt: null },
+      });
     });
   });
 });

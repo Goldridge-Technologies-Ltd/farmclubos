@@ -8,6 +8,7 @@ import { RateLimitModule } from "./lib/rate-limit/rate-limit.module.js";
 import { StorageModule } from "./lib/storage/storage.module.js";
 import { AcademyModule } from "./modules/academy/academy.module.js";
 import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
+import { AuthoringModule } from "./modules/authoring/authoring.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { CohortsModule } from "./modules/cohorts/cohorts.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
@@ -30,6 +31,7 @@ import { UsersModule } from "./modules/users/users.module.js";
     StorageModule,
     AcademyModule,
     AssessmentsModule,
+    AuthoringModule,
     AuthModule,
     CohortsModule,
     HealthModule,

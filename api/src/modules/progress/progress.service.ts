@@ -85,6 +85,66 @@ export class ProgressService {
     });
   }
 
+  /**
+   * Brings every enrolment on a pathway up to date after its content changed.
+   * Publishing, unpublishing, archiving or restoring a lesson or module changes
+   * how many lessons there are to complete; without this, a learner's
+   * percentage would describe a pathway that no longer exists.
+   *
+   * Only the percentage is recalculated — and, when `moduleId` names the
+   * module that changed, that module's status for anyone who has one. Whether
+   * an enrolment has started or finished is left alone: that records what the
+   * learner did, and a change of content does not undo it.
+   */
+  async recomputePathway(pathwayId: string, moduleId?: string): Promise<void> {
+    const enrolments = await this.prisma.enrolment.findMany({
+      where: { cohort: { pathwayId } },
+      select: { id: true },
+    });
+    const total = await this.prisma.lesson.count({
+      where: { ...published, module: { ...published, pathwayId } },
+    });
+    const moduleTotal = moduleId
+      ? await this.prisma.lesson.count({ where: { moduleId, ...published } })
+      : 0;
+    const now = new Date();
+
+    for (const { id: enrolmentId } of enrolments) {
+      if (moduleId) {
+        const done = await this.prisma.lessonProgress.count({
+          where: { enrolmentId, status: "COMPLETED", lesson: { moduleId, ...published } },
+        });
+        const status = statusFor(done, moduleTotal);
+
+        if (status === "COMPLETED") {
+          // A module still complete keeps the date it was first completed.
+          await this.prisma.moduleProgress.updateMany({
+            where: { enrolmentId, moduleId, status: { not: "COMPLETED" } },
+            data: { status, completedAt: now },
+          });
+        } else {
+          await this.prisma.moduleProgress.updateMany({
+            where: { enrolmentId, moduleId },
+            data: { status, completedAt: null },
+          });
+        }
+      }
+
+      const completed = await this.prisma.lessonProgress.count({
+        where: {
+          enrolmentId,
+          status: "COMPLETED",
+          lesson: { ...published, module: { ...published, pathwayId } },
+        },
+      });
+
+      await this.prisma.enrolment.update({
+        where: { id: enrolmentId },
+        data: { progressPercent: percentOf(completed, total) },
+      });
+    }
+  }
+
   /** Every enrolment the caller holds, with what they have completed in each. */
   async myJourney(user: AuthenticatedUser): Promise<JourneyView[]> {
     if (!user.institutionId) {
@@ -281,9 +341,7 @@ export class ProgressService {
       }),
     ]);
 
-    // A pathway with no published lessons is 0%, not 100%: nothing has been
-    // done, and dividing by zero would claim otherwise.
-    const progressPercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const progressPercent = percentOf(completed, total);
     const finished = total > 0 && completed === total;
 
     // Stamped once, on the first thing they complete. `updateMany` with the
@@ -303,6 +361,14 @@ export class ProgressService {
 
     return progressPercent;
   }
+}
+
+/**
+ * Whole percent completed. A pathway with no published lessons is 0%, not
+ * 100%: nothing has been done, and dividing by zero would claim otherwise.
+ */
+function percentOf(completed: number, total: number): number {
+  return total === 0 ? 0 : Math.round((completed / total) * 100);
 }
 
 function statusFor(completed: number, total: number): ProgressStatus {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { useHydrating } from "@/hooks/useHydrating";
 
 /*
   A scene's title, which takes focus when the learner moves to another scene.
@@ -13,8 +14,9 @@ import { useEffect, useRef, type ReactNode } from "react";
   Every move between scenes names the scene in the address, so that is the
   signal rather than a memory of the scene before: Continue records the scene
   through a Server Action, and its redirect remounts the page, memory and all.
-  Someone opening the lesson, with no scene named, keeps focus where the page
-  puts it.
+  Arriving is not moving, though. Opening the lesson names no scene, and on a
+  page loaded afresh at a scene, focus stays where the browser puts it until
+  the learner moves on.
 */
 export function SceneHeading({
   sceneId,
@@ -27,8 +29,17 @@ export function SceneHeading({
   children: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
+  const hydrating = useHydrating();
+  // The scene a fresh load arrived at, until the learner moves on from it.
+  const arrivedAt = useRef(hydrating ? sceneId : null);
 
   useEffect(() => {
+    if (sceneId === arrivedAt.current) {
+      return;
+    }
+
+    arrivedAt.current = null;
+
     if (moveFocus) {
       heading.current?.focus();
     }

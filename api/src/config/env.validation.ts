@@ -190,7 +190,7 @@ export class EnvironmentVariables {
 
   /*
     S3-compatible file storage for lesson videos, captions and images:
-    Cloudflare R2 in production, MinIO locally. All four of the endpoint,
+    Cloudflare R2 in production, RustFS locally. All four of the endpoint,
     bucket and keys, or none — without them, uploads answer that storage is
     not set up. Production requires them.
   */
@@ -198,7 +198,7 @@ export class EnvironmentVariables {
   @IsUrl({ require_tld: false, require_protocol: true })
   STORAGE_ENDPOINT?: string;
 
-  /** R2 takes "auto"; MinIO accepts any region name. */
+  /** R2 takes "auto"; RustFS accepts any region name. */
   @IsString()
   @MinLength(1)
   STORAGE_REGION = "auto";

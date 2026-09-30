@@ -33,7 +33,7 @@ import { OBJECT_STORE, PRESIGN_URL, STORAGE_BUCKET } from "./storage.tokens.js";
           region: config.get<string>("STORAGE_REGION", "auto"),
           credentials: { accessKeyId, secretAccessKey },
           // The bucket goes in the path rather than the host name, which both
-          // R2 and MinIO accept, so one setting serves both.
+          // R2 and RustFS accept, so one setting serves both.
           forcePathStyle: true,
         });
       },

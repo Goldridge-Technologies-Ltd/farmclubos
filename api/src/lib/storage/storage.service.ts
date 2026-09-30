@@ -30,7 +30,7 @@ export type UploadTicket = {
 export type StoredFile = { sizeBytes: number; contentType: string | null };
 
 /*
-  File storage for lesson media: Cloudflare R2 in production, MinIO locally —
+  File storage for lesson media: Cloudflare R2 in production, RustFS locally —
   anything that speaks S3.
 
   The bucket is private. Files go in and come out through signed links, so a

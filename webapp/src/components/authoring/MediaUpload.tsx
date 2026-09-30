@@ -113,7 +113,8 @@ export function MediaUpload({
   }
 
   return (
-    <section className="grid gap-3 rounded-card border border-farm-border p-5">
+    // wrap-anywhere: a file name has no spaces to wrap at, and a long one would widen the page.
+    <section className="grid gap-3 rounded-card border border-farm-border p-5 wrap-anywhere">
       <div>
         <h3 className="text-base font-semibold text-farm-green-950">{slot.label}</h3>
         <p className="mt-1 type-caption text-farm-muted" id={hintId}>
@@ -133,13 +134,15 @@ export function MediaUpload({
         </label>
         {/*
           The browser's own file picker, restyled only through file:, so it
-          keeps its keyboard behaviour and its announcement.
+          keeps its keyboard behaviour and its announcement. Full width on a
+          phone: its natural width is wider than the space there, and only a
+          set width lets it shrink.
         */}
         <input
           ref={input}
           accept={rule.accept}
           aria-describedby={hintId}
-          className="max-w-full text-sm text-farm-muted file:mr-3 file:min-h-12 file:cursor-pointer file:rounded-button file:border file:border-farm-border-strong file:bg-white file:px-4 file:text-sm file:font-semibold file:text-farm-green-950 hover:file:bg-farm-cream-50"
+          className="w-full text-sm text-farm-muted file:mr-3 file:min-h-12 file:cursor-pointer file:rounded-button file:border file:border-farm-border-strong file:bg-white file:px-4 file:text-sm file:font-semibold file:text-farm-green-950 hover:file:bg-farm-cream-50 sm:w-auto"
           disabled={busy}
           id={inputId}
           onChange={() => setStage({ kind: "idle" })}

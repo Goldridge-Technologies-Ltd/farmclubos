@@ -19,6 +19,10 @@ import { isMissingRecord } from "./errors";
   Items are addressed by id rather than slug: a draft's slug follows its title,
   and an id never moves. A malformed or unknown id is not-found, as for any
   record read by an id from the URL.
+
+  Each read checks the role itself, not only the section's layout: a page
+  renders alongside its layout, so its request would otherwise still reach
+  the API, and fail there, for someone the layout is already turning away.
 */
 
 /**
@@ -34,28 +38,32 @@ export async function assertContentTeam(): Promise<void> {
 }
 
 export async function listAuthoringPathways(): Promise<AuthoringPathwaySummary[]> {
+  await assertContentTeam();
+
   return apiRequest<AuthoringPathwaySummary[]>("/api/authoring/pathways");
 }
 
 export async function getAuthoringPathway(pathwayId: string): Promise<AuthoringPathway> {
-  return byId(apiRequest<AuthoringPathway>(`/api/authoring/pathways/${encode(pathwayId)}`));
+  return byId<AuthoringPathway>(`/api/authoring/pathways/${encode(pathwayId)}`);
 }
 
 export async function getAuthoringModule(moduleId: string): Promise<AuthoringModule> {
-  return byId(apiRequest<AuthoringModule>(`/api/authoring/modules/${encode(moduleId)}`));
+  return byId<AuthoringModule>(`/api/authoring/modules/${encode(moduleId)}`);
 }
 
 export async function getAuthoringLesson(lessonId: string): Promise<AuthoringLesson> {
-  return byId(apiRequest<AuthoringLesson>(`/api/authoring/lessons/${encode(lessonId)}`));
+  return byId<AuthoringLesson>(`/api/authoring/lessons/${encode(lessonId)}`);
 }
 
 export async function getAuthoringScene(sceneId: string): Promise<AuthoringScene> {
-  return byId(apiRequest<AuthoringScene>(`/api/authoring/scenes/${encode(sceneId)}`));
+  return byId<AuthoringScene>(`/api/authoring/scenes/${encode(sceneId)}`);
 }
 
-async function byId<T>(request: Promise<T>): Promise<T> {
+async function byId<T>(path: string): Promise<T> {
+  await assertContentTeam();
+
   try {
-    return await request;
+    return await apiRequest<T>(path);
   } catch (error) {
     if (isMissingRecord(error)) {
       notFound();

@@ -8,6 +8,7 @@ import type {
   Enrolment,
   Journey,
   LessonDetail,
+  LessonStanding,
   ModuleDetail,
   PathwayDetail,
   PathwaySummary,
@@ -88,6 +89,11 @@ function encode(slug: string): string {
 
 export async function myJourney(): Promise<Journey[]> {
   return apiRequest<Journey[]>("/api/progress/mine");
+}
+
+/** Whether the caller is enrolled for this lesson, and the scenes they have finished. */
+export async function getLessonStanding(lessonId: string): Promise<LessonStanding> {
+  return apiRequest<LessonStanding>(`/api/progress/lessons/${encode(lessonId)}`);
 }
 
 export async function getAssessment(assessmentId: string): Promise<Assessment> {

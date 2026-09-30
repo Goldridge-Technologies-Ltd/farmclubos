@@ -114,6 +114,28 @@ export const academy = {
     transcript: "Transcript",
     /** The captions track's name in the player's menu. */
     captions: "English",
+    position: (at: number, total: number) => `Scene ${at} of ${total}`,
+    through: "through this lesson",
+    outline: "Scenes in this lesson",
+    completed: "completed",
+    back: "Back",
+    continue: "Continue",
+    finish: "Finish the lesson",
+    saving: "Saving…",
+    notEnrolled:
+      "You are not enrolled on this pathway, so your place in this lesson is not saved.",
+    complete: {
+      title: "Lesson complete",
+      description: "Every scene is done, and your progress is saved.",
+    },
+    end: {
+      title: "End of this lesson",
+      description:
+        "You are not enrolled on this pathway, so nothing was recorded. Your institution " +
+        "enrols you onto a cohort.",
+    },
+    nextLesson: (title: string) => `Next: ${title}`,
+    review: "Go back over it",
   },
 
   assessment: {

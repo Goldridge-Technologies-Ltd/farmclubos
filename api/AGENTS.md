@@ -7,8 +7,9 @@ Paths below are relative to `api/` unless they start with `docs/` or
 ## Project
 
 `api/` is the FARMCLUB OS backend API: a NestJS 12 project on the Express
-adapter, serving `webapp/`. It runs on port 4000; start it from the repository
-root with `npm run dev:api`.
+adapter, serving `webapp/`. It keeps its data in PostgreSQL and lesson media in
+an S3-compatible bucket (see "File storage"). It runs on port 4000; start it
+from the repository root with `npm run dev:api`.
 
 ## ESM
 
@@ -87,6 +88,29 @@ variables differ.
   archivedAt: null }`, applied at *every* level. A module is reached through
   its pathway and a lesson through its module, so an unpublished parent hides
   everything beneath it and a slug pair cannot be mixed between pathways.
+- **The platform's content team builds the Academy; institutions never do.**
+  The authoring routes (`src/modules/authoring/`) are for `PLATFORM_ADMIN` and
+  `CONTENT_MANAGER`, and `ContentAccessService.assertCanAuthor` rechecks the
+  role against the database, as `InstitutionAccessService` does for
+  memberships. The curriculum belongs to no institution, so its audit events
+  carry no `institutionId`. As in the admin lifecycle, repeating an action,
+  such as publishing what is published, is done, and records nothing.
+- **A lesson's content is its scenes, and only complete scenes reach a
+  learner.** A `VIDEO` scene is complete with its video, captions and still
+  image; a `NOTES` scene with its text. The rule lives once, in
+  `src/modules/academy/scene-readiness.ts`: `sceneGaps()` says what a scene
+  still lacks, and `readyScene` is the same rule as a Prisma `where`. Use
+  `readyScene` in every learner-facing query rather than restating it. A
+  lesson can be published only with at least one scene, all of them complete.
+- **Scene progress counts scenes, never time watched.** `SceneProgress`
+  belongs to the enrolment. Finishing every complete scene completes the
+  lesson, and a lesson's completion date, once set, never moves.
+- **Publishing, unpublishing, archiving or restoring recomputes progress**
+  through `ProgressService.recomputePathway`, since each changes what counts.
+  It rewrites percentages only: nobody's started or finished status changes.
+- **A slug follows its title until the item is first published**
+  (`publishedAt`), then stays fixed so links to it keep working. Archiving
+  takes an item back to draft; restoring returns it, still a draft, at the end.
 - **A new table needs row-level security.** Supabase serves `public` over HTTPS
   through PostgREST, so a table created without RLS is readable by anyone with
   the project's anon key. Follow the pattern in the
@@ -99,6 +123,38 @@ variables differ.
   `Pathway.estimatedHours`, `Lesson.durationMinutes`, `Cohort.capacity`,
   `ExperienceSite.capacity`, `ReportSnapshot.payload` — stay null in every
   seed, and no `Institution` or `ExperienceSite` is ever seeded.
+
+## File storage
+
+Lesson media lives in an S3-compatible bucket: Cloudflare R2 in production,
+RustFS locally (`docs/guides/local-dev.md`). `StorageService`
+(`src/lib/storage/`) is the only client. It is configured by the `STORAGE_*`
+variables, all or none, and they are required in production. Without them,
+uploads answer 503 `STORAGE_UNAVAILABLE` and everything else works, which is
+how the tests run.
+
+- **The bucket is private, and every link is signed.** `signDownload` signs a
+  GET link for two hours from the top of the hour, so a file keeps the same
+  URL for an hour and a browser can cache the video. Links expire: sign them
+  when reading, and never store one.
+- **The API names every object**:
+  `lessons/{lessonId}/scenes/{sceneId}/{purpose}/{uuid}.{ext}`. An uploaded
+  file's own name is kept only to show the content team, never used in a key.
+- **Files go straight from the browser to storage, and the API checks what
+  arrived.** `requestUpload` checks the type and size against
+  `media-rules.ts`, records a `PENDING` `MediaAsset`, and signs a PUT for
+  exactly that type and size, so storage refuses anything else.
+  `completeUpload` then reads the object's real size and type, parses
+  captions as WebVTT and makes the scene's transcript from them, and only
+  then marks the file `READY` and attaches it. Only a `READY` file is ever
+  attached to a scene, and a replaced file's row and object are deleted.
+- **The database changes first, storage after.** Removing a scene deletes
+  its rows in a transaction, then its objects, so a storage failure leaves an
+  unused object behind, never a row pointing at nothing.
+- **The bucket needs a CORS rule for the web app's origin** (GET, PUT and
+  HEAD): uploads come from the browser, and captions load across origins.
+  `npm run storage:setup --workspace api` creates the bucket and sets the
+  rule; on R2 the rule can also be set in the dashboard.
 
 ## Authentication and authorisation
 
@@ -176,6 +232,7 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
   - `src/lib/database/prisma.module.ts` + `prisma.service.ts`
   - `src/lib/mail/mail.module.ts` + `mail.service.ts`
   - `src/lib/rate-limit/rate-limit.module.ts` + `rate-limit.service.ts`
+  - `src/lib/storage/storage.module.ts` + `storage.service.ts`
 - Mark infrastructure modules `@Global()`, export their service, and import
   each module once in `AppModule`.
 - Feature modules go in `src/modules/<name>/`. Feature modules are not

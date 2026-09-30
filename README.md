@@ -10,8 +10,8 @@ CONNECT · EMPOWER · GROW
 | Path | What it is |
 |---|---|
 | `site/` | Public website (Next.js, static-first) |
-| `webapp/` | The authenticated web app (Next.js): the Academy, learner progress, and the screens institutions and the platform are run from |
-| `api/` | Backend API (NestJS 12, Prisma 7, PostgreSQL) |
+| `webapp/` | The authenticated web app (Next.js): the Academy and the screens its content is built from, learner progress, and the screens institutions and the platform are run from |
+| `api/` | Backend API (NestJS 12, Prisma 7, PostgreSQL, S3-compatible storage for lesson media) |
 | `packages/design-system/` | `@farmclub/design-system`: tokens, type roles, fonts, brand assets and core UI components |
 | `docs/` | Design system and content rules; `docs/site/` and `docs/webapp/` for each front end; `docs/guides/` for developer guides |
 
@@ -31,6 +31,9 @@ cp webapp/.env.example webapp/.env.local
 docker compose up -d postgres               # only if you are not using Supabase
 npm run db:deploy --workspace api           # create the tables
 npm run db:seed   --workspace api           # the Academy catalogue, and your first admin
+
+docker compose up -d rustfs                 # only to work on lesson videos: see the guide
+npm run storage:setup --workspace api       # after setting STORAGE_* in api/.env
 ```
 
 In `api/.env`, three values have no default:
@@ -54,7 +57,8 @@ npm run dev:site     # http://localhost:3000 — design-system reference at /des
 
 Sign in to the web app as that administrator. **Platform → Institutions** is
 where the rest begins: add an institution, invite the person who runs it, and
-they invite and enrol their learners.
+they invite and enrol their learners. **Content → Academy content** is where
+lessons are built, from videos and notes.
 
 ## Quality checks
 
@@ -104,6 +108,12 @@ npm run start --workspace api
   your own, the `postgres` service in `docker-compose.yml` running beside the
   API. The schema is identical either way — only the connection string
   differs.
+- **Storage.** Lesson videos, captions and still images live in a private
+  Cloudflare R2 bucket. Set the four `STORAGE_*` variables, without which
+  production refuses to start, and give the bucket a CORS rule for the web
+  app's origin: run `npm run storage:setup --workspace api` once with an
+  admin token, or set it in the R2 dashboard. The steps are in
+  [`docs/guides/local-dev.md`](docs/guides/local-dev.md#file-storage).
 - **Environment.** `NODE_ENV=production` turns Swagger off. Set `WEBAPP_URL`
   to the web app's public address — it is what links in emails point to — and
   `MAIL_DRIVER=smtp` with the `SMTP_*` settings: production refuses the `log`

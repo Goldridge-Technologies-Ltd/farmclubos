@@ -110,7 +110,7 @@ fetches it again to draw chrome.
 | Piece | What it does |
 |---|---|
 | `AppShell` | The frame: fixed sidebar from `lg`, top bar, content column. Owns `main#main-content` |
-| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a group per role below the main links — *Manage*, *Platform* — passed in by `AppShell` |
+| `AppSidebar` | The permanent sidebar, `lg` and up. Deep green, gold active marker, and a group per role below the main links — *Manage*, *Content*, *Platform* — passed in by `AppShell` |
 | `AppMobileNav` | The same sections as a drawer below `lg` |
 | `AppTopBar` | Drawer trigger and logo on small screens, active institution on large, account menu |
 | `UserMenu` | The account disclosure: who you are, the institutions to switch between, profile, sign out |
@@ -181,10 +181,17 @@ trade is worth taking; don't "fix" it by moving the lookup into the proxy.
 ### Reading the API
 
 Screens never call `apiRequest` directly. Each area gets one module in
-`src/lib/api/` — `academy.ts`, `institution.ts`, `platform.ts` — whose
-functions turn "there is nothing here" into `notFound()` and let everything
-else throw. The API being down is not the same as a page not existing, and
-must not look like it.
+`src/lib/api/` — `academy.ts`, `authoring.ts`, `institution.ts`,
+`platform.ts` — whose functions turn "there is nothing here" into
+`notFound()` and let everything else throw. The API being down is not the same
+as a page not existing, and must not look like it.
+
+**A read behind a role checks the role itself**, as `authoring.ts` does with
+`assertContentTeam`, and not only in the section's layout. A page renders
+alongside its layout, so with the check in the layout alone the page's own
+request still reaches the API for someone the layout is turning away, and
+fails there. (`platform.ts` still relies on its layout; move it over when it
+is next touched.)
 
 For a record read by an id from the URL, "nothing here" includes a 400: the
 API's uuid check refuses a malformed id before looking, and retrying will not
@@ -205,7 +212,8 @@ how one person's data eventually reaches another.
 Every write is a Server Action in `src/lib/actions/`, because each needs the
 access token from an httpOnly cookie the browser cannot read. A control that
 writes is therefore a `<form action={…}>`, never an `onClick` — that is why
-"Mark as complete" and "Start the assessment" are forms with a hidden input.
+"Mark as complete", a lesson's "Continue" and "Start the assessment" are forms
+with a hidden input.
 
 After a write, `revalidatePath` clears the router's client-side cache for the
 segments that show the same data. These reads are per-user and so uncached on
@@ -333,6 +341,90 @@ The sidebar and drawer take their role groups as data (`NavGroup[]`) from
 `AppShell`, which decides them on the server. A new role-specific section is a
 new group there, not a new flag threaded through three components.
 
+### Building the Academy
+
+The screens under `/content/academy` are where the platform's content team,
+`PLATFORM_ADMIN` and `CONTENT_MANAGER`, builds the Academy that every
+institution's learners take. `canAuthorContent` decides whether the *Content*
+group appears; like *Platform*, it needs no active institution.
+
+- **Each level is a screen, addressed by id:** a pathway lists its modules, a
+  module its lessons, a lesson its scenes, and each scene has its own editor.
+  Ids rather than slugs, because a draft's slug follows its title.
+- **Order is set with Move up and Move down**, never drag-and-drop alone,
+  which a keyboard or switch user cannot do. `MoveButtons` puts focus back on
+  the pressed button once the row arrives in its new place, so a keyboard
+  user can keep moving it.
+- **Publishing says what learners will see.** A draft is hidden. A lesson
+  publishes only with at least one scene, every one complete, and a refusal
+  names the scenes still missing something. Unpublishing and archiving ask
+  first (`ConfirmAction`) and say that progress is kept; archived items are
+  listed apart and restore as drafts.
+- **Each scene says what it still needs** ("Needs captions and a still
+  image"), from the `gaps` the API reports rather than worked out on screen.
+
+### Uploading files
+
+A video scene takes three files: an MP4, WebVTT captions and a still image.
+`MediaUpload` sends each **straight from the browser to storage**, never
+through the web app or the API:
+
+1. `requestUpload`, a Server Action, asks the API for a signed PUT for this
+   file's exact type and size. Both are checked first in the browser, from
+   `src/lib/media.ts`, for a quick answer; the API has the final say.
+2. The browser PUTs the file with `XMLHttpRequest`, since `fetch` reports no
+   upload progress, and a `ProgressBar` shows how far it has got. The bar sits
+   outside the `role="status"` region, so each percent is not read out.
+3. `completeUpload` has the API check what arrived. Only then does the file
+   replace the old one, and the screen say so.
+
+The file picker is the browser's own, restyled only through `file:`, so it
+keeps its keyboard behaviour and its announcement. It takes the slot's full
+width on a phone, where its natural width is wider than the space, and file
+names wrap anywhere, having no spaces to wrap at.
+
+### Writing notes
+
+Notes, and a video's supporting lines, are written in a small syntax: `##` for
+a heading, `**bold**`, `_italic_`, `-` or `1.` for lists, and
+`[words](https://…)` for a link, with toolbar buttons that insert it and a
+*Preview*. `src/lib/notes.ts` reads it into a tree of text, emphasis, lists
+and links that `NotesView` renders with the design system's type. **It never
+produces HTML**, so nothing typed can become markup, and a link can only go to
+a web or email address. Headings start at `h3`: on the lesson page the lesson
+is the `h1` and each scene an `h2`.
+
+### The lesson player
+
+A lesson plays one scene at a time, a video or notes, with the scenes listed
+beside it in `SceneOutline`: ticks for those finished, and
+`aria-current="step"` on this one.
+
+- **The address names the scene**, counted from 1: `?scene=2`. Without one, an
+  enrolled learner resumes at the first scene they have not finished
+  (`sceneToShow`), and anyone else starts at the beginning.
+- **Continue records the scene and moves on.** For an enrolled learner it is
+  a form posting to a Server Action, which redirects to the next scene, or to
+  `?completed=1` after the last. Back, and Continue for someone not enrolled,
+  are plain links: there is nothing to record.
+- **Progress counts scenes, never time watched.** Nothing tracks the video.
+- **A video plays with its captions on** and its transcript in a `<details>`
+  beneath. The `<video>` carries `crossOrigin="anonymous"`: the captions come
+  from storage, on another origin, and a browser drops a cross-origin track
+  without it. `preload="none"` and the still image spare a slow connection a
+  video nobody has started.
+- **The end panel shows only to someone who has finished**, or who is not
+  enrolled and has nothing to finish. It leads on to the next lesson, or back
+  to the module.
+- **A lesson with no scenes yet** says it is being written, and keeps *Mark
+  as complete*.
+
+**Focus follows the learner between scenes.** A move swaps the scene and
+leaves focus on a button whose meaning just changed, so `SceneHeading` moves
+it to the new scene's title. The signal is the address naming a scene, not a
+memory of the scene before, because **a Server Action's redirect remounts the
+page**: anything a component kept in a ref is gone after Continue.
+
 ### When content replaces what someone was using
 
 Submitting a quiz turns the page into its result. Wrap content like that in
@@ -341,6 +433,12 @@ page was scrolled, and tells a screen reader something new is there instead of
 leaving them on a button that no longer exists. Only do it on the arrival that
 caused the change — the attempt page does it only with `?submitted=1`, which
 the submit action adds — or every visit would pull focus past the heading.
+A lesson's end does the same with `?completed=1`.
+
+Neither `FocusOnMount` nor `SceneHeading` takes focus on a page loaded afresh,
+by a reload or a bookmark, where nothing was replaced. `useHydrating`
+(`src/hooks/`) tells a fresh load, which React hydrates, from a move within
+the app, which it renders in the browser.
 
 `html { scroll-padding-top }` in `src/app/globals.css` keeps anything scrolled
 into view, the skip link's target included, clear of the sticky top bar.
@@ -361,3 +459,6 @@ same change:
 - Tables and pagination controls: lists are one page today, and say so when
   there is more
 - A live reference page for the web app, as the site has at `/design-system`
+- The rest of the lesson production script: interactive scenes such as
+  questions and concept cards, the AI tutor, facilitator review and the
+  Skills Passport. A new scene kind joins the same list of scenes

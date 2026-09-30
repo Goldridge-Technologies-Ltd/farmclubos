@@ -10,6 +10,9 @@ How to run FARMCLUB OS on your machine. Contribution rules are in
 - **Git**
 - **A PostgreSQL database**: a Supabase project, or Docker for the local one in
   `docker-compose.yml` (see [Database](#database))
+- **S3-compatible storage** for lesson videos and files, when you work on
+  them: Docker for the local RustFS, or a Cloudflare R2 bucket (see
+  [File storage](#file-storage)). Everything else works without it.
 
 ## Setup
 
@@ -139,13 +142,18 @@ one exists and fill in your own values.
 | `PASSWORD_RESET_THROTTLE_WINDOW_SECONDS` | `api/.env` | The reset window, and the length of the block. Defaults to `3600` (one hour). |
 | `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`, `SEED_ADMIN_LAST_NAME` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; the names are optional. See below. |
-| `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. |
+| `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. `storage:setup` also allows it in the bucket's CORS rule. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
 | `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
 | `SMTP_HOST` | `api/.env` | Required when `MAIL_DRIVER=smtp`. |
 | `SMTP_PORT` | `api/.env` | Defaults to `587`. |
 | `SMTP_USER`, `SMTP_PASSWORD` | `api/.env` | Optional; omit both for an SMTP server without authentication, such as Mailpit. |
 | `SMTP_SECURE` | `api/.env` | `true` for implicit TLS (usually port 465); `false` (default) upgrades with STARTTLS. |
+| `STORAGE_ENDPOINT` | `api/.env` | The S3-compatible store for lesson media: `https://<account id>.r2.cloudflarestorage.com` for R2, `http://localhost:9000` for the local RustFS. Set the four storage variables together or not at all; **production requires them**. Without them, uploading says storage is not set up. |
+| `STORAGE_BUCKET` | `api/.env` | The bucket, which stays private. `farmclub-media` locally. |
+| `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `api/.env` | The store's key pair. On R2, from an API token with Object Read & Write on the bucket. |
+| `STORAGE_REGION` | `api/.env` | Defaults to `auto`, which R2 expects; RustFS accepts any name. |
+| `STORAGE_CORS_ORIGINS` | `api/.env` | `storage:setup` only: other origins the web app is served from, comma-separated, to allow beside `WEBAPP_URL`. |
 
 The API validates its environment at boot, so a missing or malformed variable
 stops the process on startup rather than failing on the first request that
@@ -172,6 +180,16 @@ it cannot carry, so set `DIRECT_URL` to the session URL if you use it.
 docker compose up -d postgres
 # then in api/.env:
 # DATABASE_URL=postgresql://farmclub:farmclub@localhost:5432/farmclub
+```
+
+The row-level security migrations revoke privileges from Supabase's `anon`
+and `authenticated` roles, which a plain Postgres doesn't have. The container
+creates them from `docker/postgres/init/` when its volume is first made. A
+volume from before that script lacks them, and `db:deploy` fails on the first
+RLS migration; create them once by hand:
+
+```bash
+docker compose exec -T postgres psql -U farmclub -d farmclub < docker/postgres/init/01-supabase-roles.sql
 ```
 
 Commands, all from the repository root:
@@ -253,6 +271,41 @@ which bypasses RLS — and so does the Supabase Studio table editor.
 
 **A new table needs the same treatment in a follow-up migration.**
 
+## File storage
+
+Lesson videos, captions and still images live in S3-compatible storage:
+Cloudflare R2 in production, RustFS locally. (MinIO, the usual local choice,
+no longer publishes its server.) The bucket is private, and the API signs
+every link to it.
+
+**Locally:**
+
+```bash
+docker compose up -d rustfs
+# uncomment the RustFS lines under "File storage" in api/.env, then:
+npm run storage:setup --workspace api
+```
+
+`storage:setup` creates the bucket and gives it a CORS rule letting the web
+app (`WEBAPP_URL`, and any `STORAGE_CORS_ORIGINS`) upload to it and play from
+it: files go straight from the browser to storage, and captions load across
+origins. It is safe to run again. The RustFS console is at
+http://localhost:9001.
+
+**On Cloudflare R2:**
+
+1. Create a bucket, and leave public access off.
+2. Create an R2 API token with **Object Read & Write** on it. Give the API its
+   access key id and secret, the bucket, and
+   `https://<account id>.r2.cloudflarestorage.com` as `STORAGE_ENDPOINT`.
+3. Give the bucket its CORS rule. Either run `storage:setup` once with a
+   token that has **Admin Read & Write**, or add it under the bucket's
+   **Settings → CORS policy**: the web app's origin; methods `GET`, `PUT` and
+   `HEAD`; allowed header `content-type`; exposed header `ETag`.
+
+Without the rule, uploads fail in the browser with a CORS error, and videos
+play without their captions.
+
 ## Walking the whole journey
 
 The seed creates the catalogue but no institution, cohort or enrolment — that
@@ -284,6 +337,25 @@ creates (see *Your first platform admin* above).
 Only *Fundamentals of Agriculture* has a published assessment — the rest are
 drafts — so it is the one place the quiz appears.
 
+## Building a lesson
+
+With [file storage](#file-storage) set up, as the platform administrator:
+
+1. **Content → Academy content** → a pathway → a module → *Add a lesson*.
+2. On the lesson, *Add a scene* of kind **Video**, open it, and upload an MP4
+   (H.264), a captions file and a still image. A captions file is WebVTT:
+   plain text whose first line is `WEBVTT`. The preview then plays it as
+   learners will see it, captions and transcript included.
+3. Add a **Notes** scene and write its notes; *Preview* shows them formatted.
+4. Back on the lesson, *Publish*. It is refused while any scene is missing a
+   file or its text, and says which. Its module must be published too.
+5. As an enrolled learner, open the lesson from its module. *Continue* moves
+   through the scenes, finishing them all completes the lesson, and
+   */my-journey* shows it.
+
+Content managers, the platform's own content team, can't be invited yet.
+Until they can, platform administrators build the Academy.
+
 ## Running an intake through its life
 
 Carrying on as the institution administrator, with the learner signed in in
@@ -311,14 +383,19 @@ another browser:
 
 ## Known issues
 
-- **`npm audit` reports 4 high-severity advisories** (`mysql2`,
-  `deepmerge-ts`). Both reach us only through the Prisma **CLI**, which is a
-  devDependency, so neither ships to production. Neither code path is
+- **`npm audit` reports `next` 16.3.5 as critical**: remote code execution
+  in `next/og`'s `ImageResponse` (GHSA-vcvr-r3jv-pc5j). Neither app uses
+  `next/og`, so the code is not reachable, but upgrade both apps together to
+  16.3.6 or later.
+- **`npm audit` reports high-severity advisories in dev-only tools.**
+  `mysql2` and `deepmerge-ts` reach us only through the Prisma **CLI**, which
+  is a devDependency, so neither ships to production. Neither code path is
   reachable: `mysql2` is only used when targeting MySQL, and `deepmerge-ts`
   merges our own `prisma.config.ts`. `npm audit fix --force` would downgrade to
   Prisma 6, a breaking change. `overrides` do not take effect on npm 10.9.4
   here, and forcing the patched versions breaks the CLI. Revisit when Prisma
-  bumps its pins.
+  bumps its pins. `brace-expansion` comes in through ESLint's `minimatch` and
+  only ever expands our own glob patterns; `npm audit fix` updates it.
 
 ## Testing the API in Swagger
 

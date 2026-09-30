@@ -133,6 +133,7 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
             enrolled={standing.enrolled}
             index={index}
             lessonHref={lessonHref}
+            moveFocus={query.scene !== undefined}
             scenes={scenes}
           />
         )}
@@ -157,12 +158,15 @@ function Scene({
   done,
   enrolled,
   lessonHref,
+  moveFocus,
 }: {
   scenes: LessonDetail["scenes"];
   index: number;
   done: ReadonlySet<string>;
   enrolled: boolean;
   lessonHref: string;
+  /** Whether the learner moved here from another scene, rather than opening the lesson. */
+  moveFocus: boolean;
 }) {
   const copy = academy.scene;
   const scene = scenes[index];
@@ -174,7 +178,9 @@ function Scene({
     <div className="grid gap-6 rounded-panel border border-farm-border bg-white p-6 sm:p-7">
       <div>
         <p className="type-overline text-farm-green-700">{copy.position(index + 1, scenes.length)}</p>
-        <SceneHeading sceneId={scene.id}>{scene.title}</SceneHeading>
+        <SceneHeading moveFocus={moveFocus} sceneId={scene.id}>
+          {scene.title}
+        </SceneHeading>
       </div>
 
       {enrolled ? (

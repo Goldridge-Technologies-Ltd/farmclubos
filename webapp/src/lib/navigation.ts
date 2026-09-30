@@ -135,6 +135,32 @@ export function canAdministerPlatform(session: SessionContext): boolean {
   return session.user.platformRole === "PLATFORM_ADMIN";
 }
 
+/**
+ * Building the Academy: its modules, lessons and their videos and notes.
+ * Shown only to the content team — see `canAuthorContent`.
+ */
+export const contentNavigation: NavItem[] = [
+  {
+    label: "Academy content",
+    href: "/content/academy",
+    icon: "book",
+    description: "Write lessons and upload their videos",
+  },
+];
+
+/**
+ * Whether to offer the Academy's authoring screens: to platform administrators
+ * and content managers. The catalogue belongs to no institution, so no
+ * institution role grants it. As elsewhere, this only decides what is shown;
+ * the API checks the role against the database on every request.
+ */
+export function canAuthorContent(session: SessionContext): boolean {
+  return (
+    session.user.platformRole === "PLATFORM_ADMIN" ||
+    session.user.platformRole === "CONTENT_MANAGER"
+  );
+}
+
 /** A labelled run of links below the main navigation, for a particular role. */
 export type NavGroup = { heading: string; items: NavItem[] };
 

@@ -135,9 +135,34 @@ export type ModuleDetail = ModuleSummary & {
   assessments: AssessmentSummary[];
 };
 
+export type SceneKind = "VIDEO" | "NOTES";
+
+/** A video scene's files, as signed links that play for a while, then expire. */
+export type SceneVideo = {
+  url: string;
+  contentType: string;
+  captionsUrl: string;
+  posterUrl: string;
+};
+
+/** One screen of a lesson. Only complete scenes ever reach a learner. */
+export type LessonScene = {
+  id: string;
+  kind: SceneKind;
+  title: string;
+  /** In the notes' formatting syntax. */
+  body: string | null;
+  /** Made from the captions. */
+  transcript: string | null;
+  /** Null for a notes scene. */
+  video: SceneVideo | null;
+};
+
 export type LessonDetail = LessonSummary & {
   /** Null while the lesson is an outline; the screen says so. */
   body: string | null;
+  /** In order. Empty while the lesson is still being authored. */
+  scenes: LessonScene[];
   pathway: PathwayRef;
   module: PathwayRef;
   previous: PathwayRef | null;
@@ -218,6 +243,23 @@ export type Journey = {
   cohort: { id: string; name: string; status: CohortStatus };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgress[];
+};
+
+/** Where the caller stands in one lesson, for resuming at the right scene. */
+export type LessonStanding = {
+  /** False for someone reading a lesson they are not enrolled on. */
+  enrolled: boolean;
+  status: ProgressStatus;
+  completedSceneIds: string[];
+};
+
+export type SceneCompletion = {
+  sceneId: string;
+  scenesCompleted: number;
+  sceneCount: number;
+  /** True once every scene is done: the lesson is then complete. */
+  lessonCompleted: boolean;
+  progressPercent: number | null;
 };
 
 export type LessonCompletion = {
@@ -357,4 +399,113 @@ export type Institution = {
   city: string | null;
   country: string | null;
   createdAt: string;
+};
+
+/* ── Academy authoring ────────────────────────────────────────────────────
+   The content team's view of the catalogue: drafts and archived items too.
+   Counts are real row counts from the API.
+*/
+
+export type PublishStatus = "DRAFT" | "PUBLISHED" | "RETIRED";
+export type MediaPurpose = "VIDEO" | "CAPTIONS" | "POSTER";
+/** Something a scene still needs before learners can see it. */
+export type SceneGap = "VIDEO" | "CAPTIONS" | "POSTER" | "BODY";
+
+export type AuthoringPathwaySummary = {
+  id: string;
+  slug: string;
+  title: string;
+  status: PublishStatus;
+  moduleCount: number;
+  publishedModuleCount: number;
+};
+
+export type AuthoringModuleSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  sequence: number;
+  status: PublishStatus;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  lessonCount: number;
+  publishedLessonCount: number;
+};
+
+export type AuthoringPathway = AuthoringPathwaySummary & {
+  summary: string;
+  modules: AuthoringModuleSummary[];
+};
+
+export type AuthoringLessonSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  sequence: number;
+  status: PublishStatus;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  kind: LessonKind;
+  authoringStatus: AuthoringStatus;
+  sceneCount: number;
+  readySceneCount: number;
+};
+
+type Ref = { id: string; slug: string; title: string };
+
+export type AuthoringModule = AuthoringModuleSummary & {
+  pathway: Ref;
+  lessons: AuthoringLessonSummary[];
+};
+
+export type AuthoringSceneSummary = {
+  id: string;
+  kind: SceneKind;
+  sequence: number;
+  title: string;
+  gaps: SceneGap[];
+};
+
+export type AuthoringLesson = AuthoringLessonSummary & {
+  module: Ref & { status: PublishStatus };
+  pathway: Ref;
+  scenes: AuthoringSceneSummary[];
+};
+
+export type MediaFile = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  /** A signed link; it expires. */
+  url: string;
+};
+
+export type AuthoringScene = {
+  id: string;
+  kind: SceneKind;
+  sequence: number;
+  title: string;
+  body: string | null;
+  transcript: string | null;
+  gaps: SceneGap[];
+  lesson: { id: string; title: string; status: PublishStatus };
+  module: { id: string; title: string };
+  pathway: Ref;
+  video: MediaFile | null;
+  captions: MediaFile | null;
+  poster: MediaFile | null;
+};
+
+/** Where the browser sends one file, straight to storage. */
+export type UploadTicket = {
+  assetId: string;
+  url: string;
+  method: "PUT";
+  /** Sent exactly: they are part of the signature. */
+  headers: Record<string, string>;
+  expiresAt: string;
 };

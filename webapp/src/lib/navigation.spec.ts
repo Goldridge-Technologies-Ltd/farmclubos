@@ -1,7 +1,9 @@
 import {
   appNavigation,
   canAdministerPlatform,
+  canAuthorContent,
   canManageInstitution,
+  contentNavigation,
   isActiveNavItem,
   manageNavigation,
   platformNavigation,
@@ -154,6 +156,52 @@ describe("platformNavigation", () => {
     const others = new Set([...appNavigation, ...manageNavigation].map((item) => item.href));
 
     for (const item of platformNavigation) {
+      expect(others.has(item.href)).toBe(false);
+    }
+  });
+});
+
+/*
+  The Academy belongs to no institution, so the content team is picked out by
+  platform role alone: administrators and content managers, whatever
+  institution — if any — they are working in.
+*/
+describe("canAuthorContent", () => {
+  const session = (platformRole: "PLATFORM_ADMIN" | "CONTENT_MANAGER" | "NONE") => ({
+    user: {
+      id: "user-1",
+      email: "writer@example.com",
+      firstName: "Wren",
+      lastName: "Writer",
+      platformRole,
+    },
+    activeInstitutionId: null,
+    institutionRole: null,
+    memberships: [],
+  });
+
+  it.each(["PLATFORM_ADMIN", "CONTENT_MANAGER"] as const)("is true for %s", (role) => {
+    expect(canAuthorContent(session(role))).toBe(true);
+  });
+
+  it("is false for everyone else, an institution administrator included", () => {
+    expect(
+      canAuthorContent({
+        ...session("NONE"),
+        activeInstitutionId: "institution-1",
+        institutionRole: "INSTITUTION_ADMIN",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("contentNavigation", () => {
+  it("shares no href with any other group", () => {
+    const others = new Set(
+      [...appNavigation, ...manageNavigation, ...platformNavigation].map((item) => item.href),
+    );
+
+    for (const item of contentNavigation) {
       expect(others.has(item.href)).toBe(false);
     }
   });

@@ -35,6 +35,7 @@ export const appShell = {
   /** Above each role's own links in the sidebar and the drawer. */
   manageHeading: "Manage",
   platformHeading: "Platform",
+  contentHeading: "Content",
   menu: {
     open: "Open the menu",
     close: "Close the menu",
@@ -126,6 +127,12 @@ export const homeScreen = {
       "Your institution enrols you onto a cohort. Until then you can browse the " +
       "Academy; once you are enrolled, your pathway and progress appear here.",
     action: "Browse the Academy",
+  },
+  content: {
+    title: "Academy content",
+    description:
+      "Build the Academy's modules and lessons, and fill them with videos and notes.",
+    action: "Open Academy content",
   },
   platform: {
     title: "Run the platform",

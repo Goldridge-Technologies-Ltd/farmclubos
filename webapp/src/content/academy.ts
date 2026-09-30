@@ -109,6 +109,13 @@ export const academy = {
     },
   },
 
+  /** A lesson's scenes: its videos and notes, one screen at a time. */
+  scene: {
+    transcript: "Transcript",
+    /** The captions track's name in the player's menu. */
+    captions: "English",
+  },
+
   assessment: {
     passMark: (percent: number) => `Pass mark ${percent}%`,
     beingAuthored: "Being written",

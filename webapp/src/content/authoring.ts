@@ -1,4 +1,4 @@
-import type { PublishStatus, SceneGap, SceneKind } from "@/lib/api/contracts";
+import type { MediaPurpose, PublishStatus, SceneGap, SceneKind } from "@/lib/api/contracts";
 
 /*
   Copy for the content team's screens, where the Academy is built.
@@ -171,6 +171,80 @@ export const authoringContent = {
           ? `Remove “${title}”? Its video, captions and still image are deleted, and this can't be undone.`
           : `Remove “${title}”? Its notes are deleted, and this can't be undone.`,
       done: (title: string) => `“${title}” is removed.`,
+    },
+  },
+
+  scene: {
+    backToLesson: "Back to the lesson",
+    files: {
+      title: "Files",
+      description: "A video scene needs all three before learners can see it.",
+    },
+    slots: {
+      VIDEO: {
+        label: "Video",
+        hint: "An MP4 (H.264 video, AAC audio) up to 1 GB. Scenes work best at 30 to 90 seconds.",
+      },
+      CAPTIONS: {
+        label: "Captions",
+        hint:
+          "A WebVTT (.vtt) file of everything said, up to 1 MB. Learners also get a " +
+          "transcript made from it.",
+      },
+      POSTER: {
+        label: "Still image",
+        hint:
+          "A JPG, PNG or WebP up to 5 MB, ideally 16:9. It shows before the video plays, " +
+          "and in its place on a slow connection.",
+      },
+    } satisfies Record<MediaPurpose, { label: string; hint: string }>,
+    expected: {
+      VIDEO: "an MP4 video",
+      CAPTIONS: "a WebVTT captions file (.vtt)",
+      POSTER: "a JPG, PNG or WebP image",
+    } satisfies Record<MediaPurpose, string>,
+    current: (name: string, size: string, date: string) => `${name} · ${size} · uploaded ${date}`,
+    none: "Not uploaded yet.",
+    choose: (label: string) => `Choose the ${label.toLowerCase()} file`,
+    upload: "Upload",
+    replace: "Upload a replacement",
+    progress: (name: string) => `Uploading ${name}`,
+    checking: "Checking the file…",
+    uploaded: (name: string) => `${name} is uploaded.`,
+    wrongType: (expected: string) => `That file isn't ${expected}.`,
+    tooLarge: (size: string, max: string) => `That file is ${size}; this takes up to ${max}.`,
+    interrupted:
+      "The upload didn't finish. Check your connection, then choose the file and upload it again.",
+    preview: {
+      title: "Preview",
+      description: "As learners see it, captions and transcript included.",
+      waiting: "The preview appears once the video is uploaded.",
+    },
+    details: {
+      title: "Details",
+      videoDescription: "The scene's title, and any short lines to show under the video.",
+      notesDescription: "The scene's title and its notes.",
+    },
+    fields: {
+      supportingText: "Supporting text",
+      supportingHint:
+        "Optional. One to three short lines under the video; the narration carries the detail.",
+      notes: "Notes",
+      notesHint:
+        "Use the buttons, or type ## for a heading, **bold**, _italic_, - for a list, " +
+        "1. for a numbered list and [words](https://…) for a link.",
+    },
+    editor: {
+      toolbar: "Formatting",
+      heading: "Heading",
+      bold: "Bold",
+      italic: "Italic",
+      bulleted: "Bulleted list",
+      numbered: "Numbered list",
+      link: "Link",
+      write: "Write",
+      preview: "Preview",
+      nothing: "Nothing to preview yet.",
     },
   },
 } as const;

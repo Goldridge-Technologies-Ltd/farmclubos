@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authoringContent } from "@/content/authoring";
 import { apiRequest } from "../api/client";
-import type { AuthoringLessonSummary, AuthoringModuleSummary, AuthoringScene } from "../api/contracts";
+import type {
+  AuthoringLessonSummary,
+  AuthoringModuleSummary,
+  AuthoringScene,
+  MediaPurpose,
+  UploadTicket,
+} from "../api/contracts";
+import { userMessage } from "../api/errors";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
 /*
@@ -162,6 +169,74 @@ export async function moveScene(_previous: FormState, formData: FormData): Promi
 
 export async function removeScene(_previous: FormState, formData: FormData): Promise<FormState> {
   return command(`/api/authoring/scenes/${id(formData, "sceneId")}`, copy.lesson.remove.done(text(formData, "title")), "DELETE");
+}
+
+/** Saves a scene's title and text — a notes scene's notes, a video's lines. */
+export async function updateScene(_previous: FormState, formData: FormData): Promise<FormState> {
+  const sceneId = id(formData, "sceneId");
+  const title = text(formData, "title");
+  const keep = (state: FormState) => keepValues(state, formData, ["title"]);
+  const missing = missingValues({ title });
+
+  if (missing) {
+    return keep(missing);
+  }
+
+  try {
+    await apiRequest(`/api/authoring/scenes/${sceneId}`, {
+      method: "PATCH",
+      // Kept as typed — its blank lines are its paragraphs — and cleared when empty.
+      body: { title, body: String(formData.get("body") ?? "").trim() || null },
+    });
+  } catch (error) {
+    return keep(toFormState(error, ["title", "body"]));
+  }
+
+  revalidatePath("/", "layout");
+
+  return { status: "success", message: copy.details.saved };
+}
+
+/** Either where to send the file, or why it cannot be sent. */
+export type UploadStart = { ticket: UploadTicket } | { error: string };
+
+/**
+ * Asks the API for a link to upload one file to. The file itself never comes
+ * through here: the browser sends it straight to storage with the link.
+ */
+export async function requestUpload(input: {
+  sceneId: string;
+  purpose: MediaPurpose;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}): Promise<UploadStart> {
+  try {
+    const ticket = await apiRequest<UploadTicket>(
+      `/api/authoring/scenes/${encodeURIComponent(input.sceneId)}/uploads`,
+      {
+        method: "POST",
+        body: {
+          purpose: input.purpose,
+          fileName: input.fileName,
+          contentType: input.contentType,
+          sizeBytes: input.sizeBytes,
+        },
+      },
+    );
+
+    return { ticket };
+  } catch (error) {
+    return { error: userMessage(error) };
+  }
+}
+
+/** Once the file is in storage: the API checks it, then attaches it. */
+export async function completeUpload(assetId: string, fileName: string): Promise<FormState> {
+  return command(
+    `/api/authoring/uploads/${encodeURIComponent(assetId)}/complete`,
+    copy.scene.uploaded(fileName),
+  );
 }
 
 // ─── Shared ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@
 #
 #   docker compose up -d postgres   # then point DATABASE_URL at it
 #   docker compose up -d mailpit    # catches invite emails, UI on :8025
+#   docker compose up -d rustfs     # lesson media storage, console on :9001
 services:
   postgres:
     # Pin to the major version Supabase runs, so local and hosted agree.
@@ -34,5 +35,25 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  # S3-compatible file storage for lesson videos, captions and still images,
+  # standing in for Cloudflare R2: the API talks to both the same way. Point
+  # the STORAGE_* settings in api/.env at it, then run
+  # `npm run storage:setup --workspace api` once to create the bucket.
+  rustfs:
+    image: rustfs/rustfs:1.0.0
+    container_name: farmclub-rustfs
+    restart: unless-stopped
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ACCESS_KEY: farmclub
+      RUSTFS_SECRET_KEY: farmclub-dev-secret # allowlist secret: local development only
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - farmclub-rustfs-data:/data
+
 volumes:
   farmclub-postgres-data:
+  farmclub-rustfs-data:

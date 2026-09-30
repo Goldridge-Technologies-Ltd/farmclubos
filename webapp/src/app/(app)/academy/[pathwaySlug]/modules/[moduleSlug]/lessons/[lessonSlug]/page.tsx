@@ -146,7 +146,8 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
         />
       </div>
 
-      {lessonNavigation}
+      {/* At the end the panel already leads on, to the next lesson or the module. */}
+      {atEnd ? null : lessonNavigation}
     </div>
   );
 }

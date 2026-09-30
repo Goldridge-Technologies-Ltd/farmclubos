@@ -141,7 +141,6 @@ export class AcademyService {
       },
       select: {
         ...lessonSummarySelect,
-        body: true,
         module: {
           select: {
             slug: true,
@@ -178,7 +177,6 @@ export class AcademyService {
 
     return {
       ...toLessonSummary(row),
-      body: row.body,
       scenes,
       pathway: row.module.pathway,
       module: { slug: row.module.slug, title: row.module.title },

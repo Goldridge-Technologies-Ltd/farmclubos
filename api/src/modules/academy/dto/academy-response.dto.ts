@@ -199,13 +199,6 @@ export class LessonSceneDto implements LessonSceneView {
 
 export class LessonDetailDto extends LessonSummaryDto implements LessonDetailView {
   @ApiProperty({
-    type: String,
-    nullable: true,
-    description: "Null while the lesson is an outline awaiting authoring.",
-  })
-  body: string | null;
-
-  @ApiProperty({
     type: [LessonSceneDto],
     description: "Its complete scenes, in order. Empty while it is being authored.",
   })

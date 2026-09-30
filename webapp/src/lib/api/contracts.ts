@@ -159,8 +159,6 @@ export type LessonScene = {
 };
 
 export type LessonDetail = LessonSummary & {
-  /** Null while the lesson is an outline; the screen says so. */
-  body: string | null;
   /** In order. Empty while the lesson is still being authored. */
   scenes: LessonScene[];
   pathway: PathwayRef;

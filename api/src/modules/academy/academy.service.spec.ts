@@ -36,7 +36,6 @@ const lessonRow = (overrides: Record<string, unknown> = {}) => ({
   slug: "introduction",
   title: "Fundamentals of Agriculture",
   summary: "The ground the rest is built on.",
-  body: null,
   kind: "TEXT",
   authoringStatus: "PLACEHOLDER",
   durationMinutes: null,
@@ -320,17 +319,19 @@ describe("AcademyService", () => {
       expect(view.next).toBeNull();
     });
 
-    it("keeps a placeholder's null body rather than inventing content", async () => {
+    it("gives a lesson still being authored no scenes rather than inventing content", async () => {
       prisma.lesson.findFirst.mockResolvedValue({
-        ...lessonRow({ body: null, authoringStatus: "PLACEHOLDER" }),
+        ...lessonRow({ authoringStatus: "PLACEHOLDER", scenes: [] }),
         module: { slug: "m", title: "M", pathway: { slug: "p", title: "P" } },
       });
       prisma.lesson.findMany.mockResolvedValue([lessonRow()]);
 
       const view = await service.getLesson("p", "m", "introduction");
 
-      expect(view.body).toBeNull();
+      expect(view.scenes).toEqual([]);
       expect(view.authoringStatus).toBe("PLACEHOLDER");
+      // A lesson's text lives in its notes scenes; the old single text field is gone.
+      expect(view).not.toHaveProperty("body");
     });
 
     it("is a 404 when the lesson, its module or its pathway is unpublished", async () => {

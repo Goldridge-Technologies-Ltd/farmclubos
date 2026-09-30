@@ -91,8 +91,6 @@ export type LessonSceneView = {
 };
 
 export type LessonDetailView = LessonSummaryView & {
-  /** Null while the lesson is an outline; the screen says so rather than blank. */
-  body: string | null;
   /** In order. Empty while the lesson is still being authored. */
   scenes: LessonSceneView[];
   pathway: PathwayRefView;

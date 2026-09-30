@@ -213,39 +213,16 @@ function Scene({
   );
 }
 
-/*
-  A lesson with no scenes yet: its text if it has any, otherwise a plain word
-  that it is being written. The text is shown as paragraphs, never as markup.
-*/
+/** A lesson with no scenes yet: a plain word that it is being written. */
 function OutlineLesson({ lesson }: { lesson: LessonDetail }) {
+  const copy =
+    lesson.authoringStatus === "IN_REVIEW" ? academy.lesson.inReview : academy.lesson.beingAuthored;
+
   return (
     <Panel>
-      {lesson.body ? (
-        <div className="grid gap-4">
-          {lesson.body
-            .split(/\n{2,}/)
-            .map((paragraph) => paragraph.trim())
-            .filter(Boolean)
-            .map((paragraph, index) => (
-              <p key={index} className="type-body text-farm-charcoal">
-                {paragraph}
-              </p>
-            ))}
-        </div>
-      ) : (
-        <Notice
-          title={
-            lesson.authoringStatus === "IN_REVIEW"
-              ? academy.lesson.inReview.title
-              : academy.lesson.beingAuthored.title
-          }
-          tone="info"
-        >
-          {lesson.authoringStatus === "IN_REVIEW"
-            ? academy.lesson.inReview.description
-            : academy.lesson.beingAuthored.description}
-        </Notice>
-      )}
+      <Notice title={copy.title} tone="info">
+        {copy.description}
+      </Notice>
     </Panel>
   );
 }

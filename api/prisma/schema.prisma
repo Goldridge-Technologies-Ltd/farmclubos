@@ -454,14 +454,14 @@ model PathwayModule {
   @@index([pathwayId, sequence])
 }
 
+/// Its content is its scenes, in order: videos and notes. With none yet it
+/// is an outline still being authored, and learners are told so.
 model Lesson {
   id         String          @id @default(uuid(7)) @db.Uuid
   moduleId   String          @db.Uuid
   slug       String
   title      String
   summary    String?
-  /// Null while the lesson is a seeded outline awaiting authoring.
-  body       String?
   kind       LessonKind      @default(TEXT)
   authoringStatus AuthoringStatus @default(PLACEHOLDER)
   /// Never seeded: see the guardrail note at the top of this file.

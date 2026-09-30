@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { PublishStatus } from "../../generated/prisma/enums.js";
@@ -21,6 +16,7 @@ import type {
   CurriculumItemInput,
   MoveDirection,
 } from "./authoring.types.js";
+import { audit, clean, nextSequence, notFound, reorder } from "./authoring.helpers.js";
 import { ContentAccessService } from "./content-access.service.js";
 import { slugFor } from "./slug.js";
 
@@ -809,68 +805,11 @@ function slugFollowsTitle(row: { status: PublishStatus; publishedAt: Date | null
   return row.status === "DRAFT" && !row.publishedAt;
 }
 
-/** After the last, counting archived siblings, so a restore never collides. */
-function nextSequence(siblings: { sequence: number }[]): number {
-  return siblings.reduce((max, item) => Math.max(max, item.sequence), 0) + 1;
-}
-
-/**
- * The sequence changes that move one item up or down among its siblings,
- * numbering them 1…n as it goes so ties from older data sort themselves out.
- * Empty when it is already at that end.
- */
-export function reorder(
-  siblings: { id: string; sequence: number }[],
-  id: string,
-  direction: MoveDirection,
-): { id: string; sequence: number }[] {
-  const from = siblings.findIndex((item) => item.id === id);
-  const to = direction === "UP" ? from - 1 : from + 1;
-
-  if (from === -1 || to < 0 || to >= siblings.length) {
-    return [];
-  }
-
-  const order = [...siblings];
-  [order[from], order[to]] = [order[to], order[from]];
-
-  return order
-    .map((item, index) => ({ id: item.id, sequence: index + 1, was: item.sequence }))
-    .filter((item) => item.sequence !== item.was)
-    .map(({ id: changed, sequence }) => ({ id: changed, sequence }));
-}
-
-/** Trimmed; empty becomes null, and undefined stays "not sent". */
-function clean(value: string | null | undefined): string | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const trimmed = value?.trim() ?? "";
-
-  return trimmed === "" ? null : trimmed;
-}
-
 /** “A”, “A and B”, “A, B and C”. */
 function listOf(items: string[]): string {
   return items.length <= 1
     ? (items[0] ?? "")
     : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
-
-async function audit(
-  tx: Prisma.TransactionClient,
-  actorUserId: string,
-  action: string,
-  entityType: string,
-  entityId: string,
-  metadata?: Prisma.InputJsonValue,
-): Promise<void> {
-  await tx.auditEvent.create({ data: { actorUserId, action, entityType, entityId, metadata } });
-}
-
-function notFound(what: string) {
-  return new NotFoundException({ code: "NOT_FOUND", message: `That ${what} does not exist.` });
 }
 
 function archived(what: string) {

@@ -2,6 +2,7 @@ import type {
   AuthoringStatus,
   LessonKind,
   LessonSceneKind,
+  MediaPurpose,
   PublishStatus,
 } from "../../generated/prisma/enums.js";
 import type { SceneGap } from "../academy/scene-readiness.js";
@@ -84,3 +85,56 @@ export type CurriculumItemInput = {
 };
 
 export type MoveDirection = "UP" | "DOWN";
+
+// ─── Scenes and their files ─────────────────────────────────────────────────
+
+export type MediaFileView = {
+  id: string;
+  /** The name it was uploaded with. */
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: Date;
+  /** A signed link to play or show it. It expires, so it is never stored. */
+  url: string;
+};
+
+export type AuthoringSceneView = {
+  id: string;
+  kind: LessonSceneKind;
+  sequence: number;
+  title: string;
+  body: string | null;
+  /** Made from the captions file; null until captions are uploaded. */
+  transcript: string | null;
+  gaps: SceneGap[];
+  lesson: { id: string; title: string; status: PublishStatus };
+  module: { id: string; title: string };
+  pathway: PathwayRefView;
+  video: MediaFileView | null;
+  captions: MediaFileView | null;
+  poster: MediaFileView | null;
+};
+
+export type SceneInput = {
+  title?: string;
+  /** Null or empty clears it. */
+  body?: string | null;
+};
+
+export type UploadRequestInput = {
+  purpose: MediaPurpose;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+};
+
+/** Where the browser sends one file, straight to storage. */
+export type UploadTicketView = {
+  assetId: string;
+  url: string;
+  method: "PUT";
+  /** Must be sent exactly: they are part of the signature. */
+  headers: Record<string, string>;
+  expiresAt: Date;
+};

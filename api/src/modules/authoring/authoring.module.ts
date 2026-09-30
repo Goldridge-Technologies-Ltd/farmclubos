@@ -3,6 +3,8 @@ import { ProgressModule } from "../progress/progress.module.js";
 import { ContentAccessService } from "./content-access.service.js";
 import { CurriculumController } from "./curriculum.controller.js";
 import { CurriculumService } from "./curriculum.service.js";
+import { ScenesController } from "./scenes.controller.js";
+import { ScenesService } from "./scenes.service.js";
 
 /*
   The content team's side of the Academy. The learner's side stays in the
@@ -11,7 +13,7 @@ import { CurriculumService } from "./curriculum.service.js";
 */
 @Module({
   imports: [ProgressModule],
-  controllers: [CurriculumController],
-  providers: [CurriculumService, ContentAccessService],
+  controllers: [CurriculumController, ScenesController],
+  providers: [CurriculumService, ScenesService, ContentAccessService],
 })
 export class AuthoringModule {}

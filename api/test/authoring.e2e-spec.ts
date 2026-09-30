@@ -7,6 +7,7 @@ import type {
 } from "../src/common/http/api-response.js";
 import { AuthoringModule } from "../src/modules/authoring/authoring.module.js";
 import { CurriculumService } from "../src/modules/authoring/curriculum.service.js";
+import { ScenesService } from "../src/modules/authoring/scenes.service.js";
 import { createTestApp } from "./support/create-test-app.js";
 
 const asSuccess = <T>(body: unknown) => body as ApiSuccessResponse<T>;
@@ -18,6 +19,8 @@ const fn = (): AsyncMock => jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const PATHWAY = "01a0d0d8-0000-7000-8000-000000000011";
 const MODULE = "01a0d0d8-0000-7000-8000-000000000012";
 const LESSON = "01a0d0d8-0000-7000-8000-000000000013";
+const SCENE = "01a0d0d8-0000-7000-8000-000000000014";
+const ASSET = "01a0d0d8-0000-7000-8000-000000000015";
 
 /*
   The authoring routes' HTTP contract: who may call them, what they accept,
@@ -47,10 +50,23 @@ describe("Authoring — modules and lessons (e2e)", () => {
     restoreLesson: fn(),
   };
 
+  const scenes = {
+    createScene: fn(),
+    getScene: fn(),
+    updateScene: fn(),
+    moveScene: fn(),
+    removeScene: fn(),
+    requestUpload: fn(),
+    completeUpload: fn(),
+  };
+
   beforeAll(async () => {
     ({ app, signAccessToken } = await createTestApp({
       imports: [AuthoringModule],
-      overrides: [{ provide: CurriculumService, useValue: curriculum }],
+      overrides: [
+        { provide: CurriculumService, useValue: curriculum },
+        { provide: ScenesService, useValue: scenes },
+      ],
     }));
   });
 
@@ -213,6 +229,103 @@ describe("Authoring — modules and lessons (e2e)", () => {
         code: "LESSON_INCOMPLETE",
         message: "Finish “Four flows” before publishing this lesson.",
       });
+    });
+  });
+
+  describe("scenes", () => {
+    it("adds a video or notes scene, and nothing else", async () => {
+      scenes.createScene.mockResolvedValue({ id: SCENE });
+
+      await request(server())
+        .post(`/api/authoring/lessons/${LESSON}/scenes`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send({ kind: "VIDEO", title: "Four flows" })
+        .expect(201);
+      await request(server())
+        .post(`/api/authoring/lessons/${LESSON}/scenes`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send({ kind: "QUIZ", title: "Not yet" })
+        .expect(400);
+
+      expect(scenes.createScene).toHaveBeenCalledTimes(1);
+    });
+
+    it("removes a scene with DELETE", async () => {
+      scenes.removeScene.mockResolvedValue({ id: SCENE });
+
+      const response = await request(server())
+        .delete(`/api/authoring/scenes/${SCENE}`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .expect(200);
+
+      expect(asSuccess(response.body)).toMatchObject({ message: "Scene removed", data: { id: SCENE } });
+    });
+  });
+
+  describe("uploads", () => {
+    const upload = { purpose: "VIDEO", fileName: "four-flows.mp4", contentType: "video/mp4", sizeBytes: 4096 };
+
+    it("answers 201 with where to send the file", async () => {
+      scenes.requestUpload.mockResolvedValue({
+        assetId: ASSET,
+        url: "https://storage.example/put",
+        method: "PUT",
+        headers: { "Content-Type": "video/mp4" },
+        expiresAt: "2026-09-30T10:15:00.000Z",
+      });
+
+      const response = await request(server())
+        .post(`/api/authoring/scenes/${SCENE}/uploads`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send(upload)
+        .expect(201);
+
+      expect(asSuccess(response.body)).toMatchObject({
+        message: "Upload ready",
+        data: { assetId: ASSET, method: "PUT" },
+      });
+    });
+
+    it("refuses a size that is not a whole, positive number", async () => {
+      // A string of digits is read as its number, as for every numeric field.
+      for (const sizeBytes of [0, -1, 1.5, "a lot"]) {
+        await request(server())
+          .post(`/api/authoring/scenes/${SCENE}/uploads`)
+          .set("authorization", await as("CONTENT_MANAGER"))
+          .send({ ...upload, sizeBytes })
+          .expect(400);
+      }
+
+      expect(scenes.requestUpload).not.toHaveBeenCalled();
+    });
+
+    it("refuses a purpose it does not know", async () => {
+      await request(server())
+        .post(`/api/authoring/scenes/${SCENE}/uploads`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send({ ...upload, purpose: "THUMBNAIL" })
+        .expect(400);
+    });
+
+    it("finishes an upload, and passes a refusal through with its code", async () => {
+      scenes.completeUpload.mockRejectedValueOnce(
+        new BadRequestException({ code: "CAPTIONS_INVALID", message: "That is not WebVTT." }),
+      );
+
+      const response = await request(server())
+        .post(`/api/authoring/uploads/${ASSET}/complete`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .expect(400);
+
+      expect(asFailure(response.body).error.code).toBe("CAPTIONS_INVALID");
+    });
+
+    it("keeps uploads to the content team", async () => {
+      await request(server())
+        .post(`/api/authoring/scenes/${SCENE}/uploads`)
+        .set("authorization", await as("NONE"))
+        .send(upload)
+        .expect(403);
     });
   });
 });

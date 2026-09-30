@@ -10,7 +10,7 @@ export function slugFor(title: string, kind: string, taken: ReadonlySet<string>)
   const base =
     title
       .normalize("NFKD")
-      .replace(/[̀-ͯ]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .slice(0, MAX_LENGTH)

@@ -19,6 +19,8 @@ services:
       - "5432:5432"
     volumes:
       - farmclub-postgres-data:/var/lib/postgresql/data
+      # Supabase's roles, which the row-level security migrations expect.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U farmclub -d farmclub"]
       interval: 5s

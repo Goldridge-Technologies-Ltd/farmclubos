@@ -3,18 +3,21 @@ import {
   AssessmentKind,
   AuthoringStatus,
   LessonKind,
+  LessonSceneKind,
   PathwayLevel,
 } from "../../../generated/prisma/enums.js";
 import type {
   AssessmentSummaryView,
   LessonDetailView,
   LessonLinkView,
+  LessonSceneView,
   LessonSummaryView,
   ModuleDetailView,
   ModuleSummaryView,
   PathwayDetailView,
   PathwayRefView,
   PathwaySummaryView,
+  SceneVideoView,
 } from "../academy.types.js";
 
 /*
@@ -160,6 +163,40 @@ export class LessonLinkDto implements LessonLinkView {
   title: string;
 }
 
+export class SceneVideoDto implements SceneVideoView {
+  @ApiProperty({ description: "A signed link that plays the video. It expires; never store it." })
+  url: string;
+
+  @ApiProperty({ example: "video/mp4" })
+  contentType: string;
+
+  @ApiProperty({ description: "Signed link to its WebVTT captions." })
+  captionsUrl: string;
+
+  @ApiProperty({ description: "Signed link to the still image shown before it plays." })
+  posterUrl: string;
+}
+
+export class LessonSceneDto implements LessonSceneView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: LessonSceneKind, enumName: "LessonSceneKind" })
+  kind: LessonSceneKind;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty({ type: String, nullable: true, description: "In the notes' formatting syntax." })
+  body: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: "Made from the captions." })
+  transcript: string | null;
+
+  @ApiProperty({ type: SceneVideoDto, nullable: true, description: "Null for a notes scene." })
+  video: SceneVideoDto | null;
+}
+
 export class LessonDetailDto extends LessonSummaryDto implements LessonDetailView {
   @ApiProperty({
     type: String,
@@ -167,6 +204,12 @@ export class LessonDetailDto extends LessonSummaryDto implements LessonDetailVie
     description: "Null while the lesson is an outline awaiting authoring.",
   })
   body: string | null;
+
+  @ApiProperty({
+    type: [LessonSceneDto],
+    description: "Its complete scenes, in order. Empty while it is being authored.",
+  })
+  scenes: LessonSceneDto[];
 
   @ApiProperty({ type: PathwayRefDto })
   pathway: PathwayRefDto;

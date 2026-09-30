@@ -2,6 +2,7 @@ import type {
   AssessmentKind,
   AuthoringStatus,
   LessonKind,
+  LessonSceneKind,
   PathwayLevel,
 } from "../../generated/prisma/enums.js";
 
@@ -65,9 +66,35 @@ export type LessonSummaryView = {
 
 export type LessonLinkView = { slug: string; title: string };
 
+/** A video scene's files, as links that play for a while and then expire. */
+export type SceneVideoView = {
+  url: string;
+  contentType: string;
+  captionsUrl: string;
+  posterUrl: string;
+};
+
+/**
+ * One screen of a lesson, as a learner gets it: only complete scenes are ever
+ * included, so a video always has its captions and still image.
+ */
+export type LessonSceneView = {
+  id: string;
+  kind: LessonSceneKind;
+  title: string;
+  /** In the notes' formatting syntax. A notes scene always has one. */
+  body: string | null;
+  /** Made from the captions, for reading instead of or beside the video. */
+  transcript: string | null;
+  /** Null for a notes scene. */
+  video: SceneVideoView | null;
+};
+
 export type LessonDetailView = LessonSummaryView & {
   /** Null while the lesson is an outline; the screen says so rather than blank. */
   body: string | null;
+  /** In order. Empty while the lesson is still being authored. */
+  scenes: LessonSceneView[];
   pathway: PathwayRefView;
   module: PathwayRefView;
   previous: LessonLinkView | null;

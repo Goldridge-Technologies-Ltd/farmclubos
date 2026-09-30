@@ -18,7 +18,12 @@ const user: AuthenticatedUser = {
 
 describe("ProgressController", () => {
   let controller: ProgressController;
-  const progress = { myJourney: fn(), completeLesson: fn() };
+  const progress = {
+    myJourney: fn(),
+    completeLesson: fn(),
+    completeScene: fn(),
+    lessonProgress: fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -47,5 +52,21 @@ describe("ProgressController", () => {
     // A learner id in the body would be a route to writing someone else's
     // progress; there is deliberately no such parameter.
     expect(progress.completeLesson).toHaveBeenCalledWith(user, "lesson-1");
+  });
+
+  it("takes the scene from the body and the learner from the token", async () => {
+    progress.completeScene.mockResolvedValue({});
+
+    await controller.completeScene(user, { sceneId: "scene-1" });
+
+    expect(progress.completeScene).toHaveBeenCalledWith(user, "scene-1");
+  });
+
+  it("reads a lesson's progress for the caller in the token", async () => {
+    progress.lessonProgress.mockResolvedValue({});
+
+    await controller.lessonProgress(user, "lesson-1");
+
+    expect(progress.lessonProgress).toHaveBeenCalledWith(user, "lesson-1");
   });
 });

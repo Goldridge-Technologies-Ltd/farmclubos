@@ -54,3 +54,23 @@ export type LessonCompletionView = {
   moduleStatus: ProgressStatus;
   progressPercent: number;
 };
+
+/** What finishing one scene changed. */
+export type SceneCompletionView = {
+  sceneId: string;
+  /** The lesson's complete scenes the caller has finished, this one included. */
+  scenesCompleted: number;
+  sceneCount: number;
+  /** True once every scene is done: the lesson is then complete. */
+  lessonCompleted: boolean;
+  /** The caller's percentage through the pathway, when this completed the lesson. */
+  progressPercent: number | null;
+};
+
+/** Where the caller stands in one lesson, for resuming at the right scene. */
+export type LessonStandingView = {
+  /** False for anyone reading a lesson they are not enrolled on. */
+  enrolled: boolean;
+  status: ProgressStatus;
+  completedSceneIds: string[];
+};

@@ -1,15 +1,18 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../lib/database/prisma.service.js";
+import { StorageService } from "../../lib/storage/storage.service.js";
 import type {
   AssessmentSummaryView,
   LessonDetailView,
   LessonLinkView,
+  LessonSceneView,
   LessonSummaryView,
   ModuleDetailView,
   ModuleSummaryView,
   PathwayDetailView,
   PathwaySummaryView,
 } from "./academy.types.js";
+import { readyScene } from "./scene-readiness.js";
 
 /*
   The Academy catalogue, read-only.
@@ -29,7 +32,10 @@ const published = { status: "PUBLISHED", archivedAt: null } as const;
 
 @Injectable()
 export class AcademyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async listPathways(): Promise<PathwaySummaryView[]> {
     const rows = await this.prisma.pathway.findMany({
@@ -143,6 +149,21 @@ export class AcademyService {
             pathway: { select: { slug: true, title: true } },
           },
         },
+        // Only complete scenes: one still missing a file is the content team's.
+        scenes: {
+          where: readyScene,
+          orderBy: { sequence: "asc" },
+          select: {
+            id: true,
+            kind: true,
+            title: true,
+            body: true,
+            transcript: true,
+            video: { select: { storageKey: true, contentType: true } },
+            captions: { select: { storageKey: true } },
+            poster: { select: { storageKey: true } },
+          },
+        },
       },
     });
 
@@ -150,15 +171,50 @@ export class AcademyService {
       throw notFound("lesson");
     }
 
-    const { previous, next } = await this.neighbours(row.id, moduleSlug, pathwaySlug);
+    const [{ previous, next }, scenes] = await Promise.all([
+      this.neighbours(row.id, moduleSlug, pathwaySlug),
+      Promise.all(row.scenes.map((scene) => this.toScene(scene))),
+    ]);
 
     return {
       ...toLessonSummary(row),
       body: row.body,
+      scenes,
       pathway: row.module.pathway,
       module: { slug: row.module.slug, title: row.module.title },
       previous,
       next,
+    };
+  }
+
+  /** A scene with signed links to its files, which expire rather than leak. */
+  private async toScene(scene: {
+    id: string;
+    kind: LessonSceneView["kind"];
+    title: string;
+    body: string | null;
+    transcript: string | null;
+    video: { storageKey: string; contentType: string } | null;
+    captions: { storageKey: string } | null;
+    poster: { storageKey: string } | null;
+  }): Promise<LessonSceneView> {
+    const { video, captions, poster } = scene;
+
+    return {
+      id: scene.id,
+      kind: scene.kind,
+      title: scene.title,
+      body: scene.body,
+      transcript: scene.transcript,
+      video:
+        video && captions && poster
+          ? {
+              url: await this.storage.signDownload(video.storageKey),
+              contentType: video.contentType,
+              captionsUrl: await this.storage.signDownload(captions.storageKey),
+              posterUrl: await this.storage.signDownload(poster.storageKey),
+            }
+          : null,
     };
   }
 

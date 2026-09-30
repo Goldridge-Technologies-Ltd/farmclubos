@@ -2,7 +2,9 @@ import { jest } from "@jest/globals";
 import { NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { PrismaService } from "../../lib/database/prisma.service.js";
+import { StorageService } from "../../lib/storage/storage.service.js";
 import { AcademyService } from "./academy.service.js";
+import { readyScene } from "./scene-readiness.js";
 
 type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
 const fn = (): AsyncMock => jest.fn<(...args: unknown[]) => Promise<unknown>>();
@@ -39,6 +41,7 @@ const lessonRow = (overrides: Record<string, unknown> = {}) => ({
   authoringStatus: "PLACEHOLDER",
   durationMinutes: null,
   sequence: 1,
+  scenes: [],
   ...overrides,
 });
 
@@ -57,8 +60,16 @@ describe("AcademyService", () => {
       lesson: { findFirst: fn(), findMany: fn() },
     };
 
+    const storage = {
+      signDownload: jest.fn((key: string) => Promise.resolve(`signed:${key}`)),
+    };
+
     const moduleRef = await Test.createTestingModule({
-      providers: [AcademyService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AcademyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: StorageService, useValue: storage },
+      ],
     }).compile();
 
     service = moduleRef.get(AcademyService);
@@ -218,6 +229,63 @@ describe("AcademyService", () => {
 
       expect(view.pathway).toEqual({ slug: "foundation", title: "Foundation" });
       expect(view.module.slug).toBe("fundamentals-of-agriculture");
+    });
+
+    it("carries its complete scenes in order, each video with links to play it", async () => {
+      prisma.lesson.findFirst.mockResolvedValue({
+        ...lessonRow({
+          scenes: [
+            {
+              id: "scene-1",
+              kind: "VIDEO",
+              title: "Four flows",
+              body: "Watch for the money.",
+              transcript: "Follow the money.",
+              video: { storageKey: "v.mp4", contentType: "video/mp4" },
+              captions: { storageKey: "c.vtt" },
+              poster: { storageKey: "p.png" },
+            },
+            {
+              id: "scene-2",
+              kind: "NOTES",
+              title: "Notes",
+              body: "## Flows",
+              transcript: null,
+              video: null,
+              captions: null,
+              poster: null,
+            },
+          ],
+        }),
+        module: { slug: "m", title: "M", pathway: { slug: "p", title: "P" } },
+      });
+      prisma.lesson.findMany.mockResolvedValue([lessonRow()]);
+
+      const view = await service.getLesson("p", "m", "introduction");
+
+      expect(view.scenes).toEqual([
+        {
+          id: "scene-1",
+          kind: "VIDEO",
+          title: "Four flows",
+          body: "Watch for the money.",
+          transcript: "Follow the money.",
+          video: {
+            url: "signed:v.mp4",
+            contentType: "video/mp4",
+            captionsUrl: "signed:c.vtt",
+            posterUrl: "signed:p.png",
+          },
+        },
+        { id: "scene-2", kind: "NOTES", title: "Notes", body: "## Flows", transcript: null, video: null },
+      ]);
+
+      // A scene still missing something is the content team's, not a learner's.
+      const [args] = prisma.lesson.findFirst.mock.calls[0] as [
+        { select: { scenes: { where: unknown; orderBy: unknown } } },
+      ];
+      expect(args.select.scenes.where).toEqual(readyScene);
+      expect(args.select.scenes.orderBy).toEqual({ sequence: "asc" });
     });
 
     it("carries the neighbours, so a module can be worked through in order", async () => {

@@ -6,3 +6,9 @@ export class CompleteLessonDto {
   @IsUUID()
   lessonId: string;
 }
+
+export class CompleteSceneDto {
+  @ApiProperty({ format: "uuid", description: "The scene the learner has just finished." })
+  @IsUUID()
+  sceneId: string;
+}

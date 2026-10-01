@@ -360,13 +360,14 @@ group appears; like *Platform*, it needs no active institution.
   names the scenes still missing something. Unpublishing and archiving ask
   first (`ConfirmAction`) and say that progress is kept; archived items are
   listed apart and restore as drafts.
-- **Each scene says what it still needs** ("Needs captions and a still
+- **Each scene says what it still needs** ("Needs the video and a still
   image"), from the `gaps` the API reports rather than worked out on screen.
+  Captions are optional, so never among them; their slot's hint says so.
 
 ### Uploading files
 
-A video scene takes three files: an MP4, WebVTT captions and a still image.
-`MediaUpload` sends each **straight from the browser to storage**, never
+A video scene takes an MP4 and a still image, and WebVTT captions if the
+content team has them. `MediaUpload` sends each **straight from the browser to storage**, never
 through the web app: to the bucket, or with the API's local storage driver
 to its storage route, which stands in for one. The screen cannot tell which:
 
@@ -409,10 +410,10 @@ beside it in `SceneOutline`: ticks for those finished, and
   `?completed=1` after the last. Back, and Continue for someone not enrolled,
   are plain links: there is nothing to record.
 - **Progress counts scenes, never time watched.** Nothing tracks the video.
-- **A video plays with its captions on** and its transcript in a `<details>`
-  beneath. The `<video>` carries `crossOrigin="anonymous"`: the captions come
-  from storage, on another origin, and a browser drops a cross-origin track
-  without it. `preload="none"` and the still image spare a slow connection a
+- **A video plays with its captions on**, when it has them, and its
+  transcript in a `<details>` beneath. Without captions it has neither. The
+  `<video>` carries `crossOrigin="anonymous"`: captions come from storage, on
+  another origin, and a browser drops a cross-origin track without it. `preload="none"` and the still image spare a slow connection a
   video nobody has started.
 - **The end panel shows only to someone who has finished**, or who is not
   enrolled and has nothing to finish. It leads on to the next lesson, or back

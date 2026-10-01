@@ -366,9 +366,9 @@ As the platform administrator (lesson files need no setup with the default
 
 1. **Content → Academy content** → a pathway → a module → *Add a lesson*.
 2. On the lesson, *Add a scene* of kind **Video**, open it, and upload an MP4
-   (H.264), a captions file and a still image. A captions file is WebVTT:
+   (H.264) and a still image, and captions if you have them: a WebVTT file,
    plain text whose first line is `WEBVTT`. The preview then plays it as
-   learners will see it, captions and transcript included.
+   learners will see it, with captions and a transcript when it has them.
 3. Add a **Notes** scene and write its notes; *Preview* shows them formatted.
 4. Back on the lesson, *Publish*. It is refused while any scene is missing a
    file or its text, and says which. Its module must be published too.

@@ -34,4 +34,7 @@ memory.md
 # NestJS build output and the Prisma client generated into the API's source
 api/dist/
 api/src/generated/
+
+# Lesson media kept by the local storage driver
+api/.storage/
 coverage/

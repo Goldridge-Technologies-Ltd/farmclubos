@@ -64,7 +64,6 @@ describe("ScenesService", () => {
   let service: ScenesService;
   let access: { assertCanAuthor: AsyncMock };
   let storage: {
-    configured: boolean;
     signUpload: AsyncMock;
     signDownload: AsyncMock;
     inspect: AsyncMock;
@@ -96,7 +95,6 @@ describe("ScenesService", () => {
   beforeEach(async () => {
     access = { assertCanAuthor: fn() };
     storage = {
-      configured: true,
       signUpload: fn(),
       signDownload: fn(),
       inspect: fn(),

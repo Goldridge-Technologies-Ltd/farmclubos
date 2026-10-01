@@ -7,12 +7,12 @@ import { ClientInfo } from "../../common/decorators/client-info.decorator.js";
 import { CurrentUser } from "../../common/decorators/current-user.decorator.js";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { Public } from "../../common/decorators/public.decorator.js";
-import type { AuthSessionResult, MembershipSummary } from "../auth/auth.types.js";
-import { AuthSessionDto, MembershipSummaryDto } from "../auth/dto/auth-response.dto.js";
+import type { AuthSessionResult } from "../auth/auth.types.js";
+import { AuthSessionDto } from "../auth/dto/auth-response.dto.js";
 import { AcceptInviteDto, InviteTokenDto } from "./dto/invite-request.dto.js";
-import { InviteLookupDto } from "./dto/invite-response.dto.js";
+import { InviteJoinedDto, InviteLookupDto } from "./dto/invite-response.dto.js";
 import { InvitesService } from "./invites.service.js";
-import type { InviteLookupView } from "./invites.types.js";
+import type { InviteJoinedView, InviteLookupView } from "./invites.types.js";
 
 const UNUSABLE = [
   { status: HttpStatus.BAD_REQUEST, description: "VALIDATION_FAILED." },
@@ -77,19 +77,20 @@ export class InvitesController {
   @ApiOperation({
     summary: "Accept an invitation with an existing account",
     description:
-      "The signed-in account's email must match the invitation. Switch to the institution " +
-      "with /auth/switch-institution afterwards.",
+      "The signed-in account's email must match the invitation. For an institution, switch " +
+      "to it with /auth/switch-institution afterwards. For the content team, refresh the " +
+      "session afterwards, so the access token carries the new platform role.",
   })
-  @ApiEnvelope({ status: HttpStatus.OK, description: "Joined.", type: MembershipSummaryDto })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Joined.", type: InviteJoinedDto })
   @ApiErrors(
     ...UNUSABLE,
     { status: HttpStatus.UNAUTHORIZED, description: "No valid access token." },
-    { status: HttpStatus.CONFLICT, description: "ALREADY_MEMBER." },
+    { status: HttpStatus.CONFLICT, description: "ALREADY_MEMBER or ALREADY_CONTENT_TEAM." },
   )
   join(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: InviteTokenDto,
-  ): Promise<MembershipSummary> {
+  ): Promise<InviteJoinedView> {
     return this.invites.join(user, body.token);
   }
 }

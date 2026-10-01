@@ -121,6 +121,12 @@ export const platformNavigation: NavItem[] = [
     icon: "governance",
     description: "Add an institution and invite the person who runs it",
   },
+  {
+    label: "Content team",
+    href: "/platform/content-team",
+    icon: "handshake",
+    description: "Invite the content managers who build the Academy",
+  },
 ];
 
 /**

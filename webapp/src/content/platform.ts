@@ -1,6 +1,9 @@
+import type { ContentTeamRole } from "@/lib/api/contracts";
+
 /*
   Copy for the platform's own screens, where a platform administrator adds
-  institutions and invites the person who runs each one.
+  institutions and invites the person who runs each one, and runs the content
+  team that builds the Academy.
 
   No example names an institution, a place or a partner: an illustrative
   college and town in a placeholder reads as a real customer in a real
@@ -106,5 +109,50 @@ export const platformContent = {
     },
     members: (count: number) =>
       `${count} ${count === 1 ? "member" : "members"} in total, of every role.`,
+  },
+
+  contentTeam: {
+    heading: "Content team",
+    description:
+      "The people who build the Academy for every institution: its modules and lessons, " +
+      "with their videos and notes. Platform administrators are on it already; invite " +
+      "content managers to join them.",
+    members: {
+      title: "On the team",
+      description: "Everyone who can open Academy content and publish it to learners.",
+      roles: {
+        PLATFORM_ADMIN: "Platform administrator",
+        CONTENT_MANAGER: "Content manager",
+      } satisfies Record<ContentTeamRole, string>,
+      remove: {
+        label: "Remove",
+        confirm: "Remove",
+        busy: "Removing…",
+        consequence: (name: string) =>
+          `Remove ${name} from the content team? They can no longer build or publish the ` +
+          "Academy. Their account, and everything they made, stays, and you can invite them again.",
+        done: (name: string) => `${name} is no longer on the content team.`,
+      },
+    },
+    invite: {
+      title: "Invite a content manager",
+      description:
+        "They receive an email with a link. Someone new creates an account; someone who " +
+        "already has one signs in and accepts. Either way, they can build the Academy " +
+        "straight away.",
+      email: "Email address",
+      submit: "Send invitation",
+      busy: "Sending…",
+      sent: (email: string) => `Invitation sent to ${email}.`,
+      emailFailed: (email: string) =>
+        `The invitation to ${email} was created, but the email did not send. Send it again below.`,
+    },
+    pending: {
+      title: "Waiting to accept",
+      none: "No invitations are waiting.",
+      expires: (date: string) => `Link valid until ${date}`,
+      expired: (date: string) => `Expired on ${date}. Resend it for a fresh link.`,
+      resent: "Sent again.",
+    },
   },
 } as const;

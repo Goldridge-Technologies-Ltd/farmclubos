@@ -25,11 +25,14 @@ export function AppTopBar({
   const membership = session.memberships.find(
     (item) => item.institutionId === session.activeInstitutionId,
   );
+  // Belonging to no institution is normal for the platform's own people.
   const institution =
     membership?.institutionName ??
     (session.user.platformRole === "PLATFORM_ADMIN"
       ? appShell.menu.platform
-      : appShell.menu.noInstitution);
+      : session.user.platformRole === "CONTENT_MANAGER"
+        ? appShell.menu.contentTeam
+        : appShell.menu.noInstitution);
   const role = session.institutionRole ?? session.user.platformRole;
 
   return (

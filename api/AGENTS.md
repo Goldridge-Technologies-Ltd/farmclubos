@@ -95,6 +95,18 @@ variables differ.
   memberships. The curriculum belongs to no institution, so its audit events
   carry no `institutionId`. As in the admin lifecycle, repeating an action,
   such as publishing what is published, is done, and records nothing.
+- **Content managers join by invitation, like institution members.** An
+  `Invite` is for one thing: an institution and its `role`, or the content
+  team's `platformRole`. The `Invite_one_target` check constraint enforces it,
+  and allows only `CONTENT_MANAGER` that way: a platform administrator is never
+  made by invitation. `InvitesService` handles both kinds through the same
+  lookup, accept and join; accepting a content-team invitation as a new account
+  starts a session in no institution, and joining one with an existing account
+  is refused for anyone already on the team, so an administrator is never
+  turned into a content manager. `ContentTeamService` (`src/modules/content-team/`)
+  is the platform administrator's side, checked against the database: list,
+  invite, resend, revoke, and remove, which only sets the role back to `NONE`.
+  The account, its memberships and its work stay.
 - **A lesson's content is its scenes, and only complete scenes reach a
   learner.** A `VIDEO` scene is complete with its video and still image;
   captions are optional, and a learner's video without them has

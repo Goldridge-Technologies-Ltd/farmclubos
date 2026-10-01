@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
 import { forwardedClientAddress } from "../api/forwarded-address";
-import type { AuthSession, MembershipSummary, SwitchedInstitution } from "../api/contracts";
+import type { AuthSession, InviteJoined, SwitchedInstitution } from "../api/contracts";
 import { endSession, readRefreshToken, replaceAccessToken, startSession } from "../session";
 import { safeRedirectPath } from "../session-cookies";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
@@ -129,21 +129,44 @@ export async function acceptInvite(
   redirect("/");
 }
 
-/** Adds an institution to an account that already exists and is signed in. */
+/**
+ * Accepts an invitation for an account that already exists and is signed in:
+ * a place in another institution, or on the content team.
+ *
+ * Either changes what the session can do, so it is renewed straight away. A
+ * new platform role is read by the API's role checks from the access token,
+ * which would otherwise refuse the content screens until it next expired. And
+ * someone with no institution to be in, such as a content manager, is put in
+ * the one they just joined; anyone already in one stays there.
+ */
 export async function joinWithInvite(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  let joined: InviteJoined;
+
   try {
-    await apiRequest<MembershipSummary>("/api/invites/join", {
+    joined = await apiRequest<InviteJoined>("/api/invites/join", {
       method: "POST",
       body: { token: text(formData, "token") },
     });
+
+    const refreshToken = await readRefreshToken();
+
+    if (refreshToken) {
+      await startSession(
+        await apiRequest<AuthSession>("/api/auth/refresh", {
+          method: "POST",
+          authenticated: false,
+          body: { refreshToken },
+        }),
+      );
+    }
   } catch (error) {
     return toFormState(error, []);
   }
 
-  redirect("/");
+  redirect(joined.kind === "CONTENT_TEAM" ? "/content/academy" : "/");
 }
 
 export async function requestPasswordReset(

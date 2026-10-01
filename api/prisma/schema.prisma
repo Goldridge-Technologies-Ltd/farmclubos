@@ -186,11 +186,16 @@ model Membership {
   @@index([institutionId, status])
 }
 
+/// An emailed invitation, for one of two things: a place in an institution
+/// (institutionId and role), or a place on the content team that builds the
+/// Academy (platformRole, CONTENT_MANAGER only). A check constraint in the
+/// migrations keeps every invitation exactly one or the other.
 model Invite {
-  id            String          @id @default(uuid(7)) @db.Uuid
-  institutionId String          @db.Uuid
+  id            String           @id @default(uuid(7)) @db.Uuid
+  institutionId String?          @db.Uuid
   email         String
-  role          InstitutionRole
+  role          InstitutionRole?
+  platformRole  PlatformRole?
   /// sha256 of the token; the token itself is only ever in the email.
   tokenHash     String          @unique
   status        InviteStatus    @default(PENDING)
@@ -202,11 +207,12 @@ model Invite {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  invitedBy   User        @relation("InviteInvitedBy", fields: [invitedById], references: [id])
-  acceptedBy  User?       @relation("InviteAcceptedBy", fields: [acceptedById], references: [id])
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  invitedBy   User         @relation("InviteInvitedBy", fields: [invitedById], references: [id])
+  acceptedBy  User?        @relation("InviteAcceptedBy", fields: [acceptedById], references: [id])
 
   @@index([institutionId, email])
+  @@index([platformRole, email])
   @@index([status, expiresAt])
 }
 

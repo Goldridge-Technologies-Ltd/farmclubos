@@ -1,3 +1,4 @@
+import { renderContentTeamInvite } from "./content-team-invite.template.js";
 import { escapeHtml } from "./escape-html.js";
 import { renderInvite } from "./invite.template.js";
 import { renderPasswordChanged } from "./password-changed.template.js";
@@ -60,6 +61,39 @@ describe("renderInvite", () => {
 
   it("says 'day', not 'days', for a one-day invitation", () => {
     expect(renderInvite({ ...base, expiresInDays: 1 }).text).toContain("expires in 1 day ");
+  });
+});
+
+describe("renderContentTeamInvite", () => {
+  const base = {
+    inviterName: "Ada Obi",
+    acceptUrl: "http://localhost:3001/accept-invite?token=abc123",
+    expiresInDays: 7,
+  };
+
+  it("says it is for the content team that builds the Academy, naming no institution", () => {
+    const email = renderContentTeamInvite(base);
+
+    expect(email.subject).toBe("You're invited to join the FARMCLUB OS content team");
+    expect(email.text).toContain(
+      "Ada Obi has invited you to join the FARMCLUB OS content team as a content manager",
+    );
+    expect(email.text).toContain("Academy");
+  });
+
+  it("carries the accept link in both parts, and says when it expires", () => {
+    const email = renderContentTeamInvite(base);
+
+    expect(email.html).toContain('href="http://localhost:3001/accept-invite?token=abc123"');
+    expect(email.text).toContain("http://localhost:3001/accept-invite?token=abc123");
+    expect(email.text).toContain("expires in 7 days");
+  });
+
+  it("escapes the inviter's name in the HTML", () => {
+    const email = renderContentTeamInvite({ ...base, inviterName: "<b>Ada</b>" });
+
+    expect(email.html).not.toContain("<b>Ada</b>");
+    expect(email.html).toContain("&lt;b&gt;Ada&lt;/b&gt;");
   });
 });
 

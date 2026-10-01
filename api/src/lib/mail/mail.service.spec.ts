@@ -52,6 +52,33 @@ describe("MailService", () => {
     expiresInDays: 7,
   };
 
+  it("sends a content-team invitation, which belongs to no institution", async () => {
+    transport.send.mockResolvedValue({ messageId: "provider-43" });
+
+    await expect(
+      service.sendContentTeamInvite({
+        to: "maker@example.com",
+        inviterName: "Ada Obi",
+        acceptUrl: "http://localhost:3001/accept-invite?token=abc",
+        expiresInDays: 7,
+      }),
+    ).resolves.toBe("SENT");
+
+    expect(emailMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        to: "maker@example.com",
+        template: "content-team-invite",
+        status: "QUEUED",
+      }),
+    });
+    expect(emailMessage.create).toHaveBeenCalledWith({
+      data: expect.not.objectContaining({ institutionId: expect.anything() }),
+    });
+    expect(transport.send).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: expect.stringContaining("content team") }),
+    );
+  });
+
   it("records the email before sending, then marks it sent", async () => {
     transport.send.mockResolvedValue({ messageId: "provider-42" });
 

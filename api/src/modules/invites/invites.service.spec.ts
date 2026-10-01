@@ -59,6 +59,17 @@ const inviteRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+/** An invitation onto the content team: no institution, a platform role instead. */
+const teamInviteRow = (overrides: Record<string, unknown> = {}) =>
+  inviteRow({
+    institutionId: null,
+    institution: null,
+    role: null,
+    platformRole: "CONTENT_MANAGER",
+    email: "maker@example.com",
+    ...overrides,
+  });
+
 describe("InvitesService", () => {
   let service: InvitesService;
   let access: { assertCanManage: AsyncMock };
@@ -68,7 +79,7 @@ describe("InvitesService", () => {
   let prisma: {
     invite: Record<"findUnique" | "findFirst" | "findMany" | "count" | "create" | "update" | "updateMany", AsyncMock>;
     membership: Record<"findFirst" | "findUnique" | "upsert", AsyncMock>;
-    user: Record<"findUnique" | "create", AsyncMock>;
+    user: Record<"findUnique" | "create" | "update", AsyncMock>;
     learnerProfile: Record<"findUnique" | "create", AsyncMock>;
     auditEvent: { create: AsyncMock };
     $transaction: jest.Mock<(work: unknown) => Promise<unknown>>;
@@ -85,7 +96,7 @@ describe("InvitesService", () => {
         create: fn(), update: fn(), updateMany: fn(),
       },
       membership: { findFirst: fn(), findUnique: fn(), upsert: fn() },
-      user: { findUnique: fn(), create: fn() },
+      user: { findUnique: fn(), create: fn(), update: fn() },
       learnerProfile: { findUnique: fn(), create: fn() },
       auditEvent: { create: fn() },
       $transaction: jest.fn((work: unknown) =>
@@ -301,6 +312,7 @@ describe("InvitesService", () => {
 
       await expect(service.lookup("raw-token")).resolves.toEqual({
         email: "learner@example.com",
+        kind: "INSTITUTION",
         role: "LEARNER",
         expiresAt: expect.any(Date),
         accountExists: true,
@@ -324,6 +336,28 @@ describe("InvitesService", () => {
 
       await expect(attempt).rejects.toThrow(type);
       await expect(attempt).rejects.toMatchObject({ response: { code } });
+    });
+
+    it("describes an invitation onto the content team, which belongs to no institution", async () => {
+      prisma.invite.findUnique.mockResolvedValue(teamInviteRow());
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.lookup("raw-token")).resolves.toEqual({
+        email: "maker@example.com",
+        kind: "CONTENT_TEAM",
+        role: null,
+        expiresAt: expect.any(Date),
+        accountExists: false,
+        institution: null,
+      });
+    });
+
+    it("tells someone with a withdrawn content-team invitation to ask whoever invited them", async () => {
+      prisma.invite.findUnique.mockResolvedValue(teamInviteRow({ status: "REVOKED" }));
+
+      await expect(service.lookup("raw-token")).rejects.toMatchObject({
+        response: { code: "INVITE_REVOKED", message: expect.stringContaining("whoever invited you") },
+      });
     });
 
     it("records an invite as EXPIRED the first time a lapsed one is presented", async () => {
@@ -409,6 +443,34 @@ describe("InvitesService", () => {
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
 
+    it("makes a new account a content manager, belonging to no institution", async () => {
+      prisma.invite.findUnique.mockResolvedValue(teamInviteRow());
+
+      await expect(service.accept(body, client)).resolves.toEqual({ accessToken: "access" });
+
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: "maker@example.com",
+          firstName: "Tunde",
+          lastName: "Bello",
+          passwordHash: "$argon2id$hash",
+          emailVerifiedAt: expect.any(Date),
+          platformRole: "CONTENT_MANAGER",
+        },
+      });
+      expect(prisma.membership.upsert).not.toHaveBeenCalled();
+      expect(prisma.learnerProfile.create).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          institutionId: null,
+          action: "invite.accepted",
+          metadata: { platformRole: "CONTENT_MANAGER" },
+        }),
+      });
+      // Signed in with no institution to be in: the content team needs none.
+      expect(auth.startSession).toHaveBeenCalledWith("user-new", null, client);
+    });
+
     it("turns a concurrent sign-up with the same email into ACCOUNT_EXISTS", async () => {
       prisma.user.create.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
@@ -429,17 +491,25 @@ describe("InvitesService", () => {
 
     beforeEach(() => {
       prisma.invite.findUnique.mockResolvedValue(inviteRow());
-      prisma.user.findUnique.mockResolvedValue({ id: "user-7", email: "learner@example.com", deactivatedAt: null });
+      prisma.user.findUnique.mockResolvedValue({
+        id: "user-7",
+        email: "learner@example.com",
+        deactivatedAt: null,
+        platformRole: "NONE",
+      });
       prisma.membership.findUnique.mockResolvedValue(null);
       prisma.learnerProfile.findUnique.mockResolvedValue({ id: "profile-7" });
     });
 
     it("adds the membership to the signed-in account the invite was sent to", async () => {
       await expect(service.join(learner, "raw-token")).resolves.toEqual({
-        institutionId: "institution-1",
-        institutionName: "Greenfield Technical College",
-        institutionSlug: "greenfield-technical-college",
-        role: "LEARNER",
+        kind: "INSTITUTION",
+        membership: {
+          institutionId: "institution-1",
+          institutionName: "Greenfield Technical College",
+          institutionSlug: "greenfield-technical-college",
+          role: "LEARNER",
+        },
       });
       expect(prisma.membership.upsert).toHaveBeenCalled();
       // An existing learner profile is reused, not duplicated.
@@ -461,5 +531,40 @@ describe("InvitesService", () => {
       });
       expect(prisma.invite.updateMany).not.toHaveBeenCalled();
     });
+
+    it("puts a signed-in account on the content team, beside whatever it belongs to", async () => {
+      prisma.invite.findUnique.mockResolvedValue(teamInviteRow({ email: "learner@example.com" }));
+
+      await expect(service.join(learner, "raw-token")).resolves.toEqual({
+        kind: "CONTENT_TEAM",
+        membership: null,
+      });
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: "user-7" },
+        data: { platformRole: "CONTENT_MANAGER" },
+      });
+      expect(prisma.invite.updateMany).toHaveBeenCalled();
+      expect(prisma.membership.upsert).not.toHaveBeenCalled();
+    });
+
+    it.each(["CONTENT_MANAGER", "PLATFORM_ADMIN"])(
+      "leaves the invitation unused for someone already on the content team as %s",
+      async (platformRole) => {
+        prisma.invite.findUnique.mockResolvedValue(teamInviteRow({ email: "learner@example.com" }));
+        prisma.user.findUnique.mockResolvedValue({
+          id: "user-7",
+          email: "learner@example.com",
+          deactivatedAt: null,
+          platformRole,
+        });
+
+        // A platform administrator is never turned into a content manager.
+        await expect(service.join(learner, "raw-token")).rejects.toMatchObject({
+          response: { code: "ALREADY_CONTENT_TEAM" },
+        });
+        expect(prisma.user.update).not.toHaveBeenCalled();
+        expect(prisma.invite.updateMany).not.toHaveBeenCalled();
+      },
+    );
   });
 });

@@ -376,8 +376,12 @@ As the platform administrator (lesson files need no setup with the default
    through the scenes, finishing them all completes the lesson, and
    */my-journey* shows it.
 
-Content managers, the platform's own content team, can't be invited yet.
-Until they can, platform administrators build the Academy.
+**Content managers** build it too. As the platform administrator, **Platform
+→ Content team** → *Invite a content manager*. With `MAIL_DRIVER=log` the
+invitation link is printed in the API console. Someone new sets a name and
+password and lands signed in, ready to build; someone with an account signs in
+and accepts, and goes straight to Academy content. *Remove* takes the role
+away again, keeping their account.
 
 ## Running an intake through its life
 

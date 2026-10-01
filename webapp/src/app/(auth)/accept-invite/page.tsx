@@ -41,10 +41,14 @@ export default async function AcceptInvitePage({
     return <Unusable description={userMessage(error, unusable.description)} />;
   }
 
+  // An invitation is for an institution, or for the content team, which has none.
+  const { institution } = invite;
+  const contentTeam = authContent.acceptInvite.contentTeam;
+
   /*
     The email already has an account, so this is someone joining a second
-    institution rather than signing up. They have to be signed in as that
-    account for the API to accept it.
+    institution, or the content team, rather than signing up. They have to be
+    signed in as that account for the API to accept it.
   */
   if (invite.accountExists) {
     const signedIn = Boolean(await readAccessToken());
@@ -53,7 +57,9 @@ export default async function AcceptInvitePage({
     return (
       <>
         <AuthFormHeader
-          description={already.description(invite.institution.name)}
+          description={
+            institution ? already.description(institution.name) : contentTeam.joinDescription
+          }
           heading={already.heading}
         />
         {signedIn ? (
@@ -74,11 +80,17 @@ export default async function AcceptInvitePage({
   return (
     <>
       <AuthFormHeader
-        description={authContent.acceptInvite.description(
-          invite.institution.name,
-          roleLabels[invite.role] ?? "a member",
-        )}
-        heading={authContent.acceptInvite.heading(invite.institution.name)}
+        description={
+          institution
+            ? authContent.acceptInvite.description(
+                institution.name,
+                (invite.role && roleLabels[invite.role]) ?? "a member",
+              )
+            : contentTeam.description
+        }
+        heading={
+          institution ? authContent.acceptInvite.heading(institution.name) : contentTeam.heading
+        }
       />
       <AcceptInviteForm email={invite.email} token={token} />
     </>

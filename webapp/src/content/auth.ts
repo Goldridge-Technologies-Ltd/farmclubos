@@ -27,6 +27,8 @@ export type AuthContent = {
     loadError: { heading: string; description: string; retry: string };
     heading: (institution: string) => string;
     description: (institution: string, role: string) => string;
+    /** An invitation onto the content team, which belongs to no institution. */
+    contentTeam: { heading: string; description: string; joinDescription: string };
     submitLabel: string;
     busyLabel: string;
     alreadyHaveAccount: {
@@ -111,6 +113,13 @@ export const authContent: AuthContent = {
     heading: (institution) => `Join ${institution}`,
     description: (institution, role) =>
       `You have been invited to join ${institution} on FARMCLUB OS as ${role}. Choose a password to finish setting up your account.`,
+    contentTeam: {
+      heading: "Join the content team",
+      description:
+        "You have been invited to join the FARMCLUB OS content team, which builds the Academy for every institution. Choose a password to finish setting up your account.",
+      joinDescription:
+        "Sign in with this email, and you can join the content team that builds the Academy.",
+    },
     submitLabel: "Create my account",
     busyLabel: "Creating…",
     alreadyHaveAccount: {
@@ -124,7 +133,7 @@ export const authContent: AuthContent = {
     unusable: {
       heading: "This invitation cannot be used",
       description:
-        "It may have expired, been withdrawn, or already been accepted. Ask your institution to send a new one.",
+        "It may have expired, been withdrawn, or already been accepted. Ask whoever invited you to send a new one.",
       action: "Go to sign in",
     },
   },

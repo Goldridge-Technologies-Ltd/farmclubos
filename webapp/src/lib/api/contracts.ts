@@ -60,14 +60,27 @@ export type SwitchedInstitution = {
   institutionRole: InstitutionRole;
 };
 
+/** What accepting an invitation gives: a place in an institution, or on the content team. */
+export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
+
 export type InviteLookup = {
   email: string;
-  role: InstitutionRole;
+  kind: InviteKind;
+  /** Null for the content team. */
+  role: InstitutionRole | null;
   /** ISO 8601. */
   expiresAt: string;
   /** True when the invitee should sign in and join rather than sign up. */
   accountExists: boolean;
-  institution: { id: string; name: string };
+  /** Null for the content team, which belongs to no institution. */
+  institution: { id: string; name: string } | null;
+};
+
+/** What joining with an existing account gave. */
+export type InviteJoined = {
+  kind: InviteKind;
+  /** Null for the content team. */
+  membership: MembershipSummary | null;
 };
 
 /* ── Academy ──────────────────────────────────────────────────────────────
@@ -355,6 +368,43 @@ export type Invite = {
 
 /** FAILED means the invite exists but its email did not go: resend it. */
 export type IssuedInvite = Invite & { emailStatus: "SENT" | "FAILED" };
+
+/* ── Content team ─────────────────────────────────────────────────────────
+   GET /content-team and its actions; platform administrators only. */
+
+/** The platform roles that put someone on the content team. */
+export type ContentTeamRole = Exclude<PlatformRole, "NONE">;
+
+export type ContentTeamMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  platformRole: ContentTeamRole;
+};
+
+/** An invitation onto the content team: pending, or expired and resendable. */
+export type ContentTeamInvite = {
+  id: string;
+  email: string;
+  status: InviteStatus;
+  /** ISO 8601. */
+  expiresAt: string;
+  /** ISO 8601. */
+  createdAt: string;
+  invitedBy: { id: string; firstName: string; lastName: string };
+};
+
+export type IssuedContentTeamInvite = ContentTeamInvite & { emailStatus: "SENT" | "FAILED" };
+
+export type ContentTeam = {
+  /** Platform administrators first, then content managers, each by name. */
+  members: ContentTeamMember[];
+  invitations: ContentTeamInvite[];
+};
+
+/** Whoever was taken off the content team; their account stays. */
+export type RemovedContentManager = { id: string; firstName: string; lastName: string; email: string };
 
 export type CohortListItem = CohortSummary & { enrolmentCount: number };
 

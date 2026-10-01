@@ -1,5 +1,9 @@
 import type { InstitutionRole, InviteStatus } from "../../generated/prisma/enums.js";
 import type { EmailDeliveryStatus } from "../../lib/mail/mail.service.js";
+import type { MembershipSummary } from "../auth/auth.types.js";
+
+/** What accepting an invitation gives: a place in an institution, or on the content team. */
+export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
 
 export type InviteView = {
   id: string;
@@ -21,9 +25,18 @@ export type IssuedInviteView = InviteView & {
 
 export type InviteLookupView = {
   email: string;
-  role: InstitutionRole;
+  kind: InviteKind;
+  /** The institution role; null for the content team. */
+  role: InstitutionRole | null;
   expiresAt: Date;
   /** True when the invitee should sign in and join, rather than create an account. */
   accountExists: boolean;
-  institution: { id: string; name: string };
+  /** Null for the content team, which belongs to no institution. */
+  institution: { id: string; name: string } | null;
+};
+
+export type InviteJoinedView = {
+  kind: InviteKind;
+  /** The membership an institution invitation gave; null for the content team. */
+  membership: MembershipSummary | null;
 };

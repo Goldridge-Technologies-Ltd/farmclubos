@@ -11,10 +11,10 @@ type MediaRule = {
 const MB = 1024 * 1024;
 
 /*
-  What each of a video scene's files may be. The production script asks for
-  compressed media and captions for all narration: one MP4 per scene, played
-  as it is (nothing is converted), WebVTT captions, and a still image shown
-  before the video loads.
+  What each of a video scene's files may be: one MP4 per scene, played as it
+  is (nothing is converted), a still image shown before the video loads, and
+  WebVTT captions. The production script asks for captions for all
+  narration; here they are optional, added when the content team has them.
 */
 export const MEDIA_RULES: Record<MediaPurpose, MediaRule> = {
   VIDEO: { types: { "video/mp4": "mp4" }, maxBytes: 1024 * MB, expected: "an MP4 video" },

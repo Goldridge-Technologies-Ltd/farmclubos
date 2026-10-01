@@ -70,13 +70,14 @@ export type LessonLinkView = { slug: string; title: string };
 export type SceneVideoView = {
   url: string;
   contentType: string;
-  captionsUrl: string;
+  /** Null when the content team has added no captions, which are optional. */
+  captionsUrl: string | null;
   posterUrl: string;
 };
 
 /**
  * One screen of a lesson, as a learner gets it: only complete scenes are ever
- * included, so a video always has its captions and still image.
+ * included, so a video always has its still image.
  */
 export type LessonSceneView = {
   id: string;
@@ -84,7 +85,7 @@ export type LessonSceneView = {
   title: string;
   /** In the notes' formatting syntax. A notes scene always has one. */
   body: string | null;
-  /** Made from the captions, for reading instead of or beside the video. */
+  /** Made from the captions, for reading instead of or beside the video; null without them. */
   transcript: string | null;
   /** Null for a notes scene. */
   video: SceneVideoView | null;

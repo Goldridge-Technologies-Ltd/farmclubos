@@ -482,12 +482,14 @@ model Lesson {
   @@index([moduleId, sequence])
 }
 
-/// One screen of a lesson, in order. A VIDEO scene plays a video with its
-/// captions and a still image; a NOTES scene is reading text. Later kinds —
-/// questions, concept cards — join the same list rather than reshaping it.
+/// One screen of a lesson, in order. A VIDEO scene plays a video with a still
+/// image, and captions when it has them; a NOTES scene is reading text. Later
+/// kinds — questions, concept cards — join the same list rather than
+/// reshaping it.
 ///
-/// A scene is shown to learners only once it is complete: a video with all
-/// three files, or notes with a body. See the academy module's readyScene.
+/// A scene is shown to learners only once it is complete: a video with its
+/// still image, captions optional, or notes with a body. See the academy
+/// module's readyScene.
 model LessonScene {
   id              String          @id @default(uuid(7)) @db.Uuid
   lessonId        String          @db.Uuid

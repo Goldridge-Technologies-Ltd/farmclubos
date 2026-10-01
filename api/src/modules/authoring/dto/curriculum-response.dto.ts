@@ -148,7 +148,7 @@ export class AuthoringSceneSummaryDto implements AuthoringSceneSummaryView {
   title: string;
 
   @ApiProperty({
-    enum: ["VIDEO", "CAPTIONS", "POSTER", "BODY"],
+    enum: ["VIDEO", "POSTER", "BODY"],
     isArray: true,
     description: "What it still needs before learners see it. Empty when complete.",
   })

@@ -6,21 +6,22 @@ import { academy } from "@/content/academy";
   pressed — the still image stands in until then, which is the low-bandwidth
   fallback the production script asks for.
 
-  Captions are on by default: the script requires them for all narration, and
-  much of the audience will watch without sound. The transcript, made from
-  the same file, sits beneath for anyone who would rather read.
+  Captions are on by default when a scene has them, since much of the
+  audience will watch without sound. They are optional for the content team,
+  so a video may come without them, and then without a transcript too, which
+  is made from the same file and sits beneath for anyone who would rather read.
 
   The links are signed and expire, so they are never cached beyond the page.
-  `crossOrigin` because the captions come from storage, another origin: the
-  browser only loads a caption track from there under CORS.
+  `crossOrigin` because a caption track comes from storage, another origin,
+  and the browser only loads one from there under CORS.
 */
 export function VideoPlayer({
   video,
   transcript,
 }: {
   /**
-   * A learner's video always has captions and a still image; the content
-   * team's preview may not have them yet.
+   * A learner's video always has a still image, and captions only when the
+   * content team added them; the content team's preview may lack either.
    */
   video: { url: string; contentType: string; captionsUrl: string | null; posterUrl: string | null };
   transcript: string | null;

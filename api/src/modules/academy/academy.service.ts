@@ -205,11 +205,11 @@ export class AcademyService {
       body: scene.body,
       transcript: scene.transcript,
       video:
-        video && captions && poster
+        video && poster
           ? {
               url: await this.storage.signDownload(video.storageKey),
               contentType: video.contentType,
-              captionsUrl: await this.storage.signDownload(captions.storageKey),
+              captionsUrl: captions ? await this.storage.signDownload(captions.storageKey) : null,
               posterUrl: await this.storage.signDownload(poster.storageKey),
             }
           : null,

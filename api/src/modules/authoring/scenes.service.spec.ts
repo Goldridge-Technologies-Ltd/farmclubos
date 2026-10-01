@@ -419,8 +419,9 @@ describe("ScenesService", () => {
         fileName: "four-flows.mp4",
         url: "https://storage.example/lessons/lesson-1/scenes/scene-1/video/new.mp4?signed",
       });
+      // Captions are optional, so only the still image is missing.
       expect(scene.captions).toBeNull();
-      expect(scene.gaps).toEqual(["CAPTIONS", "POSTER"]);
+      expect(scene.gaps).toEqual(["POSTER"]);
       expect(scene.pathway).toEqual({ id: "pathway-1", slug: "foundation", title: "Foundation" });
     });
   });

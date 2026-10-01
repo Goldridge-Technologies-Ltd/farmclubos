@@ -254,6 +254,16 @@ describe("AcademyService", () => {
               captions: null,
               poster: null,
             },
+            {
+              id: "scene-3",
+              kind: "VIDEO",
+              title: "On the farm",
+              body: null,
+              transcript: null,
+              video: { storageKey: "v3.mp4", contentType: "video/mp4" },
+              captions: null,
+              poster: { storageKey: "p3.png" },
+            },
           ],
         }),
         module: { slug: "m", title: "M", pathway: { slug: "p", title: "P" } },
@@ -277,6 +287,20 @@ describe("AcademyService", () => {
           },
         },
         { id: "scene-2", kind: "NOTES", title: "Notes", body: "## Flows", transcript: null, video: null },
+        // Captions are optional: a video without them plays without them.
+        {
+          id: "scene-3",
+          kind: "VIDEO",
+          title: "On the farm",
+          body: null,
+          transcript: null,
+          video: {
+            url: "signed:v3.mp4",
+            contentType: "video/mp4",
+            captionsUrl: null,
+            posterUrl: "signed:p3.png",
+          },
+        },
       ]);
 
       // A scene still missing something is the content team's, not a learner's.

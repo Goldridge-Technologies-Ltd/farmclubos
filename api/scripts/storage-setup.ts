@@ -26,6 +26,15 @@ const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID;
 const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY;
 
 if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
+  if ((process.env.STORAGE_DRIVER ?? "local") === "local") {
+    console.log(
+      "STORAGE_DRIVER is local, which needs no setup: files go in " +
+        `api/${process.env.STORAGE_LOCAL_DIR ?? ".storage"}. This script sets up an S3 bucket, ` +
+        "RustFS or R2, once its STORAGE_* settings are in api/.env.",
+    );
+    process.exit(0);
+  }
+
   console.error(
     "Set STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID and " +
       "STORAGE_SECRET_ACCESS_KEY in api/.env first.",

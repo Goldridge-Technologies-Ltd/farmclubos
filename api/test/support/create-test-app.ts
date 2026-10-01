@@ -39,6 +39,10 @@ type TestAppOptions = {
   imports: Array<Type<unknown> | DynamicModule>;
   /** Providers to replace, typically a feature service with a stub. */
   overrides?: Array<{ provide: unknown; useValue: unknown }>;
+  /** Settings added to TEST_ENV, such as a storage driver. */
+  env?: Record<string, unknown>;
+  /** Leave StorageService to the real StorageModule, passed in `imports`. */
+  realStorage?: boolean;
 };
 
 /**
@@ -46,7 +50,12 @@ type TestAppOptions = {
  * envelope, error filter and route prefix — around the modules under test.
  * The database and mail are always stubbed: these specs cover HTTP contracts.
  */
-export async function createTestApp({ imports, overrides = [] }: TestAppOptions): Promise<{
+export async function createTestApp({
+  imports,
+  overrides = [],
+  env = {},
+  realStorage = false,
+}: TestAppOptions): Promise<{
   app: INestApplication;
   signAccessToken: (claims: Partial<AccessTokenClaims>) => Promise<string>;
 }> {
@@ -67,15 +76,19 @@ export async function createTestApp({ imports, overrides = [] }: TestAppOptions)
           clear: () => Promise.resolve(),
         },
       } satisfies Provider,
-      { provide: StorageService, useValue: { configured: false } } satisfies Provider,
+      ...(realStorage ? [] : [{ provide: StorageService, useValue: {} } satisfies Provider]),
     ],
-    exports: [PrismaService, MailService, RateLimitService, StorageService],
+    exports: [PrismaService, MailService, RateLimitService, ...(realStorage ? [] : [StorageService])],
   })
   class StubInfrastructureModule {}
 
   let builder = Test.createTestingModule({
     imports: [
-      ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, load: [() => TEST_ENV] }),
+      ConfigModule.forRoot({
+        isGlobal: true,
+        ignoreEnvFile: true,
+        load: [() => ({ ...TEST_ENV, ...env })],
+      }),
       JwtModule.register({ global: true, secret: TEST_ENV.JWT_ACCESS_SECRET }),
       StubInfrastructureModule,
       ...imports,

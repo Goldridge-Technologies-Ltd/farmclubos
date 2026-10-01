@@ -33,10 +33,6 @@ const FORBIDDEN = {
 };
 const NOT_FOUND = { status: HttpStatus.NOT_FOUND, description: "NOT_FOUND." };
 const VALIDATION = { status: HttpStatus.BAD_REQUEST, description: "VALIDATION_FAILED." };
-const STORAGE = {
-  status: HttpStatus.SERVICE_UNAVAILABLE,
-  description: "STORAGE_UNAVAILABLE: file storage is not set up.",
-};
 
 /*
   The scenes inside a lesson, and a video scene's files.
@@ -74,7 +70,7 @@ export class ScenesController {
   @ApiOperation({ summary: "A scene, its files with signed links, and what it still needs" })
   @ApiParam({ name: "sceneId", format: "uuid" })
   @ApiEnvelope({ status: HttpStatus.OK, description: "The scene.", type: AuthoringSceneDto })
-  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND, STORAGE)
+  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND)
   getScene(
     @CurrentUser() user: AuthenticatedUser,
     @Param("sceneId", ParseUUIDPipe) sceneId: string,
@@ -146,7 +142,6 @@ export class ScenesController {
     UNAUTHORIZED,
     FORBIDDEN,
     NOT_FOUND,
-    STORAGE,
   )
   requestUpload(
     @CurrentUser() user: AuthenticatedUser,
@@ -175,7 +170,6 @@ export class ScenesController {
     UNAUTHORIZED,
     FORBIDDEN,
     NOT_FOUND,
-    STORAGE,
   )
   completeUpload(
     @CurrentUser() user: AuthenticatedUser,

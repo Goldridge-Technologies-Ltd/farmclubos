@@ -25,6 +25,16 @@ export enum MailDriver {
   Smtp = "smtp",
 }
 
+export enum StorageDriver {
+  /** A folder on this machine, served by the API itself. Development only. */
+  Local = "local",
+  /** S3-compatible storage: Cloudflare R2 in production, RustFS locally. */
+  S3 = "s3",
+}
+
+/** The S3 settings are checked only while the s3 driver is the one in use. */
+const usesS3 = (env: EnvironmentVariables) => env.STORAGE_DRIVER === StorageDriver.S3;
+
 /** Environment strings "true"/"false" are both truthy, so parse explicitly. */
 const toBoolean = ({ value }: { value: unknown }) =>
   value === true || value === "true" || value === "1";
@@ -189,11 +199,28 @@ export class EnvironmentVariables {
   SMTP_SECURE = false;
 
   /*
-    S3-compatible file storage for lesson videos, captions and images:
-    Cloudflare R2 in production, RustFS locally. All four of the endpoint,
-    bucket and keys, or none — without them, uploads answer that storage is
-    not set up. Production requires them.
+    Where lesson videos, captions and images are kept. "local" keeps them in a
+    folder and needs nothing else; "s3" uses the STORAGE_* settings below. The
+    S3 settings may stay in place while "local" is chosen, so switching is a
+    one-line change. Production requires "s3".
   */
+  @IsEnum(StorageDriver)
+  STORAGE_DRIVER: StorageDriver = StorageDriver.Local;
+
+  /** The local driver's folder, relative to where the API runs (`api/`). */
+  @IsString()
+  @MinLength(1)
+  STORAGE_LOCAL_DIR = ".storage";
+
+  /**
+   * The address the browser reaches the local driver's files at. Defaults to
+   * this API's own: http://localhost:<PORT>/<API_GLOBAL_PREFIX>/storage.
+   */
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  STORAGE_LOCAL_PUBLIC_URL?: string;
+
+  @ValidateIf(usesS3)
   @IsOptional()
   @IsUrl({ require_tld: false, require_protocol: true })
   STORAGE_ENDPOINT?: string;
@@ -203,28 +230,38 @@ export class EnvironmentVariables {
   @MinLength(1)
   STORAGE_REGION = "auto";
 
+  @ValidateIf(usesS3)
   @IsOptional()
   @IsString()
   @MinLength(3)
   STORAGE_BUCKET?: string;
 
+  @ValidateIf(usesS3)
   @IsOptional()
   @IsString()
   @MinLength(1)
   STORAGE_ACCESS_KEY_ID?: string;
 
+  @ValidateIf(usesS3)
   @IsOptional()
   @IsString()
   @MinLength(1)
   STORAGE_SECRET_ACCESS_KEY?: string;
 }
 
-const STORAGE_VARIABLES = [
+const S3_VARIABLES = [
   "STORAGE_ENDPOINT",
   "STORAGE_BUCKET",
   "STORAGE_ACCESS_KEY_ID",
   "STORAGE_SECRET_ACCESS_KEY",
 ] as const;
+
+/** "a", "a and b", "a, b and c". */
+function listOf(items: readonly string[]): string {
+  return items.length <= 1
+    ? (items[0] ?? "")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
 
 /**
  * Coerces and validates `process.env` for `ConfigModule.forRoot({ validate })`.
@@ -264,19 +301,22 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     );
   }
 
-  const storageSet = STORAGE_VARIABLES.filter((name) => validated[name]).length;
-
-  if (storageSet > 0 && storageSet < STORAGE_VARIABLES.length) {
+  if (
+    validated.NODE_ENV === NodeEnv.Production &&
+    validated.STORAGE_DRIVER !== StorageDriver.S3
+  ) {
     throw new Error(
-      "Invalid environment configuration: set all of STORAGE_ENDPOINT, STORAGE_BUCKET, " +
-        "STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY, or none of them",
+      "Invalid environment configuration: STORAGE_DRIVER must be s3 in production, " +
+        "where lesson media lives in Cloudflare R2; local keeps files on this machine " +
+        "and is for development",
     );
   }
 
-  if (validated.NODE_ENV === NodeEnv.Production && storageSet === 0) {
+  const missing = S3_VARIABLES.filter((name) => !validated[name]);
+
+  if (validated.STORAGE_DRIVER === StorageDriver.S3 && missing.length > 0) {
     throw new Error(
-      "Invalid environment configuration: file storage must be set in production, " +
-        "where lessons need it for their videos, captions and images",
+      `Invalid environment configuration: STORAGE_DRIVER=s3 needs ${listOf(missing)}`,
     );
   }
 

@@ -367,7 +367,8 @@ group appears; like *Platform*, it needs no active institution.
 
 A video scene takes three files: an MP4, WebVTT captions and a still image.
 `MediaUpload` sends each **straight from the browser to storage**, never
-through the web app or the API:
+through the web app: to the bucket, or with the API's local storage driver
+to its storage route, which stands in for one. The screen cannot tell which:
 
 1. `requestUpload`, a Server Action, asks the API for a signed PUT for this
    file's exact type and size. Both are checked first in the browser, from

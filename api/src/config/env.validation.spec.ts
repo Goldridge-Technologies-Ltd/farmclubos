@@ -1,4 +1,4 @@
-import { MailDriver, NodeEnv, validate } from "./env.validation.js";
+import { MailDriver, NodeEnv, StorageDriver, validate } from "./env.validation.js";
 
 /** The variables with no safe default: everything else may be omitted. */
 const required = {
@@ -118,39 +118,64 @@ describe("validate", () => {
   });
 
   describe("storage", () => {
-    const storage = {
+    const s3 = {
+      STORAGE_DRIVER: "s3",
       STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
       STORAGE_BUCKET: "farmclub-media",
       STORAGE_ACCESS_KEY_ID: "key-id",
       STORAGE_SECRET_ACCESS_KEY: "secret",
     };
+    const production = { NODE_ENV: "production", MAIL_DRIVER: "smtp", SMTP_HOST: "smtp.example.com" };
 
-    it("is optional outside production, where uploads say storage is not set up", () => {
+    it("keeps files in a folder by default outside production, needing nothing else", () => {
       const config = validate(required);
 
-      expect(config.STORAGE_ENDPOINT).toBeUndefined();
+      expect(config.STORAGE_DRIVER).toBe(StorageDriver.Local);
+      expect(config.STORAGE_LOCAL_DIR).toBe(".storage");
+      expect(config.STORAGE_LOCAL_PUBLIC_URL).toBeUndefined();
+    });
+
+    it("switches to S3-compatible storage with STORAGE_DRIVER=s3 and its settings", () => {
+      const config = validate({ ...required, ...s3 });
+
+      expect(config.STORAGE_DRIVER).toBe(StorageDriver.S3);
+      expect(config.STORAGE_BUCKET).toBe("farmclub-media");
       expect(config.STORAGE_REGION).toBe("auto");
     });
 
-    it("accepts a complete set of storage settings", () => {
-      expect(validate({ ...required, ...storage }).STORAGE_BUCKET).toBe("farmclub-media");
+    it("needs every S3 setting with the s3 driver, rather than failing at the first upload", () => {
+      expect(() =>
+        validate({ ...required, STORAGE_DRIVER: "s3", STORAGE_BUCKET: "farmclub-media" }),
+      ).toThrow(/STORAGE_ENDPOINT, STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY/);
     });
 
-    it("refuses half a configuration, which would only fail at the first upload", () => {
-      expect(() => validate({ ...required, STORAGE_BUCKET: "farmclub-media" })).toThrow(
-        /STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY/,
+    it("leaves S3 settings alone while the local driver is chosen, so switching is one line", () => {
+      const config = validate({ ...required, ...s3, STORAGE_DRIVER: "local", STORAGE_ENDPOINT: "localhost:9000" });
+
+      expect(config.STORAGE_DRIVER).toBe(StorageDriver.Local);
+    });
+
+    it("refuses a driver it does not know", () => {
+      expect(() => validate({ ...required, STORAGE_DRIVER: "minio" })).toThrow(
+        /Invalid environment configuration/,
       );
     });
 
-    it("requires storage in production, where lessons cannot do without it", () => {
-      expect(() =>
-        validate({
-          ...required,
-          NODE_ENV: "production",
-          MAIL_DRIVER: "smtp",
-          SMTP_HOST: "smtp.example.com",
-        }),
-      ).toThrow(/storage/);
+    it("refuses the local driver in production, where lesson media lives in R2", () => {
+      expect(() => validate({ ...required, ...production })).toThrow(/STORAGE_DRIVER/);
+    });
+
+    it("accepts S3 storage in production", () => {
+      expect(validate({ ...required, ...production, ...s3 }).STORAGE_DRIVER).toBe(StorageDriver.S3);
+    });
+
+    it("takes another address for the local store, such as one a phone on the network can reach", () => {
+      const address = "http://192.168.1.20:4000/api/storage";
+
+      expect(validate({ ...required, STORAGE_LOCAL_PUBLIC_URL: address }).STORAGE_LOCAL_PUBLIC_URL).toBe(address);
+      expect(() => validate({ ...required, STORAGE_LOCAL_PUBLIC_URL: "not an address" })).toThrow(
+        /Invalid environment configuration/,
+      );
     });
   });
 
@@ -160,6 +185,7 @@ describe("validate", () => {
       NODE_ENV: "production",
       MAIL_DRIVER: "smtp",
       SMTP_HOST: "smtp.example.com",
+      STORAGE_DRIVER: "s3",
       STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
       STORAGE_BUCKET: "farmclub-media",
       STORAGE_ACCESS_KEY_ID: "key-id",

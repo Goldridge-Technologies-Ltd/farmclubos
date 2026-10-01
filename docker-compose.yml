@@ -4,7 +4,7 @@
 #
 #   docker compose up -d postgres   # then point DATABASE_URL at it
 #   docker compose up -d mailpit    # catches invite emails, UI on :8025
-#   docker compose up -d rustfs     # lesson media storage, console on :9001
+#   docker compose up -d rustfs     # S3 storage for STORAGE_DRIVER=s3, console on :9001
 services:
   postgres:
     # Pin to the major version Supabase runs, so local and hosted agree.

@@ -7,9 +7,9 @@ Paths below are relative to `api/` unless they start with `docs/` or
 ## Project
 
 `api/` is the FARMCLUB OS backend API: a NestJS 12 project on the Express
-adapter, serving `webapp/`. It keeps its data in PostgreSQL and lesson media in
-an S3-compatible bucket (see "File storage"). It runs on port 4000; start it
-from the repository root with `npm run dev:api`.
+adapter, serving `webapp/`. It keeps its data in PostgreSQL, and lesson media
+in a folder or an S3-compatible bucket (see "File storage"). It runs on port
+4000; start it from the repository root with `npm run dev:api`.
 
 ## ESM
 
@@ -126,17 +126,27 @@ variables differ.
 
 ## File storage
 
-Lesson media lives in an S3-compatible bucket: Cloudflare R2 in production,
-RustFS locally (`docs/guides/local-dev.md`). `StorageService`
-(`src/lib/storage/`) is the only client. It is configured by the `STORAGE_*`
-variables, all or none, and they are required in production. Without them,
-uploads answer 503 `STORAGE_UNAVAILABLE` and everything else works, which is
-how the tests run.
+Lesson media goes through `StorageService` (`src/lib/storage/`), the only
+client, which hands each request to the driver `STORAGE_DRIVER` chooses at
+boot:
 
-- **The bucket is private, and every link is signed.** `signDownload` signs a
+- **`local`**, the default outside production: a folder, `api/.storage/`
+  (gitignored), that the API serves itself at `/api/storage/*key`
+  (`LocalFilesController`). It needs no Docker, no account and no setup.
+- **`s3`**: S3-compatible storage, Cloudflare R2 in production and RustFS
+  locally, with the `STORAGE_*` settings, all of which it needs. Production
+  refuses `local`.
+
+Switching is the one `STORAGE_DRIVER` line (`docs/guides/local-dev.md`). The
+two behave alike wherever it shows, so nothing outside `src/lib/storage`
+knows which is in use:
+
+- **Storage is private, and every link is signed.** `signDownload` signs a
   GET link for two hours from the top of the hour, so a file keeps the same
   URL for an hour and a browser can cache the video. Links expire: sign them
-  when reading, and never store one.
+  when reading, and never store one. The local driver signs its own links
+  with an HMAC key derived from `JWT_ACCESS_SECRET`, and its routes answer
+  only to a valid link, and only while it is the driver in use.
 - **The API names every object**:
   `lessons/{lessonId}/scenes/{sceneId}/{purpose}/{uuid}.{ext}`. An uploaded
   file's own name is kept only to show the content team, never used in a key.
@@ -147,14 +157,20 @@ how the tests run.
   `completeUpload` then reads the object's real size and type, parses
   captions as WebVTT and makes the scene's transcript from them, and only
   then marks the file `READY` and attaches it. Only a `READY` file is ever
-  attached to a scene, and a replaced file's row and object are deleted.
+  attached to a scene, and a replaced file's row and object are deleted. The
+  local driver holds an upload to its signed type and size in the same way,
+  keeps it only once exactly that many bytes have arrived, and records the
+  type it came as under `.meta/`, as S3 keeps an object's metadata.
 - **The database changes first, storage after.** Removing a scene deletes
   its rows in a transaction, then its objects, so a storage failure leaves an
   unused object behind, never a row pointing at nothing.
-- **The bucket needs a CORS rule for the web app's origin** (GET, PUT and
-  HEAD): uploads come from the browser, and captions load across origins.
-  `npm run storage:setup --workspace api` creates the bucket and sets the
-  rule; on R2 the rule can also be set in the dashboard.
+- **Storage must let the web app's origin in** (GET, PUT and HEAD): uploads
+  come from the browser, and captions load across origins. For `s3`,
+  `npm run storage:setup --workspace api` creates the bucket and sets its
+  CORS rule; on R2 the rule can also be set in the dashboard. For `local`,
+  the API's own `CORS_ORIGINS` already covers it.
+- **A new driver** implements `FileStore` (`file-store.ts`), is registered in
+  `StorageModule` beside the others, and joins `STORAGE_DRIVER`.
 
 ## Authentication and authorisation
 

@@ -1,147 +1,32 @@
 import { jest } from "@jest/globals";
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
-import { ServiceUnavailableException } from "@nestjs/common";
+import type { FileStore } from "./file-store.js";
 import { StorageService } from "./storage.service.js";
-import type { PresignUrl } from "./storage.tokens.js";
 
 /*
-  The S3 client and the presigner are replaced, so these check what is asked
-  of storage — which bucket, which key, which headers are signed, how long a
-  link lasts — without a network.
+  StorageService is what the rest of the API injects. It hands each request to
+  whichever store STORAGE_DRIVER chose, so callers never know which it is.
 */
 describe("StorageService", () => {
-  let send: jest.Mock<(command: unknown) => Promise<unknown>>;
-  let presign: jest.Mock<PresignUrl>;
-  let storage: StorageService;
+  it("hands every request to the chosen store, unchanged", async () => {
+    const ticket = { url: "https://files/u", headers: { "Content-Type": "video/mp4" }, expiresAt: new Date() };
+    const store = {
+      signUpload: jest.fn<FileStore["signUpload"]>().mockResolvedValue(ticket),
+      signDownload: jest.fn<FileStore["signDownload"]>().mockResolvedValue("https://files/d"),
+      inspect: jest.fn<FileStore["inspect"]>().mockResolvedValue({ sizeBytes: 4, contentType: "text/vtt" }),
+      readText: jest.fn<FileStore["readText"]>().mockResolvedValue("WEBVTT"),
+      remove: jest.fn<FileStore["remove"]>().mockResolvedValue(undefined),
+    };
+    const storage = new StorageService(store);
 
-  beforeEach(() => {
-    send = jest.fn<(command: unknown) => Promise<unknown>>();
-    presign = jest.fn<PresignUrl>().mockResolvedValue("https://storage.example/signed");
-    storage = new StorageService({ send }, "farmclub-media", presign as unknown as PresignUrl);
-  });
+    await expect(storage.signUpload("k", "video/mp4", 4)).resolves.toBe(ticket);
+    await expect(storage.signDownload("k")).resolves.toBe("https://files/d");
+    await expect(storage.inspect("k")).resolves.toEqual({ sizeBytes: 4, contentType: "text/vtt" });
+    await expect(storage.readText("k")).resolves.toBe("WEBVTT");
+    await expect(storage.remove("k")).resolves.toBeUndefined();
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  describe("signUpload", () => {
-    it("signs a PUT of one declared type and size to one key, for fifteen minutes", async () => {
-      jest.useFakeTimers({ now: new Date("2026-09-30T10:00:00Z"), doNotFake: ["nextTick", "setImmediate"] });
-
-      const ticket = await storage.signUpload("lessons/a/video.mp4", "video/mp4", 1_048_576);
-
-      const [, command, options] = presign.mock.calls[0] as unknown as [
-        unknown,
-        PutObjectCommand,
-        { expiresIn: number; signableHeaders: Set<string> },
-      ];
-      expect(command).toBeInstanceOf(PutObjectCommand);
-      expect(command.input).toEqual({
-        Bucket: "farmclub-media",
-        Key: "lessons/a/video.mp4",
-        ContentType: "video/mp4",
-        ContentLength: 1_048_576,
-      });
-      expect(options.expiresIn).toBe(900);
-      // Signed, so the browser cannot send a different type or a bigger file.
-      expect([...options.signableHeaders]).toEqual(
-        expect.arrayContaining(["content-type", "content-length"]),
-      );
-      expect(ticket).toEqual({
-        url: "https://storage.example/signed",
-        headers: { "Content-Type": "video/mp4" },
-        expiresAt: new Date("2026-09-30T10:15:00Z"),
-      });
-    });
-  });
-
-  describe("signDownload", () => {
-    it("signs a GET that stays the same for the rest of the hour, so browsers can cache it", async () => {
-      jest.useFakeTimers({ now: new Date("2026-09-30T10:42:13Z"), doNotFake: ["nextTick", "setImmediate"] });
-
-      await storage.signDownload("lessons/a/video.mp4");
-
-      const [, command, options] = presign.mock.calls[0] as unknown as [
-        unknown,
-        GetObjectCommand,
-        { expiresIn: number; signingDate: Date },
-      ];
-      expect(command).toBeInstanceOf(GetObjectCommand);
-      expect(command.input).toEqual({ Bucket: "farmclub-media", Key: "lessons/a/video.mp4" });
-      expect(options.signingDate).toEqual(new Date("2026-09-30T10:00:00Z"));
-      // Two hours from the top of the hour: always at least one left to play it.
-      expect(options.expiresIn).toBe(7200);
-    });
-  });
-
-  describe("inspect", () => {
-    it("reports the size and type storage holds", async () => {
-      send.mockResolvedValue({ ContentLength: 2048, ContentType: "text/vtt" });
-
-      await expect(storage.inspect("lessons/a/captions.vtt")).resolves.toEqual({
-        sizeBytes: 2048,
-        contentType: "text/vtt",
-      });
-      expect(send.mock.calls[0][0]).toBeInstanceOf(HeadObjectCommand);
-    });
-
-    it("is null when nothing was uploaded", async () => {
-      send.mockRejectedValue(Object.assign(new Error("NotFound"), { $metadata: { httpStatusCode: 404 } }));
-
-      await expect(storage.inspect("lessons/a/missing.mp4")).resolves.toBeNull();
-    });
-
-    it("lets any other failure through, since it is not the same as a missing file", async () => {
-      send.mockRejectedValue(Object.assign(new Error("Slow down"), { $metadata: { httpStatusCode: 503 } }));
-
-      await expect(storage.inspect("lessons/a/video.mp4")).rejects.toThrow("Slow down");
-    });
-  });
-
-  describe("readText", () => {
-    it("reads a small text file such as captions", async () => {
-      send.mockResolvedValue({
-        ContentLength: 12,
-        Body: { transformToString: () => Promise.resolve("WEBVTT\n\nHi") },
-      });
-
-      await expect(storage.readText("lessons/a/captions.vtt")).resolves.toBe("WEBVTT\n\nHi");
-      expect(send.mock.calls[0][0]).toBeInstanceOf(GetObjectCommand);
-    });
-  });
-
-  describe("remove", () => {
-    it("deletes the file at a key", async () => {
-      send.mockResolvedValue({});
-
-      await storage.remove("lessons/a/video.mp4");
-
-      const command = send.mock.calls[0][0] as DeleteObjectCommand;
-      expect(command).toBeInstanceOf(DeleteObjectCommand);
-      expect(command.input).toEqual({ Bucket: "farmclub-media", Key: "lessons/a/video.mp4" });
-    });
-  });
-
-  describe("without storage set up", () => {
-    const unconfigured = () => new StorageService(null, null, presign as unknown as PresignUrl);
-
-    it("says so", () => {
-      expect(unconfigured().configured).toBe(false);
-      expect(storage.configured).toBe(true);
-    });
-
-    it("answers 503 STORAGE_UNAVAILABLE rather than failing somewhere deeper", async () => {
-      await expect(unconfigured().signUpload("k", "video/mp4", 1)).rejects.toBeInstanceOf(
-        ServiceUnavailableException,
-      );
-      await expect(unconfigured().signDownload("k")).rejects.toMatchObject({
-        response: { code: "STORAGE_UNAVAILABLE" },
-      });
-    });
+    expect(store.signUpload).toHaveBeenCalledWith("k", "video/mp4", 4);
+    for (const method of [store.signDownload, store.inspect, store.readText, store.remove]) {
+      expect(method).toHaveBeenCalledWith("k");
+    }
   });
 });

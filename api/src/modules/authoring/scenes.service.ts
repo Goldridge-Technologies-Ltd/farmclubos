@@ -1,10 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { LessonSceneKind, MediaPurpose } from "../../generated/prisma/enums.js";
@@ -221,13 +216,6 @@ export class ScenesService {
       throw new BadRequestException({
         code: "FILE_TOO_LARGE",
         message: `That file is ${sizeOf(input.sizeBytes)}; this takes up to ${sizeOf(rule.maxBytes)}.`,
-      });
-    }
-
-    if (!this.storage.configured) {
-      throw new ServiceUnavailableException({
-        code: "STORAGE_UNAVAILABLE",
-        message: "File storage is not set up, so files cannot be uploaded.",
       });
     }
 

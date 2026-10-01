@@ -92,9 +92,14 @@ export default async function HomePage() {
 
       {canAdminister ? (
         <Panel description={homeScreen.platform.description} title={homeScreen.platform.title}>
-          <ButtonLink href="/platform/institutions" icon="none" size="md" variant="secondary">
-            {homeScreen.platform.action}
-          </ButtonLink>
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href="/platform/institutions" icon="none" size="md" variant="secondary">
+              {homeScreen.platform.action}
+            </ButtonLink>
+            <ButtonLink href="/platform/content-team" icon="none" size="md" variant="secondary">
+              {homeScreen.platform.contentTeam}
+            </ButtonLink>
+          </div>
         </Panel>
       ) : null}
 

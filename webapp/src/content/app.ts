@@ -45,6 +45,8 @@ export const appShell = {
     signOut: "Sign out",
     /** Where a platform administrator who belongs to no institution is working. */
     platform: "Platform administration",
+    /** Where a content manager who belongs to no institution is working. */
+    contentTeam: "Content team",
     /** Above the institutions to switch between, for someone in more than one. */
     institutions: "Your institutions",
     /** Read before an institution's name on its button; not shown. */
@@ -138,8 +140,10 @@ export const homeScreen = {
     title: "Run the platform",
     description:
       "Add an institution and invite the person who will run it. They take it " +
-      "from there: learners, intakes and enrolments are theirs to manage.",
+      "from there: learners, intakes and enrolments are theirs to manage. Invite " +
+      "content managers to the content team that builds the Academy.",
     action: "Institutions",
+    contentTeam: "Content team",
   },
   manage: {
     title: "Run your institution",

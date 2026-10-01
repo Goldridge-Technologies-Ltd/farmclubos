@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { institutionContent } from "@/content/institution";
+import { platformContent } from "@/content/platform";
 import { apiRequest } from "../api/client";
-import type { Institution, IssuedInvite } from "../api/contracts";
+import type {
+  Institution,
+  IssuedContentTeamInvite,
+  IssuedInvite,
+  RemovedContentManager,
+} from "../api/contracts";
 import { assertPlatformAdministrator } from "../api/platform";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
@@ -132,6 +138,104 @@ async function inviteCommand(
     revalidatePath(`/platform/institutions/${institutionId}`);
 
     return { status: "success", message: done };
+  } catch (error) {
+    return toFormState(error, []);
+  }
+}
+
+/** Invites someone onto the content team, as a content manager. */
+export async function inviteContentManager(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const email = text(formData, "email");
+  const missing = missingValues({ email });
+  const keep = (state: FormState) => keepValues(state, formData, ["email"]);
+
+  if (missing) {
+    return keep(missing);
+  }
+
+  await assertPlatformAdministrator();
+
+  const copy = platformContent.contentTeam.invite;
+
+  try {
+    const invite = await apiRequest<IssuedContentTeamInvite>("/api/content-team/invites", {
+      method: "POST",
+      body: { email },
+    });
+
+    revalidatePath("/platform/content-team");
+
+    return invite.emailStatus === "FAILED"
+      ? { status: "error", message: copy.emailFailed(invite.email) }
+      : { status: "success", message: copy.sent(invite.email) };
+  } catch (error) {
+    return keep(toFormState(error, ["email"]));
+  }
+}
+
+export async function resendContentTeamInvite(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return contentTeamInviteCommand(formData, "resend", platformContent.contentTeam.pending.resent);
+}
+
+export async function revokeContentTeamInvite(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return contentTeamInviteCommand(
+    formData,
+    "revoke",
+    // The email is only for the message; the id decides which invitation.
+    institutionContent.members.pending.revoked(text(formData, "email")),
+  );
+}
+
+async function contentTeamInviteCommand(
+  formData: FormData,
+  command: "resend" | "revoke",
+  done: string,
+): Promise<FormState> {
+  const inviteId = encodeURIComponent(text(formData, "inviteId"));
+
+  await assertPlatformAdministrator();
+
+  try {
+    await apiRequest(`/api/content-team/invites/${inviteId}/${command}`, { method: "POST" });
+    revalidatePath("/platform/content-team");
+
+    return { status: "success", message: done };
+  } catch (error) {
+    return toFormState(error, []);
+  }
+}
+
+/**
+ * Takes a content manager off the content team. Their account stays, and the
+ * API checks the role against the database, so the content screens close to
+ * them at once.
+ */
+export async function removeContentManager(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = encodeURIComponent(text(formData, "userId"));
+  // The name is only for the message; the id decides who.
+  const name = text(formData, "name");
+
+  await assertPlatformAdministrator();
+
+  try {
+    await apiRequest<RemovedContentManager>(`/api/content-team/members/${userId}/remove`, {
+      method: "POST",
+    });
+    revalidatePath("/platform/content-team");
+
+    return { status: "success", message: platformContent.contentTeam.members.remove.done(name) };
   } catch (error) {
     return toFormState(error, []);
   }

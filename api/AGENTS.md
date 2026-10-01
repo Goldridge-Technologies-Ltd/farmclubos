@@ -96,8 +96,10 @@ variables differ.
   carry no `institutionId`. As in the admin lifecycle, repeating an action,
   such as publishing what is published, is done, and records nothing.
 - **A lesson's content is its scenes, and only complete scenes reach a
-  learner.** A `VIDEO` scene is complete with its video, captions and still
-  image; a `NOTES` scene with its text. The rule lives once, in
+  learner.** A `VIDEO` scene is complete with its video and still image;
+  captions are optional, and a learner's video without them has
+  `captionsUrl: null` and no transcript. A `NOTES` scene is complete with its
+  text. The rule lives once, in
   `src/modules/academy/scene-readiness.ts`: `sceneGaps()` says what a scene
   still lacks, and `readyScene` is the same rule as a Prisma `where`. Use
   `readyScene` in every learner-facing query rather than restating it. A

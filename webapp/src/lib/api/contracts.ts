@@ -141,7 +141,8 @@ export type SceneKind = "VIDEO" | "NOTES";
 export type SceneVideo = {
   url: string;
   contentType: string;
-  captionsUrl: string;
+  /** Null when the scene has no captions, which are optional. */
+  captionsUrl: string | null;
   posterUrl: string;
 };
 
@@ -152,7 +153,7 @@ export type LessonScene = {
   title: string;
   /** In the notes' formatting syntax. */
   body: string | null;
-  /** Made from the captions. */
+  /** Made from the captions; null without them. */
   transcript: string | null;
   /** Null for a notes scene. */
   video: SceneVideo | null;
@@ -406,8 +407,8 @@ export type Institution = {
 
 export type PublishStatus = "DRAFT" | "PUBLISHED" | "RETIRED";
 export type MediaPurpose = "VIDEO" | "CAPTIONS" | "POSTER";
-/** Something a scene still needs before learners can see it. */
-export type SceneGap = "VIDEO" | "CAPTIONS" | "POSTER" | "BODY";
+/** Something a scene still needs before learners can see it. Captions never are. */
+export type SceneGap = "VIDEO" | "POSTER" | "BODY";
 
 export type AuthoringPathwaySummary = {
   id: string;

@@ -52,7 +52,9 @@ export class ScenesController {
   @CustomMessage("Scene added")
   @ApiOperation({
     summary: "Add a scene to a lesson",
-    description: "A VIDEO scene carries a video, captions and a still image; a NOTES scene carries text.",
+    description:
+      "A VIDEO scene carries a video and a still image, and captions if the content team has " +
+      "them; a NOTES scene carries text.",
   })
   @ApiParam({ name: "lessonId", format: "uuid" })
   @ApiEnvelope({ status: HttpStatus.CREATED, description: "Added.", type: AuthoringSceneDto })

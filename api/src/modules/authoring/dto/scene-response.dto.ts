@@ -63,10 +63,18 @@ export class AuthoringSceneDto implements AuthoringSceneView {
   @ApiProperty({ type: String, nullable: true })
   body: string | null;
 
-  @ApiProperty({ type: String, nullable: true, description: "Made from the captions file." })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Made from the captions file; null until captions, which are optional, are uploaded.",
+  })
   transcript: string | null;
 
-  @ApiProperty({ enum: ["VIDEO", "CAPTIONS", "POSTER", "BODY"], isArray: true })
+  @ApiProperty({
+    enum: ["VIDEO", "POSTER", "BODY"],
+    isArray: true,
+    description: "What it still needs before learners see it. Captions are optional, so never listed.",
+  })
   gaps: SceneGap[];
 
   @ApiProperty({ type: SceneLessonDto })

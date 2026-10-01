@@ -170,8 +170,12 @@ export class SceneVideoDto implements SceneVideoView {
   @ApiProperty({ example: "video/mp4" })
   contentType: string;
 
-  @ApiProperty({ description: "Signed link to its WebVTT captions." })
-  captionsUrl: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Signed link to its WebVTT captions; null when it has none, as they are optional.",
+  })
+  captionsUrl: string | null;
 
   @ApiProperty({ description: "Signed link to the still image shown before it plays." })
   posterUrl: string;

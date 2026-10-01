@@ -31,10 +31,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 /*
-  A lesson, one scene at a time: a video with its captions and transcript, or
-  notes to read. Back and Continue move between scenes; for an enrolled
-  learner Continue records the scene as finished, and finishing the last
-  completes the lesson. Progress counts scenes, never time watched.
+  A lesson, one scene at a time: a video, with captions and a transcript when
+  it has them, or notes to read. Back and Continue move between scenes; for an
+  enrolled learner Continue records the scene as finished, and finishing the
+  last completes the lesson. Progress counts scenes, never time watched.
 
   With no scene in the address, an enrolled learner resumes where they stopped.
   A lesson with no scenes yet — an outline still being written — keeps the

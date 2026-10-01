@@ -290,8 +290,8 @@ export class CurriculumController {
   @ApiOperation({
     summary: "Publish a lesson",
     description:
-      "Every scene must be complete: a video with its captions and still image, or notes " +
-      "with text. Recalculates learners' progress.",
+      "Every scene must be complete: a video with its still image (captions are optional), " +
+      "or notes with text. Recalculates learners' progress.",
   })
   @ApiParam({ name: "lessonId", format: "uuid" })
   @ApiEnvelope({ status: HttpStatus.OK, description: "Published.", type: AuthoringLessonSummaryDto })

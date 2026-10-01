@@ -140,14 +140,13 @@ export const authoringContent = {
   lesson: {
     scenesTitle: "Scenes",
     scenesDescription:
-      "The screens learners move through, in order: a video with its captions and still " +
-      "image, or notes to read.",
+      "The screens learners move through, in order: a video with its still image, and " +
+      "captions if you have them, or notes to read.",
     empty: "No scenes yet. Add the first below.",
     kinds: { VIDEO: "Video", NOTES: "Notes" } satisfies Record<SceneKind, string>,
     ready: "Ready",
     gapNames: {
       VIDEO: "the video",
-      CAPTIONS: "captions",
       POSTER: "a still image",
       BODY: "its text",
     } satisfies Record<SceneGap, string>,
@@ -157,7 +156,7 @@ export const authoringContent = {
       title: "Add a scene",
       description: "It's added at the end. Open it next to upload its files or write its notes.",
       kind: "Kind",
-      videoHint: "A video with its captions and a still image.",
+      videoHint: "A video with a still image, and captions if you have them.",
       notesHint: "Text to read.",
       submit: "Add the scene",
       busy: "Adding…",
@@ -168,7 +167,7 @@ export const authoringContent = {
       busy: "Removing…",
       consequence: (title: string, kind: SceneKind) =>
         kind === "VIDEO"
-          ? `Remove “${title}”? Its video, captions and still image are deleted, and this can't be undone.`
+          ? `Remove “${title}”? Its video, still image and any captions are deleted, and this can't be undone.`
           : `Remove “${title}”? Its notes are deleted, and this can't be undone.`,
       done: (title: string) => `“${title}” is removed.`,
     },
@@ -178,7 +177,9 @@ export const authoringContent = {
     backToLesson: "Back to the lesson",
     files: {
       title: "Files",
-      description: "A video scene needs all three before learners can see it.",
+      description:
+        "A video scene needs its video and a still image before learners can see it. " +
+        "Captions are optional.",
     },
     slots: {
       VIDEO: {
@@ -188,8 +189,8 @@ export const authoringContent = {
       CAPTIONS: {
         label: "Captions",
         hint:
-          "A WebVTT (.vtt) file of everything said, up to 1 MB. Learners also get a " +
-          "transcript made from it.",
+          "Optional. A WebVTT (.vtt) file of everything said, up to 1 MB. With it, learners " +
+          "get captions and a transcript.",
       },
       POSTER: {
         label: "Still image",
@@ -217,7 +218,7 @@ export const authoringContent = {
       "The upload didn't finish. Check your connection, then choose the file and upload it again.",
     preview: {
       title: "Preview",
-      description: "As learners see it, captions and transcript included.",
+      description: "As learners see it, with captions and a transcript when it has captions.",
       waiting: "The preview appears once the video is uploaded.",
     },
     details: {

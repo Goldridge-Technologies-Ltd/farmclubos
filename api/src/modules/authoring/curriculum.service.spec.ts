@@ -352,7 +352,7 @@ describe("CurriculumService", () => {
         lessonRow({
           scenes: [
             videoScene(),
-            videoScene({ id: "scene-2", title: "Four flows", captionsAssetId: null }),
+            videoScene({ id: "scene-2", title: "Four flows", posterAssetId: null }),
           ],
         }),
       );
@@ -363,6 +363,17 @@ describe("CurriculumService", () => {
       await expect(refusal).rejects.toMatchObject({
         response: { code: "LESSON_INCOMPLETE", message: expect.stringContaining("“Four flows”") },
       });
+    });
+
+    it("publishes a video scene without captions, which are optional", async () => {
+      prisma.lesson.findUnique.mockResolvedValue(
+        lessonRow({ scenes: [videoScene({ captionsAssetId: null })] }),
+      );
+
+      await service.publishLesson(author, "lesson-1");
+
+      const [args] = prisma.lesson.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toMatchObject({ status: "PUBLISHED" });
     });
 
     it("publishes a complete lesson as authored, and recalculates progress for its module", async () => {

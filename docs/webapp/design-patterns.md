@@ -190,8 +190,7 @@ as a page not existing, and must not look like it.
 `assertContentTeam`, and not only in the section's layout. A page renders
 alongside its layout, so with the check in the layout alone the page's own
 request still reaches the API for someone the layout is turning away, and
-fails there. (`platform.ts` still relies on its layout; move it over when it
-is next touched.)
+fails there.
 
 For a record read by an id from the URL, "nothing here" includes a 400: the
 API's uuid check refuses a malformed id before looking, and retrying will not
@@ -337,6 +336,18 @@ institution is the whole job — which is the one difference from the
 `/institution` screens. It grants nothing: the API confirms the platform role
 against the database on every request.
 
+`/platform/content-team` is where a platform administrator runs the content
+team: who is on it (administrators first, on it by role and never removable,
+then content managers), the invitations waiting, inviting a content manager by
+email, and *Remove*, which asks first and says the account and its work stay.
+A content-team invitation uses the same `/accept-invite` link as an
+institution's; the page says which it is. Someone with an account who joins
+is sent straight to Academy content, and the join action **renews the
+session first**: the API's role checks read the access token, which would
+otherwise still say they have no platform role for up to 15 minutes. Nothing
+needs renewing on removal, because the session context, and with it every
+content screen, comes from `/api/auth/me`, which reads the database.
+
 The sidebar and drawer take their role groups as data (`NavGroup[]`) from
 `AppShell`, which decides them on the server. A new role-specific section is a
 new group there, not a new flag threaded through three components.
@@ -346,7 +357,10 @@ new group there, not a new flag threaded through three components.
 The screens under `/content/academy` are where the platform's content team,
 `PLATFORM_ADMIN` and `CONTENT_MANAGER`, builds the Academy that every
 institution's learners take. `canAuthorContent` decides whether the *Content*
-group appears; like *Platform*, it needs no active institution.
+group appears; like *Platform*, it needs no active institution. Content
+managers are invited from *Platform → Content team* (see *Running the
+platform*), and one who belongs to no institution sees "Content team" in the
+top bar where an institution's name would be.
 
 - **Each level is a screen, addressed by id:** a pathway lists its modules, a
   module its lessons, a lesson its scenes, and each scene has its own editor.

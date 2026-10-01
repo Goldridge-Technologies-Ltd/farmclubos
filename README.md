@@ -59,7 +59,8 @@ npm run dev:site     # http://localhost:3000 — design-system reference at /des
 Sign in to the web app as that administrator. **Platform → Institutions** is
 where the rest begins: add an institution, invite the person who runs it, and
 they invite and enrol their learners. **Content → Academy content** is where
-lessons are built, from videos and notes.
+lessons are built, from videos and notes, and **Platform → Content team** is
+where you invite the content managers who build them with you.
 
 ## Quality checks
 

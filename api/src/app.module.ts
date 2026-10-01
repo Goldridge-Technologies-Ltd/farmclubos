@@ -11,6 +11,7 @@ import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
 import { AuthoringModule } from "./modules/authoring/authoring.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { CohortsModule } from "./modules/cohorts/cohorts.module.js";
+import { ContentTeamModule } from "./modules/content-team/content-team.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
 import { InvitesModule } from "./modules/invites/invites.module.js";
@@ -34,6 +35,7 @@ import { UsersModule } from "./modules/users/users.module.js";
     AuthoringModule,
     AuthModule,
     CohortsModule,
+    ContentTeamModule,
     HealthModule,
     InstitutionsModule,
     InvitesModule,

@@ -2,6 +2,10 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service.js";
 import { MAIL_TRANSPORT, type MailTransport } from "./mail-transport.js";
+import {
+  renderContentTeamInvite,
+  type ContentTeamInviteEmailInput,
+} from "./templates/content-team-invite.template.js";
 import { renderInvite, type InviteEmailInput } from "./templates/invite.template.js";
 import {
   renderPasswordChanged,
@@ -49,6 +53,16 @@ export class MailService {
       template: "invite",
       content: renderInvite(input),
       institutionId: input.institutionId,
+    });
+  }
+
+  sendContentTeamInvite(
+    input: ContentTeamInviteEmailInput & { to: string },
+  ): Promise<EmailDeliveryStatus> {
+    return this.deliver({
+      to: input.to,
+      template: "content-team-invite",
+      content: renderContentTeamInvite(input),
     });
   }
 

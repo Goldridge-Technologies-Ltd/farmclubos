@@ -1,6 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { InstitutionRole, InviteStatus } from "../../../generated/prisma/enums.js";
-import type { InviteLookupView, InviteView, IssuedInviteView } from "../invites.types.js";
+import { MembershipSummaryDto } from "../../auth/dto/auth-response.dto.js";
+import type {
+  InviteJoinedView,
+  InviteKind,
+  InviteLookupView,
+  InviteView,
+  IssuedInviteView,
+} from "../invites.types.js";
+
+const INVITE_KINDS = ["INSTITUTION", "CONTENT_TEAM"];
 
 export class InviterDto {
   @ApiProperty({ format: "uuid" })
@@ -66,8 +75,19 @@ export class InviteLookupDto implements InviteLookupView {
   @ApiProperty({ example: "learner@example.com" })
   email: string;
 
-  @ApiProperty({ enum: InstitutionRole, enumName: "InstitutionRole" })
-  role: InstitutionRole;
+  @ApiProperty({
+    enum: INVITE_KINDS,
+    description: "A place in an institution, or on the content team that builds the Academy.",
+  })
+  kind: InviteKind;
+
+  @ApiProperty({
+    enum: InstitutionRole,
+    enumName: "InstitutionRole",
+    nullable: true,
+    description: "Null for the content team.",
+  })
+  role: InstitutionRole | null;
 
   @ApiProperty({ type: String, format: "date-time" })
   expiresAt: Date;
@@ -77,6 +97,22 @@ export class InviteLookupDto implements InviteLookupView {
   })
   accountExists: boolean;
 
-  @ApiProperty({ type: () => InviteInstitutionDto })
-  institution: InviteInstitutionDto;
+  @ApiProperty({
+    type: () => InviteInstitutionDto,
+    nullable: true,
+    description: "Null for the content team, which belongs to no institution.",
+  })
+  institution: InviteInstitutionDto | null;
+}
+
+export class InviteJoinedDto implements InviteJoinedView {
+  @ApiProperty({ enum: INVITE_KINDS })
+  kind: InviteKind;
+
+  @ApiProperty({
+    type: () => MembershipSummaryDto,
+    nullable: true,
+    description: "The membership an institution invitation gave; null for the content team.",
+  })
+  membership: MembershipSummaryDto | null;
 }

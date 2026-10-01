@@ -13,11 +13,12 @@ import { pageWindow } from "../../common/http/pagination-query.dto.js";
 import { normalizeEmail } from "../../common/utils/normalize-email.js";
 import { webappLink } from "../../common/utils/webapp-link.js";
 import type { Institution, Invite, Prisma } from "../../generated/prisma/client.js";
+import type { InstitutionRole } from "../../generated/prisma/enums.js";
 import { isUniqueConstraintError } from "../../lib/database/prisma-errors.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import { MailService, type EmailDeliveryStatus } from "../../lib/mail/mail.service.js";
 import { AuthService } from "../auth/auth.service.js";
-import type { AuthSessionResult, MembershipSummary } from "../auth/auth.types.js";
+import type { AuthSessionResult } from "../auth/auth.types.js";
 import { PasswordService } from "../auth/password.service.js";
 import { TokenService } from "../auth/token.service.js";
 import { InstitutionAccessService } from "../institutions/institution-access.service.js";
@@ -26,14 +27,48 @@ import type {
   InviteListQueryDto,
   IssueInviteDto,
 } from "./dto/invite-request.dto.js";
-import type { InviteLookupView, InviteView, IssuedInviteView } from "./invites.types.js";
+import type {
+  InviteJoinedView,
+  InviteLookupView,
+  InviteView,
+  IssuedInviteView,
+} from "./invites.types.js";
 
 const withInviter = {
   invitedBy: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.InviteInclude;
 
 type InviteWithInviter = Prisma.InviteGetPayload<{ include: typeof withInviter }>;
-type UsableInvite = Invite & { institution: Institution };
+type UsableInvite = Invite & { institution: Institution | null };
+
+/**
+ * An invitation into an institution. The Invite_one_target check gives every
+ * invitation either an institution and a role, or the content team's platform
+ * role, so one with an institution always has its role.
+ */
+type InstitutionInvite = Invite & {
+  institutionId: string;
+  role: InstitutionRole;
+  institution: Institution;
+};
+
+function isInstitutionInvite(invite: UsableInvite): invite is InstitutionInvite {
+  return invite.institution !== null && invite.role !== null;
+}
+
+/** The role an institution invitation carries, which the check guarantees. */
+function institutionRoleOf(invite: { role: InstitutionRole | null }): InstitutionRole {
+  if (!invite.role) {
+    throw new Error("An institution invitation without a role: Invite_one_target was bypassed");
+  }
+
+  return invite.role;
+}
+
+/** Who to ask about an invitation that can no longer be used. */
+function whoToAsk(invite: UsableInvite): string {
+  return invite.institution ? "your institution" : "whoever invited you";
+}
 
 const inviteNotFound = () =>
   new NotFoundException({ code: "INVITE_NOT_FOUND", message: "Invitation not found." });
@@ -264,17 +299,21 @@ export class InvitesService {
 
     return {
       email: invite.email,
+      kind: isInstitutionInvite(invite) ? "INSTITUTION" : "CONTENT_TEAM",
       role: invite.role,
       expiresAt: invite.expiresAt,
       accountExists: account !== null,
-      institution: { id: invite.institution.id, name: invite.institution.name },
+      institution: invite.institution
+        ? { id: invite.institution.id, name: invite.institution.name }
+        : null,
     };
   }
 
   /**
    * Accepts an invite for someone with no account yet: creates the account,
    * already email-verified — following the link proves the address — and signs
-   * them in to the institution that invited them.
+   * them in, to the institution that invited them or, for the content team,
+   * to no institution at all.
    */
   async accept(input: AcceptInviteDto, client: ClientContext): Promise<AuthSessionResult> {
     const invite = await this.loadUsable(input.token);
@@ -298,10 +337,14 @@ export class InvitesService {
             lastName: input.lastName,
             passwordHash,
             emailVerifiedAt: now,
+            ...(invite.platformRole ? { platformRole: invite.platformRole } : {}),
           },
         });
 
-        await this.grantMembership(tx, account.id, invite, now);
+        if (isInstitutionInvite(invite)) {
+          await this.grantMembership(tx, account.id, invite, now);
+        }
+
         await tx.invite.update({ where: { id: invite.id }, data: { acceptedById: account.id } });
         await this.recordAcceptance(tx, account.id, invite);
 
@@ -319,13 +362,17 @@ export class InvitesService {
     return this.auth.startSession(userId, invite.institutionId, client);
   }
 
-  /** Accepts an invite for someone who already has an account and is signed in. */
-  async join(user: AuthenticatedUser, token: string): Promise<MembershipSummary> {
+  /**
+   * Accepts an invite for someone who already has an account and is signed in:
+   * a membership for an institution invitation, or the content-team role on
+   * top of whatever the account already belongs to.
+   */
+  async join(user: AuthenticatedUser, token: string): Promise<InviteJoinedView> {
     const invite = await this.loadUsable(token);
 
     const account = await this.prisma.user.findUnique({
       where: { id: user.userId },
-      select: { email: true, deactivatedAt: true },
+      select: { email: true, deactivatedAt: true, platformRole: true },
     });
 
     if (!account || account.deactivatedAt) {
@@ -338,6 +385,10 @@ export class InvitesService {
     // Someone else's invite: never confirm that it exists.
     if (account.email !== invite.email) {
       throw inviteNotFound();
+    }
+
+    if (!isInstitutionInvite(invite)) {
+      return this.joinContentTeam(user, invite, account.platformRole);
     }
 
     const membership = await this.prisma.membership.findUnique({
@@ -362,11 +413,46 @@ export class InvitesService {
     });
 
     return {
-      institutionId: invite.institutionId,
-      institutionName: invite.institution.name,
-      institutionSlug: invite.institution.slug,
-      role: invite.role,
+      kind: "INSTITUTION",
+      membership: {
+        institutionId: invite.institutionId,
+        institutionName: invite.institution.name,
+        institutionSlug: invite.institution.slug,
+        role: invite.role,
+      },
     };
+  }
+
+  /**
+   * The content team, for an account that is not on it yet. Someone already on
+   * it is refused: a content manager has nothing to gain, and a platform
+   * administrator must never be turned into one.
+   */
+  private async joinContentTeam(
+    user: AuthenticatedUser,
+    invite: UsableInvite,
+    current: string,
+  ): Promise<InviteJoinedView> {
+    if (current !== "NONE") {
+      throw new ConflictException({
+        code: "ALREADY_CONTENT_TEAM",
+        message: "You are already on the content team.",
+      });
+    }
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.consume(tx, invite, now);
+      await tx.user.update({
+        where: { id: user.userId },
+        data: { platformRole: "CONTENT_MANAGER" },
+      });
+      await tx.invite.update({ where: { id: invite.id }, data: { acceptedById: user.userId } });
+      await this.recordAcceptance(tx, user.userId, invite);
+    });
+
+    return { kind: "CONTENT_TEAM", membership: null };
   }
 
   /** An invite that can still be accepted, or the precise reason it cannot. */
@@ -387,7 +473,7 @@ export class InvitesService {
     if (invite.status === "REVOKED") {
       throw new GoneException({
         code: "INVITE_REVOKED",
-        message: "This invitation has been withdrawn. Ask your institution for a new one.",
+        message: `This invitation has been withdrawn. Ask ${whoToAsk(invite)} for a new one.`,
       });
     }
 
@@ -398,11 +484,14 @@ export class InvitesService {
 
       throw new GoneException({
         code: "INVITE_EXPIRED",
-        message: "This invitation has expired. Ask your institution to send it again.",
+        message: `This invitation has expired. Ask ${whoToAsk(invite)} to send it again.`,
       });
     }
 
-    if (invite.institution.status !== "ACTIVE" || invite.institution.archivedAt) {
+    if (
+      invite.institution &&
+      (invite.institution.status !== "ACTIVE" || invite.institution.archivedAt)
+    ) {
       throw new GoneException({
         code: "INSTITUTION_UNAVAILABLE",
         message: "This institution is not accepting new members.",
@@ -427,7 +516,7 @@ export class InvitesService {
   private async grantMembership(
     tx: Prisma.TransactionClient,
     userId: string,
-    invite: Invite,
+    invite: InstitutionInvite,
     now: Date,
   ): Promise<void> {
     await tx.membership.upsert({
@@ -468,7 +557,9 @@ export class InvitesService {
         action: "invite.accepted",
         entityType: "Invite",
         entityId: invite.id,
-        metadata: { role: invite.role },
+        metadata: invite.platformRole
+          ? { platformRole: invite.platformRole }
+          : { role: invite.role },
       },
     });
   }
@@ -502,7 +593,7 @@ export class InvitesService {
       institutionId: institution.id,
       institutionName: institution.name,
       inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
-      role: invite.role,
+      role: institutionRoleOf(invite),
       expiresInDays: Math.max(1, Math.round(ttlHours / 24)),
       acceptUrl: webappLink(this.config.getOrThrow<string>("WEBAPP_URL"), "accept-invite", {
         token,
@@ -554,7 +645,7 @@ function toInviteView(invite: InviteWithInviter, now = new Date()): InviteView {
   return {
     id: invite.id,
     email: invite.email,
-    role: invite.role,
+    role: institutionRoleOf(invite),
     status: invite.status === "PENDING" && invite.expiresAt <= now ? "EXPIRED" : invite.status,
     expiresAt: invite.expiresAt,
     createdAt: invite.createdAt,

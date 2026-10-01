@@ -10,9 +10,6 @@ How to run FARMCLUB OS on your machine. Contribution rules are in
 - **Git**
 - **A PostgreSQL database**: a Supabase project, or Docker for the local one in
   `docker-compose.yml` (see [Database](#database))
-- **S3-compatible storage** for lesson videos and files, when you work on
-  them: Docker for the local RustFS, or a Cloudflare R2 bucket (see
-  [File storage](#file-storage)). Everything else works without it.
 
 ## Setup
 
@@ -149,7 +146,10 @@ one exists and fill in your own values.
 | `SMTP_PORT` | `api/.env` | Defaults to `587`. |
 | `SMTP_USER`, `SMTP_PASSWORD` | `api/.env` | Optional; omit both for an SMTP server without authentication, such as Mailpit. |
 | `SMTP_SECURE` | `api/.env` | `true` for implicit TLS (usually port 465); `false` (default) upgrades with STARTTLS. |
-| `STORAGE_ENDPOINT` | `api/.env` | The S3-compatible store for lesson media: `https://<account id>.r2.cloudflarestorage.com` for R2, `http://localhost:9000` for the local RustFS. Set the four storage variables together or not at all; **production requires them**. Without them, uploading says storage is not set up. |
+| `STORAGE_DRIVER` | `api/.env` | Where lesson media is kept: `local` (default), a folder the API serves itself, or `s3`, S3-compatible storage with the settings below. **Production requires `s3`.** See [File storage](#file-storage). |
+| `STORAGE_LOCAL_DIR` | `api/.env` | The `local` driver's folder, relative to `api/`. Defaults to `.storage`, which is gitignored. |
+| `STORAGE_LOCAL_PUBLIC_URL` | `api/.env` | Where the browser reaches `local` files. Defaults to `http://localhost:<PORT>/<API_GLOBAL_PREFIX>/storage`; set it to reach them from another device. |
+| `STORAGE_ENDPOINT` | `api/.env` | The S3-compatible store: `https://<account id>.r2.cloudflarestorage.com` for R2, `http://localhost:9000` for RustFS. `s3` needs all four of this, the bucket and the key pair; `local` ignores them, so they can stay in place. |
 | `STORAGE_BUCKET` | `api/.env` | The bucket, which stays private. `farmclub-media` locally. |
 | `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `api/.env` | The store's key pair. On R2, from an API token with Object Read & Write on the bucket. |
 | `STORAGE_REGION` | `api/.env` | Defaults to `auto`, which R2 expects; RustFS accepts any name. |
@@ -273,26 +273,48 @@ which bypasses RLS — and so does the Supabase Studio table editor.
 
 ## File storage
 
-Lesson videos, captions and still images live in S3-compatible storage:
-Cloudflare R2 in production, RustFS locally. (MinIO, the usual local choice,
-no longer publishes its server.) The bucket is private, and the API signs
-every link to it.
+Lesson videos, captions and still images go through one of two drivers,
+chosen by one line in `api/.env`:
 
-**Locally:**
+- **`STORAGE_DRIVER=local`**, the default: files go in `api/.storage/`
+  (gitignored), and the API serves them itself. Nothing to install or run:
+  uploading and playing work as soon as the API starts.
+- **`STORAGE_DRIVER=s3`**: S3-compatible storage, RustFS on your machine or
+  Cloudflare R2, which production requires.
+
+Both keep files private behind signed links that expire, so switching changes
+nothing in the app. The S3 settings can stay in `api/.env` while `local` is
+on. Files are not copied between the two, though: a lesson built under one
+shows its files missing under the other until they are uploaded again.
+
+**Local files from another device.** A phone on your network reaches the API
+at your machine's address, not `localhost`. Set
+`STORAGE_LOCAL_PUBLIC_URL=http://<your address>:4000/api/storage`, and add
+the web app's address on that network to `CORS_ORIGINS`.
+
+**RustFS**, for S3 on your machine. (MinIO, the usual choice, no longer
+publishes its server.) Run it with Docker, `docker compose up -d rustfs`, or
+without: download the RustFS server for your platform (rustfs.com) and start
+it with the same local credentials:
 
 ```bash
-docker compose up -d rustfs
-# uncomment the RustFS lines under "File storage" in api/.env, then:
+./rustfs server --address 127.0.0.1:9000 --access-key farmclub --secret-key farmclub-dev-secret ~/rustfs-data
+```
+
+Then uncomment the RustFS lines under "File storage" in `api/.env`, set
+`STORAGE_DRIVER=s3`, and run once:
+
+```bash
 npm run storage:setup --workspace api
 ```
 
 `storage:setup` creates the bucket and gives it a CORS rule letting the web
 app (`WEBAPP_URL`, and any `STORAGE_CORS_ORIGINS`) upload to it and play from
 it: files go straight from the browser to storage, and captions load across
-origins. It is safe to run again. The RustFS console is at
+origins. It is safe to run again. With Docker, the RustFS console is at
 http://localhost:9001.
 
-**On Cloudflare R2:**
+**On Cloudflare R2**, with `STORAGE_DRIVER=s3`:
 
 1. Create a bucket, and leave public access off.
 2. Create an R2 API token with **Object Read & Write** on it. Give the API its
@@ -339,7 +361,8 @@ drafts — so it is the one place the quiz appears.
 
 ## Building a lesson
 
-With [file storage](#file-storage) set up, as the platform administrator:
+As the platform administrator (lesson files need no setup with the default
+[local driver](#file-storage)):
 
 1. **Content → Academy content** → a pathway → a module → *Add a lesson*.
 2. On the lesson, *Add a scene* of kind **Video**, open it, and upload an MP4

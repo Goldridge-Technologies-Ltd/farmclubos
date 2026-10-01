@@ -294,8 +294,8 @@ async function main(): Promise<void> {
           },
         });
 
-        // One lesson per module, an outline awaiting authoring. `body` stays
-        // null, which is what the UI reads to show the authoring notice.
+        // One lesson per module, an outline awaiting authoring. It has no
+        // scenes, which is what the UI reads to show the authoring notice.
         await prisma.lesson.upsert({
           where: {
             moduleId_slug: { moduleId: pathwayModule.id, slug: "introduction" },

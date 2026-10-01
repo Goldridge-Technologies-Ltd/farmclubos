@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
-import type { Attempt, LessonCompletion } from "../api/contracts";
+import type { Attempt, LessonCompletion, SceneCompletion } from "../api/contracts";
 import { safeRedirectPath } from "../session-cookies";
 import { text, toFormState, type FormState } from "./form-state";
 
@@ -49,6 +49,33 @@ export async function completeLesson(
   } catch (error) {
     return toFormState(error, []);
   }
+}
+
+/**
+ * Records the scene as finished, then moves on: to the next scene, or — after
+ * the last — to the lesson's completed state. The API completes the lesson
+ * itself once every scene is done.
+ */
+export async function completeScene(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const sceneId = text(formData, "sceneId");
+  // Guarded like any redirect target taken from a form.
+  const next = safeRedirectPath(text(formData, "next"), "/my-journey");
+
+  try {
+    await apiRequest<SceneCompletion>("/api/progress/scenes/complete", {
+      method: "POST",
+      body: { sceneId },
+    });
+  } catch (error) {
+    return toFormState(error, []);
+  }
+
+  // The lesson, its module, the journey and home all show this progress.
+  revalidatePath("/", "layout");
+  redirect(next);
 }
 
 /**

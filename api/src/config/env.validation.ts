@@ -187,7 +187,44 @@ export class EnvironmentVariables {
   @Transform(toBoolean)
   @IsBoolean()
   SMTP_SECURE = false;
+
+  /*
+    S3-compatible file storage for lesson videos, captions and images:
+    Cloudflare R2 in production, RustFS locally. All four of the endpoint,
+    bucket and keys, or none — without them, uploads answer that storage is
+    not set up. Production requires them.
+  */
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  STORAGE_ENDPOINT?: string;
+
+  /** R2 takes "auto"; RustFS accepts any region name. */
+  @IsString()
+  @MinLength(1)
+  STORAGE_REGION = "auto";
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  STORAGE_BUCKET?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  STORAGE_ACCESS_KEY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  STORAGE_SECRET_ACCESS_KEY?: string;
 }
+
+const STORAGE_VARIABLES = [
+  "STORAGE_ENDPOINT",
+  "STORAGE_BUCKET",
+  "STORAGE_ACCESS_KEY_ID",
+  "STORAGE_SECRET_ACCESS_KEY",
+] as const;
 
 /**
  * Coerces and validates `process.env` for `ConfigModule.forRoot({ validate })`.
@@ -224,6 +261,22 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     throw new Error(
       "Invalid environment configuration: MAIL_DRIVER must not be log in " +
         "production, where it would write invite and reset links to the logs",
+    );
+  }
+
+  const storageSet = STORAGE_VARIABLES.filter((name) => validated[name]).length;
+
+  if (storageSet > 0 && storageSet < STORAGE_VARIABLES.length) {
+    throw new Error(
+      "Invalid environment configuration: set all of STORAGE_ENDPOINT, STORAGE_BUCKET, " +
+        "STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY, or none of them",
+    );
+  }
+
+  if (validated.NODE_ENV === NodeEnv.Production && storageSet === 0) {
+    throw new Error(
+      "Invalid environment configuration: file storage must be set in production, " +
+        "where lessons need it for their videos, captions and images",
     );
   }
 

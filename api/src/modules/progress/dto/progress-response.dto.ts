@@ -8,7 +8,9 @@ import type {
   JourneyView,
   LessonCompletionView,
   LessonProgressView,
+  LessonStandingView,
   ModuleProgressView,
+  SceneCompletionView,
 } from "../progress.types.js";
 
 export class LessonProgressDto implements LessonProgressView {
@@ -115,4 +117,36 @@ export class LessonCompletionDto implements LessonCompletionView {
 
   @ApiProperty()
   progressPercent: number;
+}
+
+export class SceneCompletionDto implements SceneCompletionView {
+  @ApiProperty({ format: "uuid" })
+  sceneId: string;
+
+  @ApiProperty({ description: "The lesson's scenes you have finished, this one included." })
+  scenesCompleted: number;
+
+  @ApiProperty()
+  sceneCount: number;
+
+  @ApiProperty({ description: "True once every scene is done: the lesson is then complete." })
+  lessonCompleted: boolean;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: "Your percentage through the pathway, when this completed the lesson.",
+  })
+  progressPercent: number | null;
+}
+
+export class LessonStandingDto implements LessonStandingView {
+  @ApiProperty({ description: "False when you are not enrolled on this lesson's pathway." })
+  enrolled: boolean;
+
+  @ApiProperty({ enum: ProgressStatus, enumName: "ProgressStatus" })
+  status: ProgressStatus;
+
+  @ApiProperty({ type: [String], format: "uuid" })
+  completedSceneIds: string[];
 }

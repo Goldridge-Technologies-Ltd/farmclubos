@@ -19,9 +19,12 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "storage:setup": "tsx scripts/storage-setup.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1143.0",
+    "@aws-sdk/s3-request-presigner": "3.1143.0",
     "@nestjs/common": "12.0.3",
     "@nestjs/config": "12.0.0",
     "@nestjs/core": "12.0.3",

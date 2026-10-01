@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { readyScene } from "../academy/scene-readiness.js";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { ProgressStatus } from "../../generated/prisma/enums.js";
@@ -7,7 +8,9 @@ import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
   JourneyView,
   LessonCompletionView,
+  LessonStandingView,
   ModuleProgressView,
+  SceneCompletionView,
 } from "./progress.types.js";
 
 /*
@@ -53,25 +56,11 @@ export class ProgressService {
     const now = new Date();
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.lessonProgress.upsert({
-        where: { enrolmentId_lessonId: { enrolmentId: enrolment.id, lessonId } },
-        create: {
-          enrolmentId: enrolment.id,
-          lessonId,
-          status: "COMPLETED",
-          startedAt: now,
-          completedAt: now,
-        },
-        // Completing twice is not an error — a second click, a stale page —
-        // and it must not move the first completion's date.
-        update: { status: "COMPLETED", completedAt: now },
-      });
-
-      const moduleStatus = await this.refreshModule(tx, enrolment.id, lesson.moduleId, now);
-      const progressPercent = await this.refreshEnrolment(
+      const { moduleStatus, progressPercent } = await this.recordLessonCompletion(
         tx,
-        enrolment.id,
-        enrolment.pathwayId,
+        enrolment,
+        lessonId,
+        lesson.moduleId,
         now,
       );
 
@@ -83,6 +72,210 @@ export class ProgressService {
         progressPercent,
       };
     });
+  }
+
+  /**
+   * Records that the caller has finished one scene of a lesson. Finishing the
+   * last completes the lesson: progress counts scenes, never time watched.
+   * Only complete scenes of published lessons count — the same ones a learner
+   * is shown — so a scene the content team is still building can never hold a
+   * lesson open.
+   */
+  async completeScene(user: AuthenticatedUser, sceneId: string): Promise<SceneCompletionView> {
+    const scene = await this.prisma.lessonScene.findFirst({
+      where: {
+        id: sceneId,
+        ...readyScene,
+        lesson: { ...published, module: { ...published, pathway: published } },
+      },
+      select: {
+        id: true,
+        lessonId: true,
+        lesson: { select: { moduleId: true, module: { select: { pathwayId: true } } } },
+      },
+    });
+
+    if (!scene) {
+      throw new NotFoundException({
+        code: "NOT_FOUND",
+        message: "That scene does not exist, or has not been published.",
+      });
+    }
+
+    const enrolment = await this.enrolmentFor(user, scene.lesson.module.pathwayId);
+    const now = new Date();
+    const lessonKey = { enrolmentId: enrolment.id, lessonId: scene.lessonId };
+
+    return this.prisma.$transaction(async (tx) => {
+      // Finishing a scene again — going back over a lesson — keeps the first date.
+      await tx.sceneProgress.upsert({
+        where: { enrolmentId_sceneId: { enrolmentId: enrolment.id, sceneId } },
+        create: { enrolmentId: enrolment.id, sceneId, completedAt: now },
+        update: {},
+      });
+
+      const [sceneCount, scenesCompleted] = await Promise.all([
+        tx.lessonScene.count({ where: { lessonId: scene.lessonId, ...readyScene } }),
+        tx.sceneProgress.count({
+          where: { enrolmentId: enrolment.id, scene: { lessonId: scene.lessonId, ...readyScene } },
+        }),
+      ]);
+
+      if (scenesCompleted < sceneCount) {
+        // Under way. A lesson already completed stays completed.
+        await tx.lessonProgress.upsert({
+          where: { enrolmentId_lessonId: lessonKey },
+          create: { ...lessonKey, status: "IN_PROGRESS", startedAt: now },
+          update: {},
+        });
+
+        return { sceneId, scenesCompleted, sceneCount, lessonCompleted: false, progressPercent: null };
+      }
+
+      const { progressPercent } = await this.recordLessonCompletion(
+        tx,
+        enrolment,
+        scene.lessonId,
+        scene.lesson.moduleId,
+        now,
+      );
+
+      return { sceneId, scenesCompleted, sceneCount, lessonCompleted: true, progressPercent };
+    });
+  }
+
+  /**
+   * Where the caller stands in one lesson. Anyone signed in may read a
+   * published lesson, so someone not enrolled is answered, not refused: the
+   * screen tells them nothing they do is recorded.
+   */
+  async lessonProgress(user: AuthenticatedUser, lessonId: string): Promise<LessonStandingView> {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, ...published, module: { ...published, pathway: published } },
+      select: { id: true, module: { select: { pathwayId: true } } },
+    });
+
+    if (!lesson) {
+      throw notFound("lesson");
+    }
+
+    const enrolment = await this.findEnrolment(user, lesson.module.pathwayId);
+
+    if (!enrolment) {
+      return { enrolled: false, status: "NOT_STARTED", completedSceneIds: [] };
+    }
+
+    const [row, scenes] = await Promise.all([
+      this.prisma.lessonProgress.findUnique({
+        where: { enrolmentId_lessonId: { enrolmentId: enrolment.id, lessonId } },
+        select: { status: true },
+      }),
+      this.prisma.sceneProgress.findMany({
+        where: { enrolmentId: enrolment.id, scene: { lessonId } },
+        select: { sceneId: true },
+      }),
+    ]);
+
+    return {
+      enrolled: true,
+      status: row?.status ?? "NOT_STARTED",
+      completedSceneIds: scenes.map((item) => item.sceneId),
+    };
+  }
+
+  /**
+   * A lesson completed for an enrolment, then its module and the enrolment
+   * recalculated. Completing twice is not an error — a second click, going
+   * back over a lesson — and never moves the date it was first completed.
+   */
+  private async recordLessonCompletion(
+    tx: Prisma.TransactionClient,
+    enrolment: { id: string; pathwayId: string },
+    lessonId: string,
+    moduleId: string,
+    now: Date,
+  ): Promise<{ moduleStatus: ProgressStatus; progressPercent: number }> {
+    const where = { enrolmentId_lessonId: { enrolmentId: enrolment.id, lessonId } };
+    const existing = await tx.lessonProgress.findUnique({ where, select: { status: true } });
+
+    if (!existing) {
+      await tx.lessonProgress.create({
+        data: {
+          enrolmentId: enrolment.id,
+          lessonId,
+          status: "COMPLETED",
+          startedAt: now,
+          completedAt: now,
+        },
+      });
+    } else if (existing.status !== "COMPLETED") {
+      await tx.lessonProgress.update({ where, data: { status: "COMPLETED", completedAt: now } });
+    }
+
+    const moduleStatus = await this.refreshModule(tx, enrolment.id, moduleId, now);
+    const progressPercent = await this.refreshEnrolment(tx, enrolment.id, enrolment.pathwayId, now);
+
+    return { moduleStatus, progressPercent };
+  }
+
+  /**
+   * Brings every enrolment on a pathway up to date after its content changed.
+   * Publishing, unpublishing, archiving or restoring a lesson or module changes
+   * how many lessons there are to complete; without this, a learner's
+   * percentage would describe a pathway that no longer exists.
+   *
+   * Only the percentage is recalculated — and, when `moduleId` names the
+   * module that changed, that module's status for anyone who has one. Whether
+   * an enrolment has started or finished is left alone: that records what the
+   * learner did, and a change of content does not undo it.
+   */
+  async recomputePathway(pathwayId: string, moduleId?: string): Promise<void> {
+    const enrolments = await this.prisma.enrolment.findMany({
+      where: { cohort: { pathwayId } },
+      select: { id: true },
+    });
+    const total = await this.prisma.lesson.count({
+      where: { ...published, module: { ...published, pathwayId } },
+    });
+    const moduleTotal = moduleId
+      ? await this.prisma.lesson.count({ where: { moduleId, ...published } })
+      : 0;
+    const now = new Date();
+
+    for (const { id: enrolmentId } of enrolments) {
+      if (moduleId) {
+        const done = await this.prisma.lessonProgress.count({
+          where: { enrolmentId, status: "COMPLETED", lesson: { moduleId, ...published } },
+        });
+        const status = statusFor(done, moduleTotal);
+
+        if (status === "COMPLETED") {
+          // A module still complete keeps the date it was first completed.
+          await this.prisma.moduleProgress.updateMany({
+            where: { enrolmentId, moduleId, status: { not: "COMPLETED" } },
+            data: { status, completedAt: now },
+          });
+        } else {
+          await this.prisma.moduleProgress.updateMany({
+            where: { enrolmentId, moduleId },
+            data: { status, completedAt: null },
+          });
+        }
+      }
+
+      const completed = await this.prisma.lessonProgress.count({
+        where: {
+          enrolmentId,
+          status: "COMPLETED",
+          lesson: { ...published, module: { ...published, pathwayId } },
+        },
+      });
+
+      await this.prisma.enrolment.update({
+        where: { id: enrolmentId },
+        data: { progressPercent: percentOf(completed, total) },
+      });
+    }
   }
 
   /** Every enrolment the caller holds, with what they have completed in each. */
@@ -205,8 +398,22 @@ export class ProgressService {
     user: AuthenticatedUser,
     pathwayId: string,
   ): Promise<{ id: string; pathwayId: string }> {
-    if (!user.institutionId) {
+    const enrolment = await this.findEnrolment(user, pathwayId);
+
+    if (!enrolment) {
       throw notFound("enrolment");
+    }
+
+    return enrolment;
+  }
+
+  /** The same, or null for someone with no open enrolment on the pathway. */
+  private async findEnrolment(
+    user: AuthenticatedUser,
+    pathwayId: string,
+  ): Promise<{ id: string; pathwayId: string } | null> {
+    if (!user.institutionId) {
+      return null;
     }
 
     const enrolment = await this.prisma.enrolment.findFirst({
@@ -219,11 +426,7 @@ export class ProgressService {
       select: { id: true },
     });
 
-    if (!enrolment) {
-      throw notFound("enrolment");
-    }
-
-    return { id: enrolment.id, pathwayId };
+    return enrolment ? { id: enrolment.id, pathwayId } : null;
   }
 
   /** A module is complete when every published lesson in it is. */
@@ -281,9 +484,7 @@ export class ProgressService {
       }),
     ]);
 
-    // A pathway with no published lessons is 0%, not 100%: nothing has been
-    // done, and dividing by zero would claim otherwise.
-    const progressPercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const progressPercent = percentOf(completed, total);
     const finished = total > 0 && completed === total;
 
     // Stamped once, on the first thing they complete. `updateMany` with the
@@ -303,6 +504,14 @@ export class ProgressService {
 
     return progressPercent;
   }
+}
+
+/**
+ * Whole percent completed. A pathway with no published lessons is 0%, not
+ * 100%: nothing has been done, and dividing by zero would claim otherwise.
+ */
+function percentOf(completed: number, total: number): number {
+  return total === 0 ? 0 : Math.round((completed / total) * 100);
 }
 
 function statusFor(completed: number, total: number): ProgressStatus {

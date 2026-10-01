@@ -3,7 +3,9 @@ import type { SessionContext } from "@/lib/api/contracts";
 import { appShell } from "@/content/app";
 import {
   canAdministerPlatform,
+  canAuthorContent,
   canManageInstitution,
+  contentNavigation,
   manageNavigation,
   platformNavigation,
   type NavGroup,
@@ -30,6 +32,9 @@ export function AppShell({
   const groups: NavGroup[] = [
     ...(canManageInstitution(session)
       ? [{ heading: appShell.manageHeading, items: manageNavigation }]
+      : []),
+    ...(canAuthorContent(session)
+      ? [{ heading: appShell.contentHeading, items: contentNavigation }]
       : []),
     ...(canAdministerPlatform(session)
       ? [{ heading: appShell.platformHeading, items: platformNavigation }]

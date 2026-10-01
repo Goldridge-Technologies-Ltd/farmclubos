@@ -5,8 +5,10 @@ import { validate } from "./config/env.validation.js";
 import { PrismaModule } from "./lib/database/prisma.module.js";
 import { MailModule } from "./lib/mail/mail.module.js";
 import { RateLimitModule } from "./lib/rate-limit/rate-limit.module.js";
+import { StorageModule } from "./lib/storage/storage.module.js";
 import { AcademyModule } from "./modules/academy/academy.module.js";
 import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
+import { AuthoringModule } from "./modules/authoring/authoring.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { CohortsModule } from "./modules/cohorts/cohorts.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
@@ -26,8 +28,10 @@ import { UsersModule } from "./modules/users/users.module.js";
     PrismaModule,
     MailModule,
     RateLimitModule,
+    StorageModule,
     AcademyModule,
     AssessmentsModule,
+    AuthoringModule,
     AuthModule,
     CohortsModule,
     HealthModule,

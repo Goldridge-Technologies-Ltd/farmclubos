@@ -16,6 +16,7 @@ import type { AccessTokenClaims } from "../../src/common/auth/access-token.js";
 import { PrismaService } from "../../src/lib/database/prisma.service.js";
 import { MailService } from "../../src/lib/mail/mail.service.js";
 import { RateLimitService } from "../../src/lib/rate-limit/rate-limit.service.js";
+import { StorageService } from "../../src/lib/storage/storage.service.js";
 
 export const TEST_ENV = {
   NODE_ENV: "test",
@@ -66,8 +67,9 @@ export async function createTestApp({ imports, overrides = [] }: TestAppOptions)
           clear: () => Promise.resolve(),
         },
       } satisfies Provider,
+      { provide: StorageService, useValue: { configured: false } } satisfies Provider,
     ],
-    exports: [PrismaService, MailService, RateLimitService],
+    exports: [PrismaService, MailService, RateLimitService, StorageService],
   })
   class StubInfrastructureModule {}
 

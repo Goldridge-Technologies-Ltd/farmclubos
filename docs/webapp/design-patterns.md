@@ -342,11 +342,13 @@ then content managers), the invitations waiting, inviting a content manager by
 email, and *Remove*, which asks first and says the account and its work stay.
 A content-team invitation uses the same `/accept-invite` link as an
 institution's; the page says which it is. Someone with an account who joins
-is sent straight to Academy content, and the join action **renews the
-session first**: the API's role checks read the access token, which would
-otherwise still say they have no platform role for up to 15 minutes. Nothing
-needs renewing on removal, because the session context, and with it every
-content screen, comes from `/api/auth/me`, which reads the database.
+the content team is sent straight to Academy content. The join action
+**renews the session after any join**: the API's role checks read the access
+token, which would otherwise still say they have no platform role for up to
+15 minutes, and someone with no institution to be in lands in the one they
+just joined. Nothing needs renewing on removal, because the session context,
+and with it every content screen, comes from `/api/auth/me`, which reads the
+database.
 
 The sidebar and drawer take their role groups as data (`NavGroup[]`) from
 `AppShell`, which decides them on the server. A new role-specific section is a

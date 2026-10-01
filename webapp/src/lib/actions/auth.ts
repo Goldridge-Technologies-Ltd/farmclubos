@@ -133,10 +133,11 @@ export async function acceptInvite(
  * Accepts an invitation for an account that already exists and is signed in:
  * a place in another institution, or on the content team.
  *
- * Joining the content team changes the account's platform role, which the
- * API's role checks read from the access token. So the session is renewed
- * straight away, rather than leaving the content screens refusing them until
- * the token next expires.
+ * Either changes what the session can do, so it is renewed straight away. A
+ * new platform role is read by the API's role checks from the access token,
+ * which would otherwise refuse the content screens until it next expired. And
+ * someone with no institution to be in, such as a content manager, is put in
+ * the one they just joined; anyone already in one stays there.
  */
 export async function joinWithInvite(
   _previous: FormState,
@@ -150,18 +151,16 @@ export async function joinWithInvite(
       body: { token: text(formData, "token") },
     });
 
-    if (joined.kind === "CONTENT_TEAM") {
-      const refreshToken = await readRefreshToken();
+    const refreshToken = await readRefreshToken();
 
-      if (refreshToken) {
-        await startSession(
-          await apiRequest<AuthSession>("/api/auth/refresh", {
-            method: "POST",
-            authenticated: false,
-            body: { refreshToken },
-          }),
-        );
-      }
+    if (refreshToken) {
+      await startSession(
+        await apiRequest<AuthSession>("/api/auth/refresh", {
+          method: "POST",
+          authenticated: false,
+          body: { refreshToken },
+        }),
+      );
     }
   } catch (error) {
     return toFormState(error, []);

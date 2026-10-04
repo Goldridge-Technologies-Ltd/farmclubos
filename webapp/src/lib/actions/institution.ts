@@ -92,12 +92,17 @@ async function inviteCommand(
   const institution = await managedInstitution();
 
   try {
-    await apiRequest(`/api/institutions/${institution.id}/invites/${inviteId}/${command}`, {
-      method: "POST",
-    });
+    // A resend says whether its email went; a revoke has no email to report.
+    const invite = await apiRequest<{ email: string; emailStatus?: IssuedInvite["emailStatus"] }>(
+      `/api/institutions/${institution.id}/invites/${inviteId}/${command}`,
+      { method: "POST" },
+    );
     revalidatePath("/institution/members");
 
-    return { status: "success", message: done };
+    // The invitation has a fresh link either way; only its email failed.
+    return invite.emailStatus === "FAILED"
+      ? { status: "error", message: institutionContent.members.pending.notSent(invite.email) }
+      : { status: "success", message: done };
   } catch (error) {
     return toFormState(error, []);
   }

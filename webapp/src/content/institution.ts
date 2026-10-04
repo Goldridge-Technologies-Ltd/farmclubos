@@ -87,6 +87,9 @@ export const institutionContent = {
       working: "Working…",
       // Shown at the top of the page: the invitation has left the list it sat in.
       revoked: (email: string) => `The invitation to ${email} was revoked. Its link no longer works.`,
+      // A resend whose email failed: the invitation is still there, with a fresh link.
+      notSent: (email: string) =>
+        `The invitation to ${email} is still waiting, but its email did not send. Resend it to try again.`,
     },
   },
 

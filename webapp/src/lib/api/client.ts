@@ -190,7 +190,8 @@ function baseUrl(): string {
 
   if (!url) {
     throw new Error(
-      "API_BASE_URL is not set. Copy webapp/.env.example to webapp/.env.local — " +
+      "API_BASE_URL is not set. Deployed, set it in the host's environment " +
+        "variables; locally, copy webapp/.env.example to webapp/.env.local — " +
         "see docs/guides/local-dev.md.",
     );
   }

@@ -7,6 +7,22 @@ const required = {
   JWT_REFRESH_SECRET: "b".repeat(32),
 };
 
+const s3 = {
+  STORAGE_DRIVER: "s3",
+  STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
+  STORAGE_BUCKET: "farmclub-media",
+  STORAGE_ACCESS_KEY_ID: "key-id",
+  STORAGE_SECRET_ACCESS_KEY: "secret",
+};
+
+/** Production's own requirements, bar storage, which some specs leave out on purpose. */
+const production = {
+  NODE_ENV: "production",
+  MAIL_DRIVER: "smtp",
+  SMTP_HOST: "smtp.example.com",
+  WEBAPP_URL: "https://app.farmclubos.com",
+};
+
 describe("validate", () => {
   it("applies defaults when only the required variables are set", () => {
     const config = validate(required);
@@ -115,18 +131,27 @@ describe("validate", () => {
         }),
       ).toThrow(/MAIL_DRIVER/);
     });
+
+    it("refuses the local default for WEBAPP_URL in production, where every emailed link would lead nowhere", () => {
+      expect(() =>
+        validate({ ...required, ...production, ...s3, WEBAPP_URL: "http://localhost:3001" }),
+      ).toThrow(/WEBAPP_URL/);
+    });
+
+    it("refuses a plain http WEBAPP_URL in production, where the web app only works over https", () => {
+      expect(() =>
+        validate({ ...required, ...production, ...s3, WEBAPP_URL: "http://app.farmclubos.com" }),
+      ).toThrow(/WEBAPP_URL/);
+    });
+
+    it("accepts the web app's https address in production", () => {
+      const config = validate({ ...required, ...production, ...s3 });
+
+      expect(config.WEBAPP_URL).toBe("https://app.farmclubos.com");
+    });
   });
 
   describe("storage", () => {
-    const s3 = {
-      STORAGE_DRIVER: "s3",
-      STORAGE_ENDPOINT: "https://account.r2.cloudflarestorage.com",
-      STORAGE_BUCKET: "farmclub-media",
-      STORAGE_ACCESS_KEY_ID: "key-id",
-      STORAGE_SECRET_ACCESS_KEY: "secret",
-    };
-    const production = { NODE_ENV: "production", MAIL_DRIVER: "smtp", SMTP_HOST: "smtp.example.com" };
-
     it("keeps files in a folder by default outside production, needing nothing else", () => {
       const config = validate(required);
 
@@ -190,6 +215,7 @@ describe("validate", () => {
       STORAGE_BUCKET: "farmclub-media",
       STORAGE_ACCESS_KEY_ID: "key-id",
       STORAGE_SECRET_ACCESS_KEY: "secret",
+      WEBAPP_URL: "https://app.farmclubos.com",
       CORS_ORIGINS: "https://app.farmclubos.com",
       DIRECT_URL: "postgresql://user:pw@localhost:5432/farmclub",
     });

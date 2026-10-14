@@ -163,7 +163,10 @@ export class EnvironmentVariables {
   @Max(720)
   INVITE_TTL_HOURS = 168;
 
-  /** Where links in emails point: the web app, never the API. */
+  /**
+   * Where links in emails point: the web app, never the API. Production needs
+   * its https:// address; the default is the local web app.
+   */
   @IsUrl({ require_tld: false, require_protocol: true })
   WEBAPP_URL = "http://localhost:3001";
 
@@ -298,6 +301,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     throw new Error(
       "Invalid environment configuration: MAIL_DRIVER must not be log in " +
         "production, where it would write invite and reset links to the logs",
+    );
+  }
+
+  if (
+    validated.NODE_ENV === NodeEnv.Production &&
+    new URL(validated.WEBAPP_URL).protocol !== "https:"
+  ) {
+    throw new Error(
+      "Invalid environment configuration: WEBAPP_URL must be the web app's " +
+        "https:// address in production, where every invitation and reset email " +
+        "links to it and the web app's session cookies only work over https",
     );
   }
 

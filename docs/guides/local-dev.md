@@ -137,9 +137,9 @@ one exists and fill in your own values.
 | `LOGIN_THROTTLE_WINDOW_SECONDS` | `api/.env` | How long failed sign-ins are counted, and how long a block then lasts. Defaults to `900` (15 minutes). |
 | `PASSWORD_RESET_MAX_REQUESTS` | `api/.env` | Reset emails allowed per email address inside the window. Defaults to `5`. A forwarded client address gets ten times this. |
 | `PASSWORD_RESET_THROTTLE_WINDOW_SECONDS` | `api/.env` | The reset window, and the length of the block. Defaults to `3600` (one hour). |
-| `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. |
+| `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API: its origin only, without `/api`. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. Deployed on Vercel, it is the API's public `https://` address, set in the project's environment variables. |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`, `SEED_ADMIN_LAST_NAME` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; the names are optional. See below. |
-| `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. `storage:setup` also allows it in the bucket's CORS rule. |
+| `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. **Production refuses anything but an `https://` address**, so a missing one stops the API rather than emailing links to localhost. `storage:setup` also allows it in the bucket's CORS rule. |
 | `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
 | `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
 | `SMTP_HOST` | `api/.env` | Required when `MAIL_DRIVER=smtp`. |
@@ -310,9 +310,9 @@ npm run storage:setup --workspace api
 
 `storage:setup` creates the bucket and gives it a CORS rule letting the web
 app (`WEBAPP_URL`, and any `STORAGE_CORS_ORIGINS`) upload to it and play from
-it: files go straight from the browser to storage, and captions load across
-origins. It is safe to run again. With Docker, the RustFS console is at
-http://localhost:9001.
+it: files go straight from the browser to storage, and the player loads
+videos and captions across origins. It is safe to run again. With Docker, the
+RustFS console is at http://localhost:9001.
 
 **On Cloudflare R2**, with `STORAGE_DRIVER=s3`:
 
@@ -325,8 +325,12 @@ http://localhost:9001.
    **Settings → CORS policy**: the web app's origin; methods `GET`, `PUT` and
    `HEAD`; allowed header `content-type`; exposed header `ETag`.
 
-Without the rule, uploads fail in the browser with a CORS error, and videos
-play without their captions.
+Without the rule, uploads fail in the browser with a CORS error, and no video
+plays: the player loads a video under CORS so that its captions can load, and
+the browser refuses one that storage does not allow. The rule needs every
+address the web app is served from, so when it moves, such as to its
+production domain, run `storage:setup` again with the new `WEBAPP_URL`, or
+edit the rule.
 
 ## Walking the whole journey
 

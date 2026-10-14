@@ -89,12 +89,30 @@ review rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Deployment
 
-**Front ends.** Deploy each as its own project with its root directory set to
-the app (`site` or `webapp`). The host installs from the repository root, and
-the app's `build` script runs `prebuild` first, which copies the brand files.
-The web app needs `API_BASE_URL` pointing at the API — its internal address
-where the host has one — and must be served over HTTPS: its session cookies are
-`secure` in production.
+**Front ends, on Vercel.** Each app is its own Vercel project, deployed from
+Git. In each project's **Build and Deployment** settings:
+
+- **Root Directory:** the app, `webapp` or `site`.
+- **Include files outside the root directory in the Build Step:** on, as it
+  is by default. The design system lives in `packages/`; without it npm looks
+  for `@farmclub/design-system` on the public registry, and the install fails
+  with a 404.
+- **Install Command and Build Command:** leave both on their defaults. Vercel
+  runs `npm install` inside the app, which installs that app and the packages
+  it uses rather than the whole repository, and the root's `prepare` script
+  skips the Git hooks, since husky is not installed then. `npm run build`
+  runs `prebuild` first, which copies the brand files.
+- **Vercel CLI:** run it from the repository root, never from inside an app
+  folder, which leaves the rest of the repository behind.
+
+The web app needs `API_BASE_URL` in the project's environment variables: the
+API's `https://` origin, without `/api` (`https://api.example.com`). Set it for
+Production, and for Preview only if previews may use that API's real data.
+HTTPS is required, since the session cookies are `secure` in production, and
+Vercel provides it. Every page reads from the API, so set the project's
+function region (**Settings → Functions**) to the one nearest the API. The
+API needs the web app's address too, in `WEBAPP_URL` and the bucket's CORS
+rule (below).
 
 **API.** Whatever the host, a deploy is the same four steps, from the
 repository root:
@@ -113,14 +131,23 @@ npm run start --workspace api
 - **Storage.** Lesson videos, captions and still images live in a private
   Cloudflare R2 bucket. Set `STORAGE_DRIVER=s3` and the four `STORAGE_*`
   variables, without which production refuses to start, and give the bucket
-  a CORS rule for the web app's origin: run
-  `npm run storage:setup --workspace api` once with an admin token, or set it
-  in the R2 dashboard. The steps are in
+  a CORS rule for the web app's origin, `WEBAPP_URL`: run
+  `npm run storage:setup --workspace api` with an admin token, again whenever
+  the web app's address changes, or set it in the R2 dashboard. Without it,
+  uploads fail and no video plays. The steps are in
   [`docs/guides/local-dev.md`](docs/guides/local-dev.md#file-storage).
 - **Environment.** `NODE_ENV=production` turns Swagger off. Set `WEBAPP_URL`
-  to the web app's public address — it is what links in emails point to — and
-  `MAIL_DRIVER=smtp` with the `SMTP_*` settings: production refuses the `log`
-  driver, which would print invitation and reset links to the logs.
+  to the web app's public `https://` address — it is what links in emails
+  point to, and production refuses anything else — and `MAIL_DRIVER=smtp`
+  with the `SMTP_*` settings: production refuses the `log` driver, which would
+  print invitation and reset links to the logs.
+- **HTTPS.** Serve the API over HTTPS, since the web app sends session tokens
+  to it across the internet. If a reverse proxy fronts it, have the proxy
+  append to the `X-Forwarded-For` header the web app sends rather than
+  replace it: nginx's `$proxy_add_x_forwarded_for` appends, while Caddy
+  replaces it by default. The web app puts the visitor's address first, and
+  sign-in throttling counts failures against that address. Replaced, every
+  visitor would share the budget of the web app's own few addresses.
 - **Health check.** Point the host's check at `GET /health/ready`. It answers
   503 while the database is unreachable, so traffic stops going to an instance
   that cannot serve it.

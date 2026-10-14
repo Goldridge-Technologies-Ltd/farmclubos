@@ -15,7 +15,7 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

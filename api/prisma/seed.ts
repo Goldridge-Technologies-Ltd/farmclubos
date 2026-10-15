@@ -374,8 +374,9 @@ async function main(): Promise<void> {
 /*
   The first platform admin. Someone has to be able to sign in before anyone can
   be invited, so the seed creates one from the environment — never from a
-  committed credential, and never in production, where the first admin is
-  created deliberately.
+  committed credential, and never in production. There the first admin is made
+  with `npm run admin:add`, which emails a link to set the password rather
+  than reading one from the environment.
 
   An existing account keeps its password: re-running the seed must not undo a
   password changed since. It only makes sure the role is PLATFORM_ADMIN.
@@ -390,7 +391,10 @@ async function seedPlatformAdmin(prisma: PrismaClient): Promise<void> {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed a platform admin in production.");
+    throw new Error(
+      "Refusing to seed a platform admin in production. Run " +
+        "`npm run admin:add --workspace api -- --email <address> --first-name <name> --last-name <name>` instead.",
+    );
   }
 
   if (password.length < PASSWORD_MIN_LENGTH) {

@@ -3,6 +3,7 @@ import { escapeHtml } from "./escape-html.js";
 import { renderInvite } from "./invite.template.js";
 import { renderPasswordChanged } from "./password-changed.template.js";
 import { renderPasswordReset } from "./password-reset.template.js";
+import { renderPlatformAdminWelcome } from "./platform-admin-welcome.template.js";
 
 describe("escapeHtml", () => {
   it("neutralises every character that can open markup or an attribute", () => {
@@ -91,6 +92,37 @@ describe("renderContentTeamInvite", () => {
 
   it("escapes the inviter's name in the HTML", () => {
     const email = renderContentTeamInvite({ ...base, inviterName: "<b>Ada</b>" });
+
+    expect(email.html).not.toContain("<b>Ada</b>");
+    expect(email.html).toContain("&lt;b&gt;Ada&lt;/b&gt;");
+  });
+});
+
+describe("renderPlatformAdminWelcome", () => {
+  const base = {
+    firstName: "Ada",
+    setPasswordUrl: "https://app.farmclubos.com/reset-password?token=abc123",
+    expiresInDays: 7,
+  };
+
+  it("says the account is a platform administrator's and asks for a password", () => {
+    const email = renderPlatformAdminWelcome(base);
+
+    expect(email.subject).toBe("Set your FARMCLUB OS password");
+    expect(email.text).toContain("Hi Ada,");
+    expect(email.text).toContain("as a platform administrator");
+  });
+
+  it("carries the link in both parts, and says when it expires", () => {
+    const email = renderPlatformAdminWelcome(base);
+
+    expect(email.html).toContain('href="https://app.farmclubos.com/reset-password?token=abc123"');
+    expect(email.text).toContain("https://app.farmclubos.com/reset-password?token=abc123");
+    expect(email.text).toContain("expires in 7 days");
+  });
+
+  it("escapes the name in the HTML", () => {
+    const email = renderPlatformAdminWelcome({ ...base, firstName: "<b>Ada</b>" });
 
     expect(email.html).not.toContain("<b>Ada</b>");
     expect(email.html).toContain("&lt;b&gt;Ada&lt;/b&gt;");

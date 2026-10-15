@@ -141,6 +141,23 @@ npm run start --workspace api
   point to, and production refuses anything else — and `MAIL_DRIVER=smtp`
   with the `SMTP_*` settings: production refuses the `log` driver, which would
   print invitation and reset links to the logs.
+- **First deploy.** On a new database, run `npm run db:seed --workspace api`
+  once, for the Academy catalogue. Only once: a second run puts every pathway
+  and module back as seeded (titles, order and publication) and replaces the
+  starter quiz's questions, undoing the content team's work. The seed makes
+  no administrator in production. Make the first platform administrator, and
+  any later one, on the server:
+
+  ```bash
+  npm run admin:add --workspace api -- --email ada@example.com --first-name Ada --last-name Obi
+  ```
+
+  A new account gets no password, only an emailed link to set one, so no
+  password is typed or stored on the server; an existing account keeps its
+  own. Run it again if the email does not arrive, and it sends a fresh link.
+  On Render, run it from the service's Shell on a paid instance, or from your
+  own machine on a Free one, which has no shell. See
+  [Running it on Render](docs/guides/local-dev.md#running-it-on-render).
 - **HTTPS.** Serve the API over HTTPS, since the web app sends session tokens
   to it across the internet. If a reverse proxy fronts it, have the proxy
   append to the `X-Forwarded-For` header the web app sends rather than

@@ -219,6 +219,59 @@ npm run db:seed --workspace api
 Sign in at http://localhost:3001/sign-in. The seed refuses to create an admin
 in production, and re-running it never changes an existing account's password.
 
+**In production**, or anywhere you would rather not put a password in a file,
+make platform admins with a command instead. It runs from the build (`npm run
+build --workspace api` first) and reads the API's environment:
+
+```bash
+npm run admin:add --workspace api -- --email ada@example.com --first-name Ada --last-name Obi
+```
+
+- **A new account** needs the two names. It is created with no password, and
+  emailed a link to set one, which works once and lasts as long as an
+  invitation (`INVITE_TTL_HOURS`). The link opens the reset-password page, so
+  no password is typed into, stored on or printed by the server.
+- **An existing account** needs only `--email`. It becomes a platform admin,
+  active again if it was deactivated, and keeps its password.
+- **Running it again** for an account that still has no password sends a
+  fresh link, and the older one stops working: that is the way back from an
+  email that did not send. Otherwise it changes nothing.
+
+Each grant is recorded as a `user.platform_admin_granted` audit event, with no
+actor. Locally, with `MAIL_DRIVER=log`, the email and its link print in the
+terminal. There is no other way to make a platform admin: the web app cannot,
+and invitations are only for institutions and the content team.
+
+#### Running it on Render
+
+The command needs a shell beside the API, and on Render only paid instance
+types have one. On a paid instance, open the API service's **Shell** page in
+the Render Dashboard and run the command there. The session has the
+service's environment variables, and the repository is in
+`/opt/render/project/src`.
+
+A **Free** instance has no shell and cannot run one-off jobs, so run the
+command from your own machine instead, against the production database.
+Build it from the same code as the deployed API first, with
+`npm run build --workspace api`:
+
+```bash
+DATABASE_URL='<production database URL>' WEBAPP_URL=https://<web app address> MAIL_DRIVER=log \
+  npm run admin:add --workspace api -- --email ada@example.com --first-name Ada --last-name Obi
+```
+
+The rest of the environment comes from your `api/.env`. The `log` driver
+emails nothing: the email, link included, prints in your terminal. The link
+still works on the live web app, because the live API only looks its token up
+in the database. This route also helps when production email is not working
+yet, on any instance type.
+
+Use a database URL that reaches the database from outside Render. A Supabase
+URL, as in the API's environment, works from anywhere. For Render Postgres,
+use its **External** URL from the database's **Connect** menu, not the
+internal one in the API's environment. Pass it on the command line as above
+rather than saving it in `api/.env`.
+
 ### Throttling sign-in
 
 Sign-in and password-reset attempts are counted in the `RateLimitCounter`

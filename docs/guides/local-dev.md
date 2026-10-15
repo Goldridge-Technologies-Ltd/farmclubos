@@ -219,6 +219,29 @@ npm run db:seed --workspace api
 Sign in at http://localhost:3001/sign-in. The seed refuses to create an admin
 in production, and re-running it never changes an existing account's password.
 
+**In production**, or anywhere you would rather not put a password in a file,
+make platform admins with a command instead. It runs from the build (`npm run
+build --workspace api` first) and reads the API's environment:
+
+```bash
+npm run admin:add --workspace api -- --email ada@example.com --first-name Ada --last-name Obi
+```
+
+- **A new account** needs the two names. It is created with no password, and
+  emailed a link to set one, which works once and lasts as long as an
+  invitation (`INVITE_TTL_HOURS`). The link opens the reset-password page, so
+  no password is typed into, stored on or printed by the server.
+- **An existing account** needs only `--email`. It becomes a platform admin,
+  active again if it was deactivated, and keeps its password.
+- **Running it again** for an account that still has no password sends a
+  fresh link, and the older one stops working: that is the way back from an
+  email that did not send. Otherwise it changes nothing.
+
+Each grant is recorded as a `user.platform_admin_granted` audit event, with no
+actor. Locally, with `MAIL_DRIVER=log`, the email and its link print in the
+terminal. There is no other way to make a platform admin: the web app cannot,
+and invitations are only for institutions and the content team.
+
 ### Throttling sign-in
 
 Sign-in and password-reset attempts are counted in the `RateLimitCounter`

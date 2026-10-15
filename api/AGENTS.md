@@ -107,6 +107,15 @@ variables differ.
   is the platform administrator's side, checked against the database: list,
   invite, resend, revoke, and remove, which only sets the role back to `NONE`.
   The account, its memberships and its work stay.
+- **Platform administrators are made only on the server**, by
+  `npm run admin:add` (`src/cli/add-platform-admin.ts`), never through a
+  route. `PlatformAdminsService` (`src/modules/platform-admins/`) makes an
+  existing account an administrator, keeping its password, or creates one
+  with no password and emails it a link to set one. The link is a
+  `PasswordResetToken` that lasts as long as an invitation, redeemed by the
+  ordinary reset flow, and `AuthService.resetPassword` treats a first
+  password as set rather than changed: it verifies the email and sends no
+  "password changed" notice. Each grant is an audit event with no actor.
 - **A lesson's content is its scenes, and only complete scenes reach a
   learner.** A `VIDEO` scene is complete with its video and still image;
   captions are optional, and a learner's video without them has
@@ -270,6 +279,14 @@ Jest and Supertest ship with NestJS; keep them and add no other runner.
   modules use.
 - Shared guards, interceptors, pipes, filters and decorators go in
   `src/common/`.
+- Commands run on the server go in `src/cli/`, built with the API and run
+  with `node dist/cli/<name>.js` behind an npm script. Each starts
+  `CliModule` as an application context, without the HTTP server, so the
+  environment is validated as at boot and the work happens in a service with
+  its own spec. Keep reading the arguments and wording the result in a tested
+  module beside the entry point. A module only commands may reach, such as
+  `PlatformAdminsModule`, is imported by `CliModule` and never by `AppModule`,
+  so no route can reach it.
 - Keep controllers thin: they handle routing and DTOs only; business logic
   lives in services.
 - Validate every request body, query and param with a DTO (`class-validator`

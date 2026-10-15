@@ -155,6 +155,9 @@ npm run start --workspace api
   A new account gets no password, only an emailed link to set one, so no
   password is typed or stored on the server; an existing account keeps its
   own. Run it again if the email does not arrive, and it sends a fresh link.
+  On Render, run it from the service's Shell on a paid instance, or from your
+  own machine on a Free one, which has no shell. See
+  [Running it on Render](docs/guides/local-dev.md#running-it-on-render).
 - **HTTPS.** Serve the API over HTTPS, since the web app sends session tokens
   to it across the internet. If a reverse proxy fronts it, have the proxy
   append to the `X-Forwarded-For` header the web app sends rather than

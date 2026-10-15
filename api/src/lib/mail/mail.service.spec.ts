@@ -144,4 +144,22 @@ describe("MailService", () => {
       data: expect.objectContaining({ template: "password-reset", userId: "user-1" }),
     });
   });
+
+  it("links a new platform administrator's password email to the account", async () => {
+    transport.send.mockResolvedValue({ messageId: "provider-8" });
+
+    await expect(
+      service.sendPlatformAdminWelcome({
+        to: "ada@example.com",
+        userId: "user-2",
+        firstName: "Ada",
+        setPasswordUrl: "https://app.farmclubos.com/reset-password?token=xyz",
+        expiresInDays: 7,
+      }),
+    ).resolves.toBe("SENT");
+
+    expect(emailMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ template: "platform-admin-welcome", userId: "user-2" }),
+    });
+  });
 });

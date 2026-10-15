@@ -15,6 +15,10 @@ import {
   renderPasswordReset,
   type PasswordResetEmailInput,
 } from "./templates/password-reset.template.js";
+import {
+  renderPlatformAdminWelcome,
+  type PlatformAdminWelcomeEmailInput,
+} from "./templates/platform-admin-welcome.template.js";
 import type { RenderedEmail } from "./templates/rendered-email.js";
 
 export type EmailDeliveryStatus = "SENT" | "FAILED";
@@ -84,6 +88,17 @@ export class MailService {
       to: input.to,
       template: "password-changed",
       content: renderPasswordChanged(input),
+      userId: input.userId,
+    });
+  }
+
+  sendPlatformAdminWelcome(
+    input: PlatformAdminWelcomeEmailInput & { to: string; userId: string },
+  ): Promise<EmailDeliveryStatus> {
+    return this.deliver({
+      to: input.to,
+      template: "platform-admin-welcome",
+      content: renderPlatformAdminWelcome(input),
       userId: input.userId,
     });
   }

@@ -393,6 +393,13 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwords.hash(newPassword);
+    /*
+      An account made on the server (PlatformAdminsService) has no password
+      until its emailed link sets one, through this same flow. Using the link
+      proves the address, as accepting an invitation does, and nothing was
+      changed, so no "your password was changed" email follows.
+    */
+    const firstPassword = record.user.passwordHash === null;
 
     await this.prisma.$transaction(async (tx) => {
       // Consumed conditionally, so the same link redeemed twice at once only
@@ -406,7 +413,10 @@ export class AuthService {
         throw resetTokenInvalid();
       }
 
-      await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: firstPassword ? { passwordHash, emailVerifiedAt: now } : { passwordHash },
+      });
 
       // Anyone holding a session — possibly whoever prompted the reset — is out.
       await tx.authSession.updateMany({
@@ -417,12 +427,16 @@ export class AuthService {
       await tx.auditEvent.create({
         data: {
           actorUserId: record.userId,
-          action: "user.password_reset",
+          action: firstPassword ? "user.password_set" : "user.password_reset",
           entityType: "User",
           entityId: record.userId,
         },
       });
     });
+
+    if (firstPassword) {
+      return;
+    }
 
     await this.mail.sendPasswordChanged({
       to: record.user.email,

@@ -714,6 +714,38 @@ describe("AuthService", () => {
       expect(mail.sendPasswordChanged).toHaveBeenCalledWith(
         expect.objectContaining({ to: "ada@example.com", userId: "user-1" }),
       );
+      expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: "user.password_reset" }),
+      });
+    });
+
+    /*
+      An account made on the server has no password until its link is used,
+      and the same reset link sets the first one. Using the emailed link proves
+      the address, as accepting an invitation does. Nothing was changed, so no
+      "your password was changed" email follows.
+    */
+    it("sets a first password, verifying the email, without saying it was changed", async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: "reset-1",
+        userId: "user-1",
+        usedAt: null,
+        expiresAt: minutesFromNow(30),
+        user: { ...user, passwordHash: null },
+      });
+      prisma.passwordResetToken.updateMany.mockResolvedValue({ count: 1 });
+      passwords.hash.mockResolvedValue("$argon2id$first");
+
+      await service.resetPassword(raw, "a brand new password");
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { passwordHash: "$argon2id$first", emailVerifiedAt: expect.any(Date) },
+      });
+      expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: "user.password_set" }),
+      });
+      expect(mail.sendPasswordChanged).not.toHaveBeenCalled();
     });
 
     it.each([

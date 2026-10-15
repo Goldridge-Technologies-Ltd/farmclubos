@@ -74,7 +74,8 @@ export const authContent: AuthContent = {
     submitLabel: "Sign in",
     busyLabel: "Signing in…",
     forgotPassword: "Forgotten your password?",
-    afterReset: "Your password has been changed. Sign in with your new one.",
+    // Also shown to a new platform administrator, whose emailed link set a first password.
+    afterReset: "Your password is saved. Sign in with it.",
     noAccount:
       "Accounts are created by invitation. Ask your institution's administrator to invite you.",
   },

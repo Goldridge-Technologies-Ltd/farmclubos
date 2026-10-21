@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { CapabilityScreenView } from "@/components/ui/CapabilityScreenView";
-import { mentorshipScreen } from "@/content/app";
+import { FutureCapabilityPanel } from "@/components/ui/FutureCapabilityPanel";
+import { mentorshipCapability } from "@/content/future";
 
 export const metadata: Metadata = { title: "Mentorship" };
 
 export default function MentorshipPage() {
-  return <CapabilityScreenView screen={mentorshipScreen} />;
+  return <FutureCapabilityPanel capability={mentorshipCapability} />;
 }

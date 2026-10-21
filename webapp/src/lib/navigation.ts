@@ -21,6 +21,7 @@ export type NavItem = {
   description: string;
 };
 
+/** The sections that work today, for everyone signed in. */
 export const appNavigation: NavItem[] = [
   {
     label: "Home",
@@ -40,6 +41,16 @@ export const appNavigation: NavItem[] = [
     icon: "grow",
     description: "Your progress across the programme",
   },
+];
+
+/**
+ * The sections of the ecosystem that are not built yet, each a page that says
+ * so with a "Planned" badge. They stay in the navigation because they are part
+ * of how FARMCLUB OS fits together, but under a heading of their own and
+ * after everything that works: nothing that is not operational may pass for a
+ * working service.
+ */
+export const plannedNavigation: NavItem[] = [
   {
     label: "Experience",
     href: "/experience",

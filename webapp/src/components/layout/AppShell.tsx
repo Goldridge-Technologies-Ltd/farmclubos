@@ -7,6 +7,7 @@ import {
   canManageInstitution,
   contentNavigation,
   manageNavigation,
+  plannedNavigation,
   platformNavigation,
   type NavGroup,
 } from "@/lib/navigation";
@@ -39,6 +40,8 @@ export function AppShell({
     ...(canAdministerPlatform(session)
       ? [{ heading: appShell.platformHeading, items: platformNavigation }]
       : []),
+    // Last, for everyone: what is not built yet comes after all that works.
+    { heading: appShell.plannedHeading, items: plannedNavigation },
   ];
 
   return (

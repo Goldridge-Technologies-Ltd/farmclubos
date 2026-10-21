@@ -12,15 +12,6 @@
   that received it from the API, never to a content file.
 */
 
-export type CapabilityScreen = {
-  eyebrow: string;
-  heading: string;
-  description: string;
-  /** What the section will do, as capability statements rather than promises. */
-  capabilities: { title: string; description: string }[];
-  empty: { title: string; description: string };
-};
-
 export const appShell = {
   skipLink: "Skip to main content",
   /** The logo link, which carries no visible text of its own. */
@@ -36,6 +27,8 @@ export const appShell = {
   manageHeading: "Manage",
   platformHeading: "Platform",
   contentHeading: "Content",
+  /** Above the sections that are not built yet, after everything that works. */
+  plannedHeading: "Planned",
   menu: {
     open: "Open the menu",
     close: "Close the menu",
@@ -88,9 +81,6 @@ export const notFoundScreen = {
   action: "Go to your dashboard",
 } as const;
 
-/** The heading over a section's capabilities, before its data exists. */
-export const capabilitiesHeading = "What this section does";
-
 export const errorScreen = {
   title: "That did not load",
   description:
@@ -103,8 +93,7 @@ export const homeScreen = {
   greeting: (firstName: string) => `Welcome, ${firstName}`,
   eyebrow: "Your dashboard",
   description:
-    "Everything you are working on lives here. Start in the Academy, then " +
-    "practise, prove and build on what you learn.",
+    "Everything you are working on lives here. Start in the Academy.",
   sections: {
     heading: "Where to go",
     description: "The parts of FARMCLUB OS open to you right now.",
@@ -158,8 +147,7 @@ export const journeyScreen = {
   eyebrow: "Progress",
   heading: "My Journey",
   description:
-    "Every lesson completed, assessment passed and competency verified, in " +
-    "one place.",
+    "Every module and lesson in your pathway, and how far you have come in each.",
   notEnrolled: {
     title: "You are not enrolled on a pathway yet",
     description:
@@ -201,105 +189,3 @@ export const profileScreen = {
     email: "Email",
   },
 } as const;
-
-export const experienceScreen: CapabilityScreen = {
-  eyebrow: "Practise",
-  heading: "Experience",
-  description:
-    "Learning becomes skill in a working environment. The Experience & " +
-    "Innovation Hub is where a pathway leaves the screen.",
-  capabilities: [
-    {
-      title: "Book a session",
-      description:
-        "Reserve a place on a practical activity at a site running your " +
-        "pathway's programme.",
-    },
-    {
-      title: "Attend and be recorded",
-      description:
-        "Attendance is registered on the day, so the work you have actually " +
-        "done is the record — not a self-report.",
-    },
-    {
-      title: "Have a competency verified",
-      description:
-        "A verifier signs off what you can do against the criteria for that " +
-        "competency, with the evidence attached.",
-    },
-  ],
-  empty: {
-    title: "No sessions available to you yet",
-    description:
-      "Sessions appear here once your institution schedules them for a site " +
-      "running your pathway.",
-  },
-};
-
-export const mentorshipScreen: CapabilityScreen = {
-  eyebrow: "Connect",
-  heading: "Mentorship",
-  description:
-    "Guidance from people who have already built what you are trying to " +
-    "build, matched to where you are.",
-  capabilities: [
-    {
-      title: "Be matched to a mentor",
-      description:
-        "Matching considers your pathway, your stage and what you are trying " +
-        "to do next.",
-    },
-    {
-      title: "Hold a conversation that persists",
-      description:
-        "Each engagement keeps its own thread, so advice can be returned to " +
-        "rather than remembered.",
-    },
-    {
-      title: "Work towards something",
-      description:
-        "An engagement is tied to what you are building, not left as an open " +
-        "chat.",
-    },
-  ],
-  empty: {
-    title: "No mentorship engagement yet",
-    description:
-      "Mentors are matched once you are further into a pathway. Nothing is " +
-      "needed from you now.",
-  },
-};
-
-export const enterpriseScreen: CapabilityScreen = {
-  eyebrow: "Build",
-  heading: "Enterprise",
-  description:
-    "The point of the programme: a real operation, planned and tracked from " +
-    "the skills you have proven.",
-  capabilities: [
-    {
-      title: "Plan a venture",
-      description:
-        "Set out what you intend to produce and how, against the competencies " +
-        "you hold.",
-    },
-    {
-      title: "Track it in milestones",
-      description:
-        "Break the plan into steps with dates you set, and record what " +
-        "actually happened.",
-    },
-    {
-      title: "Keep the paperwork with it",
-      description:
-        "Registrations, agreements and records stay attached to the venture " +
-        "they belong to.",
-    },
-  ],
-  empty: {
-    title: "No venture yet",
-    description:
-      "An enterprise is created once you have completed a pathway and had " +
-      "your competencies verified.",
-  },
-};

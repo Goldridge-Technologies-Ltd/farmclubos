@@ -159,15 +159,19 @@ path and anything below it, but only at a `/` boundary.
 
 ### Sections that are not open yet
 
-Two components, for two different situations:
+Experience, Mentorship, Enterprise, Marketplace and Finance are not built
+yet. Nothing that is not operational may pass for a working service, so:
 
-- **`CapabilityScreenView`** — Experience, Mentorship and Enterprise. Phase 1
-  sections whose tables exist and whose screens do not. Each says what it is
-  for, then shows the empty state it will genuinely have on day one.
-- **`FutureCapabilityPanel`** — Marketplace and Finance. Not being built yet,
-  and the page says what has to be true first. This is the sanctioned use of
-  `Badge tone="warning"` with "Coming soon"; §4 still applies, so no date, no
-  ordering, no figure and no partner name appears.
+- **In the navigation** they sit in `plannedNavigation`, under a "Planned"
+  heading of their own, after every group that works. Home's "Where to go"
+  lists only the working sections in `appNavigation`.
+- **Each page is a `FutureCapabilityPanel`**: what the section is for, what
+  has to be true first, and a link to something that works now. This is the
+  sanctioned use of `Badge tone="warning"`, reading "Planned"; §4 still
+  applies, so no date, no ordering, no figure and no partner name appears.
+- **No empty state** on a planned page: "no sessions yet" implies a working
+  service with nothing in it. And a working page never describes a planned
+  capability as available.
 
 ### A missing record is a soft 404
 

@@ -6,6 +6,7 @@ import {
   contentNavigation,
   isActiveNavItem,
   manageNavigation,
+  plannedNavigation,
   platformNavigation,
 } from "./navigation";
 import type { SessionContext } from "./api/contracts";
@@ -202,6 +203,24 @@ describe("contentNavigation", () => {
     );
 
     for (const item of contentNavigation) {
+      expect(others.has(item.href)).toBe(false);
+    }
+  });
+});
+
+/*
+  What is not built yet sits under its own heading, so a planned section must
+  never also appear among the working ones, where it would pass for a service.
+*/
+describe("plannedNavigation", () => {
+  it("shares no href with any other group", () => {
+    const others = new Set(
+      [...appNavigation, ...manageNavigation, ...platformNavigation, ...contentNavigation].map(
+        (item) => item.href,
+      ),
+    );
+
+    for (const item of plannedNavigation) {
       expect(others.has(item.href)).toBe(false);
     }
   });

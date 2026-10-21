@@ -1,11 +1,15 @@
 /*
-  The two sections of the ecosystem that are not open yet.
+  The sections of the ecosystem that are not built yet: Experience,
+  Mentorship, Enterprise, Marketplace and Finance.
 
-  Marketplace and financial services are deliberately not built before the
-  layer beneath them works: a marketplace with nothing produced on it, or
-  lending with no record to lend against, is a screen pretending to be a
-  product. Saying that plainly is better than hiding the sections, because
-  they are part of how FARMCLUB OS fits together.
+  Each is built once the layer beneath it works. Practical sessions need
+  activities to run and competencies to verify against; mentorship needs
+  mentors; an enterprise needs a pathway behind it; and a marketplace with
+  nothing produced on it, or lending with no record to lend against, is a
+  screen pretending to be a product. So every page says plainly that its
+  section is planned, and nothing that is not operational passes for a working
+  service. Saying so is better than hiding the sections, because they are part
+  of how FARMCLUB OS fits together.
 
   GUARDRAILS (AGENTS.md, docs/design-system.md §13). Nothing here may read as
   a commitment or a forecast: no dates, no order of delivery, no figures, no
@@ -33,13 +37,109 @@ export const futureCapabilityPanel = {
     "This part of the ecosystem is built on the ones beneath it, and opens when they are real.",
 } as const;
 
+/** Every planned section carries the same badge. */
+const planned = "Planned";
+
+export const experienceCapability: FutureCapability = {
+  eyebrow: "Practise",
+  heading: "Experience",
+  description:
+    "Learning becomes skill in a working environment. The Experience & " +
+    "Innovation Hub is where a pathway leaves the screen.",
+  badge: planned,
+  dependsOn: [
+    {
+      title: "Practical activities for each pathway",
+      description:
+        "A session needs an activity tied to what a pathway teaches, and a " +
+        "site able to run it.",
+    },
+    {
+      title: "A record made on the day",
+      description:
+        "What a learner did has to be recorded where they did it, by the " +
+        "person who saw it, rather than reported afterwards.",
+    },
+    {
+      title: "Competencies to verify against",
+      description:
+        "A verifier signs off what a learner can do against a competency's " +
+        "criteria, so the competency framework comes first.",
+    },
+  ],
+  meanwhile: {
+    title: "Start with the Academy",
+    description: "The pathways teach what the practical sessions will put to work.",
+    action: "Open the Academy",
+    href: "/academy",
+  },
+};
+
+export const mentorshipCapability: FutureCapability = {
+  eyebrow: "Connect",
+  heading: "Mentorship",
+  description:
+    "Guidance from people who have already built what you are trying to " +
+    "build, matched to where you are.",
+  badge: planned,
+  dependsOn: [
+    {
+      title: "Mentors on the platform",
+      description:
+        "Experienced practitioners have to be invited and prepared before " +
+        "anyone can be matched to them.",
+    },
+    {
+      title: "Learners working towards something",
+      description:
+        "A mentor's time counts most against an enterprise a learner is " +
+        "actually building.",
+    },
+  ],
+  meanwhile: {
+    title: "Start with the Academy",
+    description: "The pathways are where an enterprise worth mentoring begins.",
+    action: "Open the Academy",
+    href: "/academy",
+  },
+};
+
+export const enterpriseCapability: FutureCapability = {
+  eyebrow: "Build",
+  heading: "Enterprise",
+  description:
+    "The point of the programme: a real operation, planned and tracked from " +
+    "the skills you have proven.",
+  badge: planned,
+  dependsOn: [
+    {
+      title: "A pathway behind it",
+      description: "Planning a venture builds on what the pathways teach.",
+    },
+    {
+      title: "Competencies proven",
+      description:
+        "A venture plan rests on what a learner has shown they can do, not on " +
+        "what they intend.",
+    },
+  ],
+  meanwhile: {
+    title: "Start with the Academy",
+    description:
+      "Work through your pathway. What you learn there is what a venture is " +
+      "built on.",
+    action: "Open the Academy",
+    href: "/academy",
+  },
+};
+
 export const marketplaceCapability: FutureCapability = {
   eyebrow: "Future ecosystem capability",
   heading: "Marketplace",
   description:
     "Connecting what is grown to the people who buy it, and growers to the " +
     "inputs they need — inside the same platform that taught and verified them.",
-  badge: "Coming soon",
+  badge: planned,
   dependsOn: [
     {
       title: "Producers with something to sell",
@@ -70,7 +170,7 @@ export const financeCapability: FutureCapability = {
   description:
     "Access to funding that rests on a record of what someone can actually " +
     "do, rather than on collateral they do not have.",
-  badge: "Coming soon",
+  badge: planned,
   dependsOn: [
     {
       title: "A track record worth assessing",
@@ -88,8 +188,8 @@ export const financeCapability: FutureCapability = {
   meanwhile: {
     title: "Build the record first",
     description:
-      "Work through a pathway and have your competencies verified. That " +
-      "record is what this section will one day read from.",
+      "Work through a pathway. The record you build there is what this " +
+      "section will one day read from.",
     action: "Open the Academy",
     href: "/academy",
   },

@@ -6,14 +6,17 @@ import { Panel } from "@/components/ui/Panel";
 import { futureCapabilityPanel, type FutureCapability } from "@/content/future";
 
 /*
-  A section of the ecosystem that is not open yet: Marketplace, Finance.
+  A section of the ecosystem that is not built yet: Experience, Mentorship,
+  Enterprise, Marketplace and Finance.
 
-  They sit in the navigation rather than being hidden, because they are part
-  of how FARMCLUB OS fits together and a person reading the deck will look for
-  them. What the page must not do is imply they are nearly here.
+  They sit in the navigation, under their own "Planned" heading, rather than
+  being hidden, because they are part of how FARMCLUB OS fits together and a
+  person reading the deck will look for them. What a page must never do is
+  pass for a working service, or imply its section is nearly here: no empty
+  state that suggests data is on its way, no feature described as available.
 
   GUARDRAILS (docs/design-system.md §13). One `Badge tone="warning"` reading
-  "Coming soon" is the sanctioned use of that component. No date, no ordering,
+  "Planned" is the sanctioned use of that component. No date, no ordering,
   no figure and no partner name appears on this page — the copy in
   content/future.ts says only what the capability is for and what has to be
   true first.
@@ -39,8 +42,9 @@ export function FutureCapabilityPanel({ capability }: { capability: FutureCapabi
         <ul className="grid gap-5">
           {capability.dependsOn.map((item) => (
             <li key={item.title} className="flex gap-3.5">
+              {/* A clock, not a tick: these are still to come, and a tick reads as done. */}
               <Icon
-                name="tick"
+                name="clock"
                 size={20}
                 className="mt-0.5 shrink-0 text-farm-green-700"
               />

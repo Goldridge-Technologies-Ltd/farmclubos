@@ -7,8 +7,10 @@ import { apiRequest } from "../api/client";
 import type {
   AuthoringLessonSummary,
   AuthoringModuleSummary,
+  AuthoringPathwaySummary,
   AuthoringScene,
   MediaPurpose,
+  PathwayLevel,
   UploadTicket,
 } from "../api/contracts";
 import { userMessage } from "../api/errors";
@@ -29,6 +31,90 @@ import { keepValues, missingValues, text, toFormState, type FormState } from "./
 
 const copy = authoringContent;
 const DETAILS = ["title", "summary"] as const;
+const PATHWAY_DETAILS = ["title", "summary", "level", "description"] as const;
+const PATHWAY_LEVELS: readonly PathwayLevel[] = ["FOUNDATION", "INTERMEDIATE", "ADVANCED"];
+
+// ─── Pathways ───────────────────────────────────────────────────────────────
+
+/** Adds a pathway, then opens it so its modules can be added straight away. */
+export async function createPathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  const title = text(formData, "title");
+  const summary = text(formData, "summary");
+  const keep = (state: FormState) => keepValues(state, formData, PATHWAY_DETAILS);
+  const missing = missingValues({ title, summary });
+
+  if (missing) {
+    return keep(missing);
+  }
+
+  let created: AuthoringPathwaySummary;
+
+  try {
+    created = await apiRequest<AuthoringPathwaySummary>("/api/authoring/pathways", {
+      method: "POST",
+      body: {
+        title,
+        summary,
+        description: text(formData, "description") || undefined,
+        level: level(formData),
+      },
+    });
+  } catch (error) {
+    return keep(toFormState(error, [...PATHWAY_DETAILS]));
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/content/academy/pathways/${created.id}`);
+}
+
+export async function updatePathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  const title = text(formData, "title");
+  const summary = text(formData, "summary");
+  const keep = (state: FormState) => keepValues(state, formData, PATHWAY_DETAILS);
+  const missing = missingValues({ title, summary });
+
+  if (missing) {
+    return keep(missing);
+  }
+
+  try {
+    await apiRequest(`/api/authoring/pathways/${id(formData, "pathwayId")}`, {
+      method: "PATCH",
+      body: {
+        title,
+        summary,
+        description: text(formData, "description") || null,
+        level: level(formData),
+      },
+    });
+  } catch (error) {
+    return keep(toFormState(error, [...PATHWAY_DETAILS]));
+  }
+
+  revalidatePath("/", "layout");
+
+  return { status: "success", message: copy.details.saved };
+}
+
+export async function movePathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  return move(formData, `/api/authoring/pathways/${id(formData, "pathwayId")}/move`);
+}
+
+export async function publishPathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  return command(`/api/authoring/pathways/${id(formData, "pathwayId")}/publish`, copy.publishing.published(text(formData, "title")));
+}
+
+export async function unpublishPathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  return command(`/api/authoring/pathways/${id(formData, "pathwayId")}/unpublish`, copy.publishing.unpublished(text(formData, "title")));
+}
+
+export async function archivePathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  return command(`/api/authoring/pathways/${id(formData, "pathwayId")}/archive`, copy.archive.done(text(formData, "title")));
+}
+
+export async function restorePathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  return command(`/api/authoring/pathways/${id(formData, "pathwayId")}/restore`, copy.archive.restored(text(formData, "title")));
+}
 
 // ─── Modules ────────────────────────────────────────────────────────────────
 
@@ -293,4 +379,11 @@ async function command(
 /** An id from a hidden field, ready for a path: encoded, so it stays one segment. */
 function id(formData: FormData, name: string): string {
   return encodeURIComponent(text(formData, name));
+}
+
+/** The level chosen, if it is one the API knows; otherwise the API keeps or sets its own. */
+function level(formData: FormData): PathwayLevel | undefined {
+  const value = text(formData, "level");
+
+  return PATHWAY_LEVELS.find((item) => item === value);
 }

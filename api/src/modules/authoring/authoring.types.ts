@@ -3,6 +3,7 @@ import type {
   LessonKind,
   LessonSceneKind,
   MediaPurpose,
+  PathwayLevel,
   PublishStatus,
 } from "../../generated/prisma/enums.js";
 import type { SceneGap } from "../academy/scene-readiness.js";
@@ -16,7 +17,12 @@ export type AuthoringPathwaySummaryView = {
   id: string;
   slug: string;
   title: string;
+  summary: string;
+  level: PathwayLevel;
+  sequence: number;
   status: PublishStatus;
+  publishedAt: Date | null;
+  archivedAt: Date | null;
   /** Real counts of modules not archived, and of those published. */
   moduleCount: number;
   publishedModuleCount: number;
@@ -36,8 +42,16 @@ export type AuthoringModuleSummaryView = {
 };
 
 export type AuthoringPathwayView = AuthoringPathwaySummaryView & {
-  summary: string;
+  description: string | null;
   modules: AuthoringModuleSummaryView[];
+};
+
+/** A pathway's own details. A summary is required; a null or empty description clears it. */
+export type PathwayInput = {
+  title?: string;
+  summary?: string;
+  description?: string | null;
+  level?: PathwayLevel;
 };
 
 export type AuthoringLessonSummaryView = {

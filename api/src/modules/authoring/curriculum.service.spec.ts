@@ -19,6 +19,21 @@ const author: AuthenticatedUser = {
   institutionRole: null,
 };
 
+const pathwayRow = (overrides: Record<string, unknown> = {}) => ({
+  id: "pathway-1",
+  slug: "agricultural-entrepreneurship-foundation",
+  title: "Agricultural Entrepreneurship Foundation",
+  summary: "From growing crops to running an agricultural enterprise.",
+  description: null,
+  level: "FOUNDATION",
+  sequence: 1,
+  status: "DRAFT",
+  publishedAt: null,
+  archivedAt: null,
+  modules: [],
+  ...overrides,
+});
+
 const moduleRow = (overrides: Record<string, unknown> = {}) => ({
   id: "module-1",
   pathwayId: "pathway-1",
@@ -67,7 +82,8 @@ describe("CurriculumService", () => {
   let access: { assertCanAuthor: AsyncMock };
   let progress: { recomputePathway: AsyncMock };
   let prisma: {
-    pathway: { findMany: AsyncMock; findUnique: AsyncMock };
+    pathway: { findMany: AsyncMock; findUnique: AsyncMock; create: AsyncMock; update: AsyncMock };
+    enrolment: { count: AsyncMock };
     pathwayModule: { findMany: AsyncMock; findUnique: AsyncMock; create: AsyncMock; update: AsyncMock };
     lesson: { findMany: AsyncMock; findUnique: AsyncMock; create: AsyncMock; update: AsyncMock };
     lessonScene: { groupBy: AsyncMock };
@@ -79,7 +95,8 @@ describe("CurriculumService", () => {
     access = { assertCanAuthor: fn() };
     progress = { recomputePathway: fn() };
     prisma = {
-      pathway: { findMany: fn(), findUnique: fn() },
+      pathway: { findMany: fn(), findUnique: fn(), create: fn(), update: fn() },
+      enrolment: { count: fn() },
       pathwayModule: { findMany: fn(), findUnique: fn(), create: fn(), update: fn() },
       lesson: { findMany: fn(), findUnique: fn(), create: fn(), update: fn() },
       lessonScene: { groupBy: fn() },
@@ -94,6 +111,9 @@ describe("CurriculumService", () => {
     access.assertCanAuthor.mockResolvedValue(undefined);
     progress.recomputePathway.mockResolvedValue(undefined);
     prisma.lessonScene.groupBy.mockResolvedValue([]);
+    prisma.pathway.create.mockResolvedValue(pathwayRow());
+    prisma.pathway.update.mockResolvedValue(pathwayRow());
+    prisma.enrolment.count.mockResolvedValue(0);
     prisma.pathwayModule.update.mockResolvedValue(moduleRow());
     prisma.lesson.update.mockResolvedValue(lessonRow());
 
@@ -140,6 +160,281 @@ describe("CurriculumService", () => {
       const [pathway] = await service.listPathways(author);
 
       expect(pathway).toMatchObject({ moduleCount: 2, publishedModuleCount: 1 });
+    });
+
+    it("includes archived pathways, since this list is the only way back to them", async () => {
+      prisma.pathway.findMany.mockResolvedValue([pathwayRow({ archivedAt: new Date("2026-10-01") })]);
+
+      const [pathway] = await service.listPathways(author);
+
+      const [args] = prisma.pathway.findMany.mock.calls[0] as [{ where?: object }];
+      expect(args.where).toBeUndefined();
+      expect(pathway?.archivedAt).toEqual(new Date("2026-10-01"));
+    });
+  });
+
+  describe("createPathway", () => {
+    beforeEach(() => {
+      prisma.pathway.findMany.mockResolvedValue([
+        { slug: "agricultural-entrepreneurship-foundation", sequence: 1 },
+        { slug: "greenhouse-enterprise", sequence: 3 },
+      ]);
+    });
+
+    it("adds a draft at the end of the catalogue, with a slug from its title no pathway has", async () => {
+      await service.createPathway(author, {
+        title: "Greenhouse Enterprise",
+        summary: "  Running a greenhouse as a business.  ",
+      });
+
+      const [args] = prisma.pathway.create.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({
+        title: "Greenhouse Enterprise",
+        slug: "greenhouse-enterprise-2",
+        summary: "Running a greenhouse as a business.",
+        description: null,
+        level: "FOUNDATION",
+        sequence: 4,
+        status: "DRAFT",
+      });
+      expect(auditActions()).toEqual(["pathway.created"]);
+    });
+
+    it("takes the level and description it is given", async () => {
+      await service.createPathway(author, {
+        title: "Scaling an Agribusiness",
+        summary: "For enterprises already trading.",
+        description: "  Growth, finance and people.  ",
+        level: "ADVANCED",
+      });
+
+      const [args] = prisma.pathway.create.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toMatchObject({ level: "ADVANCED", description: "Growth, finance and people." });
+    });
+  });
+
+  describe("updatePathway", () => {
+    it("moves a never-published pathway's slug with its title", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow());
+      prisma.pathway.findMany.mockResolvedValue([{ slug: "greenhouse-enterprise" }]);
+
+      await service.updatePathway(author, "pathway-1", { title: "Enterprise Foundation" });
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ title: "Enterprise Foundation", slug: "enterprise-foundation" });
+      expect(auditActions()).toEqual(["pathway.updated"]);
+    });
+
+    it("keeps the slug of a pathway that has been published, so links keep working", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow({ publishedAt: new Date("2026-09-30") }));
+
+      await service.updatePathway(author, "pathway-1", { title: "Enterprise Foundation" });
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ title: "Enterprise Foundation" });
+    });
+
+    it("changes only what differs: an empty description that was already empty is no change", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow());
+
+      await service.updatePathway(author, "pathway-1", {
+        summary: "A clearer summary.",
+        description: "  ",
+        level: "INTERMEDIATE",
+      });
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ summary: "A clearer summary.", level: "INTERMEDIATE" });
+    });
+
+    it("writes and records nothing when nothing changed", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow());
+
+      await service.updatePathway(author, "pathway-1", {
+        title: "Agricultural Entrepreneurship Foundation",
+        level: "FOUNDATION",
+      });
+
+      expect(prisma.pathway.update).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+    });
+
+    it("is a 404 for a pathway that does not exist", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updatePathway(author, "pathway-9", { title: "Markets" }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe("movePathway", () => {
+    beforeEach(() => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow({ sequence: 2 }));
+      prisma.pathway.findMany.mockResolvedValue([
+        { id: "pathway-a", sequence: 1 },
+        { id: "pathway-1", sequence: 2 },
+      ]);
+    });
+
+    it("swaps a pathway with the one above it, among those not archived", async () => {
+      await service.movePathway(author, "pathway-1", "UP");
+
+      expect(prisma.pathway.update).toHaveBeenCalledWith({
+        where: { id: "pathway-1" },
+        data: { sequence: 1 },
+      });
+      expect(prisma.pathway.update).toHaveBeenCalledWith({
+        where: { id: "pathway-a" },
+        data: { sequence: 2 },
+      });
+      const [args] = prisma.pathway.findMany.mock.calls[0] as [{ where: object }];
+      expect(args.where).toEqual({ archivedAt: null });
+      expect(auditActions()).toEqual(["pathway.moved"]);
+    });
+
+    it("leaves the last pathway where it is when moved down", async () => {
+      await service.movePathway(author, "pathway-1", "DOWN");
+
+      expect(auditActions()).toEqual([]);
+    });
+  });
+
+  describe("publishPathway", () => {
+    it("refuses a pathway with no published module, which would show learners nothing", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ modules: [{ status: "DRAFT", archivedAt: null }] }),
+      );
+
+      await expect(service.publishPathway(author, "pathway-1")).rejects.toMatchObject({
+        response: { code: "PATHWAY_EMPTY" },
+      });
+    });
+
+    it("refuses an archived pathway until it is restored", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ archivedAt: new Date(), modules: [{ status: "PUBLISHED", archivedAt: null }] }),
+      );
+
+      await expect(service.publishPathway(author, "pathway-1")).rejects.toMatchObject({
+        response: { code: "ARCHIVED" },
+      });
+    });
+
+    it("publishes and dates the first publication", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ modules: [{ status: "PUBLISHED", archivedAt: null }] }),
+      );
+
+      await service.publishPathway(author, "pathway-1");
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ status: "PUBLISHED", publishedAt: expect.any(Date) });
+      expect(auditActions()).toEqual(["pathway.published"]);
+    });
+
+    it("treats publishing a published pathway as done, not a second event", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ status: "PUBLISHED", modules: [{ status: "PUBLISHED", archivedAt: null }] }),
+      );
+
+      await service.publishPathway(author, "pathway-1");
+
+      expect(prisma.pathway.update).not.toHaveBeenCalled();
+      expect(auditActions()).toEqual([]);
+    });
+  });
+
+  /*
+    Taking a pathway away from learners — unpublishing or archiving it — hides
+    every module and lesson beneath it, so it is refused while anyone is still
+    working through it. A module can be withdrawn freely; that only shortens a
+    pathway.
+  */
+  describe("unpublishPathway and archivePathway", () => {
+    it.each(["unpublishPathway", "archivePathway"] as const)(
+      "%s refuses while learners are part-way through the pathway",
+      async (method) => {
+        prisma.pathway.findUnique.mockResolvedValue(
+          pathwayRow({ status: "PUBLISHED", publishedAt: new Date() }),
+        );
+        prisma.enrolment.count.mockResolvedValue(3);
+
+        await expect(service[method](author, "pathway-1")).rejects.toMatchObject({
+          response: { code: "PATHWAY_IN_USE" },
+        });
+        // An archived cohort's enrolments are gone from its learners and its
+        // institution alike, and could never be withdrawn, so they don't count.
+        expect(prisma.enrolment.count).toHaveBeenCalledWith({
+          where: {
+            status: { in: ["INVITED", "ACTIVE"] },
+            cohort: { pathwayId: "pathway-1", archivedAt: null },
+          },
+        });
+        expect(prisma.pathway.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it("unpublishes back to draft when nobody is part-way through", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ status: "PUBLISHED", publishedAt: new Date() }),
+      );
+
+      await service.unpublishPathway(author, "pathway-1");
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ status: "DRAFT" });
+      expect(auditActions()).toEqual(["pathway.unpublished"]);
+    });
+
+    it("treats unpublishing a draft as done, without asking about learners", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow());
+
+      await service.unpublishPathway(author, "pathway-1");
+
+      expect(prisma.enrolment.count).not.toHaveBeenCalled();
+      expect(prisma.pathway.update).not.toHaveBeenCalled();
+    });
+
+    it("archives a pathway back to draft", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(
+        pathwayRow({ status: "PUBLISHED", publishedAt: new Date() }),
+      );
+
+      await service.archivePathway(author, "pathway-1");
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ archivedAt: expect.any(Date), status: "DRAFT" });
+      expect(auditActions()).toEqual(["pathway.archived"]);
+    });
+
+    it("treats archiving an archived pathway as done", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow({ archivedAt: new Date() }));
+
+      await service.archivePathway(author, "pathway-1");
+
+      expect(prisma.pathway.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("restorePathway", () => {
+    it("brings it back at the end of the catalogue, still a draft", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow({ archivedAt: new Date() }));
+      prisma.pathway.findMany.mockResolvedValue([{ sequence: 1 }, { sequence: 2 }]);
+
+      await service.restorePathway(author, "pathway-1");
+
+      const [args] = prisma.pathway.update.mock.calls[0] as [{ data: Record<string, unknown> }];
+      expect(args.data).toEqual({ archivedAt: null, sequence: 3 });
+      expect(auditActions()).toEqual(["pathway.restored"]);
+    });
+
+    it("treats restoring a pathway that is not archived as done", async () => {
+      prisma.pathway.findUnique.mockResolvedValue(pathwayRow());
+
+      await service.restorePathway(author, "pathway-1");
+
+      expect(prisma.pathway.update).not.toHaveBeenCalled();
     });
   });
 

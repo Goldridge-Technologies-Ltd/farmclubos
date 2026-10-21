@@ -33,10 +33,24 @@ export const authoringContent = {
     eyebrow: "Content",
     heading: "Academy content",
     description:
-      "Build the Academy's modules and lessons, and fill each lesson with its videos and " +
-      "notes. Learners see only what is published.",
+      "Build the Academy: its pathways, their modules and lessons, and each lesson's videos " +
+      "and notes. Learners see only what is published.",
     modules: (count: number, published: number) =>
       `${counted(count, "module", "modules")}, ${published} published`,
+    listTitle: "Pathways",
+    listDescription: "In the order the Academy lists them. Open one to add its modules.",
+    empty: "No pathways yet. Add the first below.",
+    add: {
+      title: "Add a pathway",
+      description:
+        "It starts as a draft at the end of the Academy. Learners and institutions don't see " +
+        "it until it's published.",
+      submit: "Add the pathway",
+      busy: "Adding…",
+    },
+    archivedTitle: "Archived pathways",
+    archivedDescription:
+      "Hidden from learners and institutions. Restoring one brings it back as a draft, at the end.",
   },
 
   pathway: {
@@ -77,6 +91,9 @@ export const authoringContent = {
 
   details: {
     title: "Details",
+    pathwayDescription:
+      "The pathway's name, level and summary as the Academy lists them, and a longer " +
+      "description for its own page.",
     moduleDescription: "The module's name, and a line about it, as learners see them.",
     lessonDescription: "The lesson's name, and a line about it, as learners see them.",
     submit: "Save",
@@ -91,6 +108,14 @@ export const authoringContent = {
     requiredNote: "Fields marked * are required.",
   },
 
+  /** A pathway's own fields, beyond a title: the Academy lists every pathway by its summary. */
+  pathwayFields: {
+    summaryHint: "One or two sentences, shown where the Academy lists pathways.",
+    level: "Level",
+    description: "Description",
+    descriptionHint: "Optional. Shown on the pathway's own page.",
+  },
+
   move: {
     up: "Move up",
     down: "Move down",
@@ -101,6 +126,12 @@ export const authoringContent = {
 
   publishing: {
     title: "Publishing",
+    draftPathway:
+      "Learners and institutions can't see this pathway yet. Publish it once at least one of " +
+      "its modules is published.",
+    publishedPathway:
+      "Learners can see this pathway and its published modules, and institutions can open " +
+      "cohorts on it. While anyone is part-way through it, it can't be unpublished or archived.",
     draftModule:
       "Learners can't see this module yet. Publish it once at least one of its lessons is " +
       "published.",

@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { BadRequestException, type INestApplication } from "@nestjs/common";
+import { BadRequestException, ConflictException, type INestApplication } from "@nestjs/common";
 import request from "supertest";
 import type {
   ApiErrorResponse,
@@ -32,6 +32,13 @@ describe("Authoring — modules and lessons (e2e)", () => {
   const curriculum = {
     listPathways: fn(),
     getPathway: fn(),
+    createPathway: fn(),
+    updatePathway: fn(),
+    movePathway: fn(),
+    publishPathway: fn(),
+    unpublishPathway: fn(),
+    archivePathway: fn(),
+    restorePathway: fn(),
     createModule: fn(),
     getModule: fn(),
     updateModule: fn(),
@@ -106,6 +113,93 @@ describe("Authoring — modules and lessons (e2e)", () => {
 
     it("needs a session", async () => {
       await request(server()).get("/api/authoring/pathways").expect(401);
+    });
+  });
+
+  describe("pathways", () => {
+    it("adds a pathway with 201, trimmed, at the level it is given", async () => {
+      curriculum.createPathway.mockResolvedValue({ id: PATHWAY, title: "Greenhouse Enterprise" });
+
+      const response = await request(server())
+        .post("/api/authoring/pathways")
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send({ title: "  Greenhouse Enterprise ", summary: " Running a greenhouse. ", level: "INTERMEDIATE" })
+        .expect(201);
+
+      expect(asSuccess(response.body).message).toBe("Pathway added");
+      expect(curriculum.createPathway).toHaveBeenCalledWith(expect.anything(), {
+        title: "Greenhouse Enterprise",
+        summary: "Running a greenhouse.",
+        level: "INTERMEDIATE",
+      });
+    });
+
+    it.each([
+      ["no summary", { title: "Greenhouse Enterprise" }],
+      ["a summary of nothing but spaces", { title: "Greenhouse Enterprise", summary: "   " }],
+      ["a level it does not know", { title: "Greenhouse Enterprise", summary: "Growing.", level: "EXPERT" }],
+      ["a status, which only publishing sets", { title: "Greenhouse Enterprise", summary: "Growing.", status: "PUBLISHED" }],
+    ])("refuses %s before reaching the service", async (_, body) => {
+      const response = await request(server())
+        .post("/api/authoring/pathways")
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .send(body)
+        .expect(400);
+
+      expect(asFailure(response.body).error.code).toBe("VALIDATION_FAILED");
+      expect(curriculum.createPathway).not.toHaveBeenCalled();
+    });
+
+    it("edits, moves and runs each lifecycle action with 200", async () => {
+      const token = await as("PLATFORM_ADMIN");
+
+      for (const name of Object.keys(curriculum)) {
+        curriculum[name as keyof typeof curriculum].mockResolvedValue({ id: PATHWAY });
+      }
+
+      await request(server())
+        .patch(`/api/authoring/pathways/${PATHWAY}`)
+        .set("authorization", token)
+        .send({ description: null, level: "ADVANCED" })
+        .expect(200);
+      await request(server())
+        .post(`/api/authoring/pathways/${PATHWAY}/move`)
+        .set("authorization", token)
+        .send({ direction: "UP" })
+        .expect(200);
+
+      for (const action of ["publish", "unpublish", "archive", "restore"]) {
+        await request(server())
+          .post(`/api/authoring/pathways/${PATHWAY}/${action}`)
+          .set("authorization", token)
+          .expect(200);
+      }
+
+      expect(curriculum.updatePathway).toHaveBeenCalledWith(expect.anything(), PATHWAY, {
+        description: null,
+        level: "ADVANCED",
+      });
+      expect(curriculum.movePathway).toHaveBeenCalledWith(expect.anything(), PATHWAY, "UP");
+      expect(curriculum.restorePathway).toHaveBeenCalledWith(expect.anything(), PATHWAY);
+    });
+
+    it("passes PATHWAY_IN_USE through as a 409 with its sentence", async () => {
+      curriculum.unpublishPathway.mockRejectedValue(
+        new ConflictException({
+          code: "PATHWAY_IN_USE",
+          message: "Learners are still working through this pathway.",
+        }),
+      );
+
+      const response = await request(server())
+        .post(`/api/authoring/pathways/${PATHWAY}/unpublish`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .expect(409);
+
+      expect(asFailure(response.body).error).toMatchObject({
+        code: "PATHWAY_IN_USE",
+        message: "Learners are still working through this pathway.",
+      });
     });
   });
 

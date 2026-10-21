@@ -464,7 +464,12 @@ export type AuthoringPathwaySummary = {
   id: string;
   slug: string;
   title: string;
+  summary: string;
+  level: PathwayLevel;
+  sequence: number;
   status: PublishStatus;
+  publishedAt: string | null;
+  archivedAt: string | null;
   moduleCount: number;
   publishedModuleCount: number;
 };
@@ -483,7 +488,7 @@ export type AuthoringModuleSummary = {
 };
 
 export type AuthoringPathway = AuthoringPathwaySummary & {
-  summary: string;
+  description: string | null;
   modules: AuthoringModuleSummary[];
 };
 

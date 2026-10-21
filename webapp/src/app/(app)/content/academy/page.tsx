@@ -1,50 +1,98 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Icon } from "@farmclub/design-system/Icon";
+import { ContentRow } from "@/components/authoring/ContentRow";
 import { ContentStatus } from "@/components/authoring/ContentStatus";
+import { MoveButtons } from "@/components/authoring/MoveButtons";
+import { PathwayForm } from "@/components/authoring/PathwayForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { ActionOutcome, ActionOutcomeMessage } from "@/components/ui/ActionOutcome";
+import { Panel } from "@/components/ui/Panel";
 import { authoringContent } from "@/content/authoring";
+import { createPathway, movePathway, restorePathway } from "@/lib/actions/authoring";
 import { listAuthoringPathways } from "@/lib/api/authoring";
 
 export const metadata: Metadata = { title: "Academy content" };
 
-/** The pathways, each with how many modules it has and has published. */
+/*
+  The Academy's pathways, in the order learners and institutions see them —
+  drafts too — with a way to add one. Archived pathways are listed apart, with
+  Restore, since this is the only way back to them.
+*/
 export default async function AcademyContentPage() {
   const pathways = await listAuthoringPathways();
   const copy = authoringContent.pathways;
+  const live = pathways.filter((item) => !item.archivedAt);
+  const archived = pathways.filter((item) => item.archivedAt);
 
   return (
-    <div className="app-stack">
-      <PageHeader
-        crumbs={[{ label: authoringContent.crumb }, { label: authoringContent.academyCrumb }]}
-        description={copy.description}
-        eyebrow={copy.eyebrow}
-        heading={copy.heading}
-      />
+    <ActionOutcome>
+      <div className="app-stack">
+        <PageHeader
+          crumbs={[{ label: authoringContent.crumb }, { label: authoringContent.academyCrumb }]}
+          description={copy.description}
+          eyebrow={copy.eyebrow}
+          heading={copy.heading}
+        />
 
-      <ul className="grid gap-3">
-        {pathways.map((pathway) => (
-          <li key={pathway.id}>
-            <Link
-              href={`/content/academy/pathways/${pathway.id}`}
-              className="group flex items-start justify-between gap-4 rounded-panel border border-farm-border bg-white p-6 transition-colors hover:border-farm-border-strong"
-            >
-              <div className="min-w-0">
-                <ContentStatus archivedAt={null} status={pathway.status} />
-                <h2 className="mt-3 text-lg font-semibold text-farm-green-950">{pathway.title}</h2>
-                <p className="mt-1 type-caption text-farm-muted">
-                  {copy.modules(pathway.moduleCount, pathway.publishedModuleCount)}
-                </p>
-              </div>
-              <Icon
-                name="chevron-right"
-                size={16}
-                className="mt-1 shrink-0 text-farm-green-800 transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <ActionOutcomeMessage />
+
+        <Panel description={copy.listDescription} title={copy.listTitle}>
+          {live.length === 0 ? (
+            <p className="type-body-sm text-farm-muted">{copy.empty}</p>
+          ) : (
+            <ol className="grid gap-4">
+              {live.map((item, index) => (
+                <ContentRow
+                  key={item.id}
+                  controls={
+                    <MoveButtons
+                      action={movePathway}
+                      fields={{ pathwayId: item.id }}
+                      position={index + 1}
+                      target={item.title}
+                      total={live.length}
+                    />
+                  }
+                  href={`/content/academy/pathways/${item.id}`}
+                  meta={copy.modules(item.moduleCount, item.publishedModuleCount)}
+                  status={<ContentStatus archivedAt={null} status={item.status} />}
+                  summary={item.summary}
+                  title={item.title}
+                />
+              ))}
+            </ol>
+          )}
+        </Panel>
+
+        <Panel description={copy.add.description} title={copy.add.title}>
+          <PathwayForm action={createPathway} busyLabel={copy.add.busy} submitLabel={copy.add.submit} />
+        </Panel>
+
+        {archived.length > 0 ? (
+          <Panel description={copy.archivedDescription} title={copy.archivedTitle}>
+            <ul className="grid gap-4">
+              {archived.map((item) => (
+                <ContentRow
+                  key={item.id}
+                  controls={
+                    <ActionButton
+                      action={restorePathway}
+                      busyLabel={authoringContent.archive.restoring}
+                      fields={{ pathwayId: item.id, title: item.title }}
+                      label={authoringContent.archive.restore}
+                      target={item.title}
+                    />
+                  }
+                  href={`/content/academy/pathways/${item.id}`}
+                  meta={copy.modules(item.moduleCount, item.publishedModuleCount)}
+                  status={<ContentStatus archivedAt={item.archivedAt} status={item.status} />}
+                  title={item.title}
+                />
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
+      </div>
+    </ActionOutcome>
   );
 }

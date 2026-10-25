@@ -22,8 +22,9 @@ administrator runs members and cohorts from (inviting, enrolling,
 withdrawing, removing, editing and closing an intake), switching between
 institutions for someone in more than one, and the platform screens
 institutions are added and the content team is run from. The other sections
-of the ecosystem are in the navigation as capability pages. It runs on port
-3001.
+of the ecosystem are in the navigation under "Planned", each a page that says
+so; nothing not yet operational is presented as a working service. It runs on
+port 3001.
 
 It talks to `api/` through a backend-for-frontend: the browser never calls the
 API. This app holds the session in its own httpOnly cookies and calls the API

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { CapabilityScreenView } from "@/components/ui/CapabilityScreenView";
-import { enterpriseScreen } from "@/content/app";
+import { FutureCapabilityPanel } from "@/components/ui/FutureCapabilityPanel";
+import { enterpriseCapability } from "@/content/future";
 
 export const metadata: Metadata = { title: "Enterprise" };
 
 export default function EnterprisePage() {
-  return <CapabilityScreenView screen={enterpriseScreen} />;
+  return <FutureCapabilityPanel capability={enterpriseCapability} />;
 }

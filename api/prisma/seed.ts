@@ -261,6 +261,8 @@ async function main(): Promise<void> {
           description: `Phase 1 flagship pathway. Designed for the ${seed.audience} user state.`,
           level: seed.level,
           status: "PUBLISHED",
+          // Published from the start, so its slug is fixed like any other's.
+          publishedAt: new Date(),
           sequence: pathwayIndex + 1,
           // estimatedHours stays null: see the guardrail note above.
         },

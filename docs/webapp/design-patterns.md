@@ -368,9 +368,16 @@ managers are invited from *Platform → Content team* (see *Running the
 platform*), and one who belongs to no institution sees "Content team" in the
 top bar where an institution's name would be.
 
-- **Each level is a screen, addressed by id:** a pathway lists its modules, a
-  module its lessons, a lesson its scenes, and each scene has its own editor.
-  Ids rather than slugs, because a draft's slug follows its title.
+- **Each level is a screen, addressed by id:** the Academy lists its
+  pathways, a pathway its modules, a module its lessons, a lesson its scenes,
+  and each scene has its own editor. Ids rather than slugs, because a draft's
+  slug follows its title.
+- **Pathways are built here too**, so the catalogue needs no developer: a
+  title, a summary (required, since the Academy lists pathways by it), a
+  level and an optional description. A pathway publishes only once one of its
+  modules is published, and it cannot be unpublished or archived while anyone
+  is part-way through it: the API refuses with `PATHWAY_IN_USE`, and the
+  message says why.
 - **Order is set with Move up and Move down**, never drag-and-drop alone,
   which a keyboard or switch user cannot do. `MoveButtons` puts focus back on
   the pressed button once the row arrives in its new place, so a keyboard

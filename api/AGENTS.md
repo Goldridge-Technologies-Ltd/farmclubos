@@ -92,9 +92,19 @@ variables differ.
   The authoring routes (`src/modules/authoring/`) are for `PLATFORM_ADMIN` and
   `CONTENT_MANAGER`, and `ContentAccessService.assertCanAuthor` rechecks the
   role against the database, as `InstitutionAccessService` does for
-  memberships. The curriculum belongs to no institution, so its audit events
-  carry no `institutionId`. As in the admin lifecycle, repeating an action,
-  such as publishing what is published, is done, and records nothing.
+  memberships. They cover pathways as well as modules, lessons and scenes, so
+  the catalogue needs no developer or script. The curriculum belongs to no
+  institution, so its audit events carry no `institutionId`. As in the admin
+  lifecycle, repeating an action, such as publishing what is published, is
+  done, and records nothing.
+- **A pathway is never taken away from learners part-way through it.**
+  Unpublishing or archiving one hides every module and lesson beneath it, so
+  both are refused with 409 `PATHWAY_IN_USE` while any of its cohorts has an
+  enrolment `INVITED` or `ACTIVE`. An archived cohort doesn't count: nobody
+  can withdraw its learners, so it would block the pathway for good. A module
+  can be withdrawn freely; that only shortens a pathway. A pathway publishes
+  only with a published module, and cohorts open only on a published pathway,
+  so a draft never reaches an institution.
 - **Content managers join by invitation, like institution members.** An
   `Invite` is for one thing: an institution and its `role`, or the content
   team's `platformRole`. The `Invite_one_target` check constraint enforces it,

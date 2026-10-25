@@ -3,6 +3,7 @@ import {
   AuthoringStatus,
   LessonKind,
   LessonSceneKind,
+  PathwayLevel,
   PublishStatus,
 } from "../../../generated/prisma/enums.js";
 import type { SceneGap } from "../../academy/scene-readiness.js";
@@ -32,14 +33,29 @@ export class AuthoringPathwaySummaryDto implements AuthoringPathwaySummaryView {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: "Follows the title until first published, then fixed." })
   slug: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: "Agricultural Entrepreneurship Foundation" })
   title: string;
+
+  @ApiProperty()
+  summary: string;
+
+  @ApiProperty({ enum: PathwayLevel, enumName: "PathwayLevel" })
+  level: PathwayLevel;
+
+  @ApiProperty({ description: "Its place in the catalogue." })
+  sequence: number;
 
   @ApiProperty({ enum: PublishStatus, enumName: "PublishStatus" })
   status: PublishStatus;
+
+  @ApiProperty({ type: Date, nullable: true, description: "When it was first published." })
+  publishedAt: Date | null;
+
+  @ApiProperty({ type: Date, nullable: true })
+  archivedAt: Date | null;
 
   @ApiProperty({ description: "Modules not archived." })
   moduleCount: number;
@@ -81,8 +97,8 @@ export class AuthoringModuleSummaryDto implements AuthoringModuleSummaryView {
 }
 
 export class AuthoringPathwayDto extends AuthoringPathwaySummaryDto implements AuthoringPathwayView {
-  @ApiProperty()
-  summary: string;
+  @ApiProperty({ type: String, nullable: true })
+  description: string | null;
 
   @ApiProperty({ type: [AuthoringModuleSummaryDto], description: "Archived ones included." })
   modules: AuthoringModuleSummaryDto[];

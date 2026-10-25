@@ -1,14 +1,26 @@
 import type { Metadata } from "next";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { ContentRow } from "@/components/authoring/ContentRow";
 import { ContentStatus } from "@/components/authoring/ContentStatus";
 import { DetailsForm } from "@/components/authoring/DetailsForm";
 import { MoveButtons } from "@/components/authoring/MoveButtons";
+import { PathwayForm } from "@/components/authoring/PathwayForm";
+import { PublishingPanels } from "@/components/authoring/PublishingPanels";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { ActionOutcome, ActionOutcomeMessage } from "@/components/ui/ActionOutcome";
 import { Panel } from "@/components/ui/Panel";
 import { authoringContent } from "@/content/authoring";
-import { createModule, moveModule, restoreModule } from "@/lib/actions/authoring";
+import {
+  archivePathway,
+  createModule,
+  moveModule,
+  publishPathway,
+  restoreModule,
+  restorePathway,
+  unpublishPathway,
+  updatePathway,
+} from "@/lib/actions/authoring";
 import { getAuthoringPathway } from "@/lib/api/authoring";
 
 type PageProps = { params: Promise<{ pathwayId: string }> };
@@ -16,8 +28,10 @@ type PageProps = { params: Promise<{ pathwayId: string }> };
 export const metadata: Metadata = { title: "Pathway" };
 
 /*
-  A pathway's modules, in the order learners take them — drafts too — with a
-  way to add one. Archived modules are listed apart, with Restore.
+  One pathway: its modules in the order learners take them — drafts too — a
+  way to add one, its own details, and publishing. Its modules come first,
+  since they are what the content team comes here to work on. Archived
+  modules are listed apart, with Restore.
 */
 export default async function PathwayContentPage({ params }: PageProps) {
   const { pathwayId } = await params;
@@ -25,12 +39,22 @@ export default async function PathwayContentPage({ params }: PageProps) {
   const copy = authoringContent.pathway;
   const live = pathway.modules.filter((item) => !item.archivedAt);
   const archived = pathway.modules.filter((item) => item.archivedAt);
+  const visible = pathway.status === "PUBLISHED" && !pathway.archivedAt;
 
   return (
     <ActionOutcome>
       <div className="app-stack">
         <PageHeader
-          actions={<ContentStatus archivedAt={null} status={pathway.status} />}
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              <ContentStatus archivedAt={pathway.archivedAt} status={pathway.status} />
+              {visible ? (
+                <ButtonLink href={`/academy/${pathway.slug}`} icon="none" size="md" variant="secondary">
+                  {authoringContent.lesson.viewInAcademy}
+                </ButtonLink>
+              ) : null}
+            </div>
+          }
           crumbs={[
             { label: authoringContent.crumb },
             { href: "/content/academy", label: authoringContent.academyCrumb },
@@ -71,14 +95,44 @@ export default async function PathwayContentPage({ params }: PageProps) {
           )}
         </Panel>
 
-        <Panel description={copy.add.description} title={copy.add.title}>
-          <DetailsForm
-            action={createModule}
-            busyLabel={copy.add.busy}
+        {pathway.archivedAt ? null : (
+          <Panel description={copy.add.description} title={copy.add.title}>
+            <DetailsForm
+              action={createModule}
+              busyLabel={copy.add.busy}
+              fields={{ pathwayId: pathway.id }}
+              submitLabel={copy.add.submit}
+            />
+          </Panel>
+        )}
+
+        <Panel description={authoringContent.details.pathwayDescription} title={authoringContent.details.title}>
+          <PathwayForm
+            action={updatePathway}
+            busyLabel={authoringContent.details.busy}
             fields={{ pathwayId: pathway.id }}
-            submitLabel={copy.add.submit}
+            saved={{
+              title: pathway.title,
+              summary: pathway.summary,
+              description: pathway.description,
+              level: pathway.level,
+            }}
+            submitLabel={authoringContent.details.submit}
           />
         </Panel>
+
+        <PublishingPanels
+          actions={{
+            publish: publishPathway,
+            unpublish: unpublishPathway,
+            archive: archivePathway,
+            restore: restorePathway,
+          }}
+          draftText={authoringContent.publishing.draftPathway}
+          fields={{ pathwayId: pathway.id }}
+          item={pathway}
+          publishedText={authoringContent.publishing.publishedPathway}
+        />
 
         {archived.length > 0 ? (
           <Panel description={copy.archivedDescription} title={copy.archivedTitle}>

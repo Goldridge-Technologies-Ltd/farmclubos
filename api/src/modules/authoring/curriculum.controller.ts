@@ -26,8 +26,10 @@ import type {
 import { CurriculumService } from "./curriculum.service.js";
 import {
   CreateCurriculumItemDto,
+  CreatePathwayDto,
   MoveDto,
   UpdateCurriculumItemDto,
+  UpdatePathwayDto,
 } from "./dto/curriculum-request.dto.js";
 import {
   AuthoringLessonDto,
@@ -49,10 +51,14 @@ const SLUG_TAKEN = {
   status: HttpStatus.CONFLICT,
   description: "SLUG_TAKEN: a sibling was given the same name at the same moment.",
 };
+const PATHWAY_IN_USE = {
+  status: HttpStatus.CONFLICT,
+  description: "PATHWAY_IN_USE: learners are still working through it.",
+};
 
 /*
-  The content team's side of the Academy: modules and lessons below each
-  pathway, drafts and archived items included.
+  The content team's side of the Academy: its pathways, their modules and
+  lessons, drafts and archived items included.
 
   The platform roles here are coarse; ContentAccessService checks the role
   against the database on every call, so taking someone off the content team
@@ -87,6 +93,125 @@ export class CurriculumController {
     @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
   ): Promise<AuthoringPathwayView> {
     return this.curriculum.getPathway(user, pathwayId);
+  }
+
+  @Post("pathways")
+  @CustomMessage("Pathway added")
+  @ApiOperation({
+    summary: "Add a pathway to the Academy",
+    description: "It is added at the end of the catalogue, as a draft, with a slug made from its title.",
+  })
+  @ApiEnvelope({ status: HttpStatus.CREATED, description: "Added.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(VALIDATION, UNAUTHORIZED, FORBIDDEN, SLUG_TAKEN)
+  createPathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreatePathwayDto,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.createPathway(user, body);
+  }
+
+  @Patch("pathways/:pathwayId")
+  @CustomMessage("Pathway updated")
+  @ApiOperation({
+    summary: "Change a pathway's title, summary, description or level",
+    description: "Its slug follows a new title only until the pathway is first published.",
+  })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Updated.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(VALIDATION, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, SLUG_TAKEN)
+  updatePathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+    @Body() body: UpdatePathwayDto,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.updatePathway(user, pathwayId, body);
+  }
+
+  @Post("pathways/:pathwayId/move")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Pathway moved")
+  @ApiOperation({ summary: "Move a pathway up or down the catalogue" })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Moved.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(VALIDATION, UNAUTHORIZED, FORBIDDEN, NOT_FOUND)
+  movePathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+    @Body() body: MoveDto,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.movePathway(user, pathwayId, body.direction);
+  }
+
+  @Post("pathways/:pathwayId/publish")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Pathway published")
+  @ApiOperation({
+    summary: "Publish a pathway",
+    description: "It needs at least one published module. Institutions can then open cohorts on it.",
+  })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Published.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(
+    { status: HttpStatus.BAD_REQUEST, description: "PATHWAY_EMPTY or ARCHIVED." },
+    UNAUTHORIZED,
+    FORBIDDEN,
+    NOT_FOUND,
+  )
+  publishPathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.publishPathway(user, pathwayId);
+  }
+
+  @Post("pathways/:pathwayId/unpublish")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Pathway unpublished")
+  @ApiOperation({
+    summary: "Take a pathway back to draft, hiding it and everything in it from learners",
+    description: "Refused while any learner is still working through it.",
+  })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Unpublished.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND, PATHWAY_IN_USE)
+  unpublishPathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.unpublishPathway(user, pathwayId);
+  }
+
+  @Post("pathways/:pathwayId/archive")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Pathway archived")
+  @ApiOperation({
+    summary: "Archive a pathway",
+    description:
+      "Hidden from learners and returned to draft; never deleted, since cohorts and progress hang off it. " +
+      "Refused while any learner is still working through it.",
+  })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Archived.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND, PATHWAY_IN_USE)
+  archivePathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.archivePathway(user, pathwayId);
+  }
+
+  @Post("pathways/:pathwayId/restore")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Pathway restored")
+  @ApiOperation({ summary: "Restore an archived pathway, as a draft at the end of the catalogue" })
+  @ApiParam({ name: "pathwayId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "Restored.", type: AuthoringPathwaySummaryDto })
+  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND)
+  restorePathway(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("pathwayId", ParseUUIDPipe) pathwayId: string,
+  ): Promise<AuthoringPathwaySummaryView> {
+    return this.curriculum.restorePathway(user, pathwayId);
   }
 
   // ─── Modules ──────────────────────────────────────────────────────────────

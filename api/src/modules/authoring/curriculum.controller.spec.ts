@@ -28,6 +28,13 @@ describe("CurriculumController", () => {
     [
       "listPathways",
       "getPathway",
+      "createPathway",
+      "updatePathway",
+      "movePathway",
+      "publishPathway",
+      "unpublishPathway",
+      "archivePathway",
+      "restorePathway",
       "createModule",
       "getModule",
       "updateModule",
@@ -92,6 +99,27 @@ describe("CurriculumController", () => {
     }
     for (const name of ["publishLesson", "unpublishLesson", "archiveLesson", "restoreLesson"]) {
       expect(curriculum[name]).toHaveBeenCalledWith(author, "lesson-1");
+    }
+  });
+
+  it("hands pathway calls to their own methods", async () => {
+    const created = { title: "Greenhouse Enterprise", summary: "Running a greenhouse." };
+
+    await controller.createPathway(author, created);
+    await controller.updatePathway(author, "pathway-1", { level: "INTERMEDIATE" });
+    await controller.movePathway(author, "pathway-1", { direction: "DOWN" });
+    await controller.publishPathway(author, "pathway-1");
+    await controller.unpublishPathway(author, "pathway-1");
+    await controller.archivePathway(author, "pathway-1");
+    await controller.restorePathway(author, "pathway-1");
+
+    expect(curriculum.createPathway).toHaveBeenCalledWith(author, created);
+    expect(curriculum.updatePathway).toHaveBeenCalledWith(author, "pathway-1", {
+      level: "INTERMEDIATE",
+    });
+    expect(curriculum.movePathway).toHaveBeenCalledWith(author, "pathway-1", "DOWN");
+    for (const name of ["publishPathway", "unpublishPathway", "archivePathway", "restorePathway"]) {
+      expect(curriculum[name]).toHaveBeenCalledWith(author, "pathway-1");
     }
   });
 });

@@ -422,6 +422,8 @@ model Pathway {
   /// Never seeded: a figure here would read as a real platform claim.
   estimatedHours Int?
   sequence    Int
+  /// When it was first published; see PathwayModule.publishedAt.
+  publishedAt DateTime?
   archivedAt  DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

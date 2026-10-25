@@ -59,7 +59,8 @@ npm run dev:site     # http://localhost:3000 — design-system reference at /des
 Sign in to the web app as that administrator. **Platform → Institutions** is
 where the rest begins: add an institution, invite the person who runs it, and
 they invite and enrol their learners. **Content → Academy content** is where
-lessons are built, from videos and notes, and **Platform → Content team** is
+pathways and their lessons are built, from videos and notes, and
+**Platform → Content team** is
 where you invite the content managers who build them with you.
 
 ## Quality checks
@@ -141,12 +142,14 @@ npm run start --workspace api
   point to, and production refuses anything else — and `MAIL_DRIVER=smtp`
   with the `SMTP_*` settings: production refuses the `log` driver, which would
   print invitation and reset links to the logs.
-- **First deploy.** On a new database, run `npm run db:seed --workspace api`
-  once, for the Academy catalogue. Only once: a second run puts every pathway
-  and module back as seeded (titles, order and publication) and replaces the
-  starter quiz's questions, undoing the content team's work. The seed makes
-  no administrator in production. Make the first platform administrator, and
-  any later one, on the server:
+- **First deploy.** On a new database, `npm run db:seed --workspace api` loads
+  the MVP plan's three pathways and their modules as a starting catalogue; the
+  content team can also build pathways in the app, so the seed is optional.
+  Run it at most once: a second run puts every pathway and module back as
+  seeded (titles, order and publication) and replaces the starter quiz's
+  questions, undoing the content team's work. The seed makes no administrator
+  in production. Make the first platform administrator, and any later one, on
+  the server:
 
   ```bash
   npm run admin:add --workspace api -- --email ada@example.com --first-name Ada --last-name Obi

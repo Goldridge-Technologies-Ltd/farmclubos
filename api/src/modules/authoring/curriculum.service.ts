@@ -15,22 +15,25 @@ import type {
   AuthoringPathwayView,
   CurriculumItemInput,
   MoveDirection,
+  PathwayInput,
 } from "./authoring.types.js";
 import { audit, clean, nextSequence, notFound, reorder } from "./authoring.helpers.js";
 import { ContentAccessService } from "./content-access.service.js";
 import { slugFor } from "./slug.js";
 
 /*
-  The shape of the Academy below each pathway: its modules and their lessons,
-  as the content team builds it.
+  The Academy as the content team builds it: its pathways, their modules and
+  the modules' lessons.
 
-  - Modules and lessons are archived, never deleted: learners' progress and
-    attempts hang off them. Archiving returns one to draft, so restoring it
-    never republishes anything by surprise.
+  - Pathways, modules and lessons are archived, never deleted: learners'
+    cohorts, progress and attempts hang off them. Archiving returns one to
+    draft, so restoring it never republishes anything by surprise.
   - A slug follows its title until first published, then stays fixed, so a
     learner's bookmark keeps working through a rename.
   - Publishing needs something to show: a lesson needs every scene complete,
-    a module needs a published lesson.
+    a module needs a published lesson, a pathway a published module.
+  - A pathway is never taken away from learners part-way through it:
+    unpublishing or archiving it waits until nobody is.
   - Anything that changes how many lessons are published recalculates the
     progress of everyone on the pathway (ProgressService.recomputePathway).
   - Repeating an action — publishing what is published, saving an edit that
@@ -46,13 +49,13 @@ export class CurriculumService {
 
   // ─── Pathways ─────────────────────────────────────────────────────────────
 
+  /** Every pathway, archived ones included: this list is the only way back to them. */
   async listPathways(user: AuthenticatedUser): Promise<AuthoringPathwaySummaryView[]> {
     await this.access.assertCanAuthor(user);
 
     const rows = await this.prisma.pathway.findMany({
-      where: { archivedAt: null },
       orderBy: { sequence: "asc" },
-      select: { ...pathwaySelect, modules: { select: countedSelect } },
+      select: pathwaySelect,
     });
 
     return rows.map(toPathwaySummary);
@@ -64,8 +67,8 @@ export class CurriculumService {
     const row = await this.prisma.pathway.findUnique({
       where: { id: pathwayId },
       select: {
-        ...pathwaySelect,
-        summary: true,
+        ...pathwayFields,
+        description: true,
         modules: { orderBy: { sequence: "asc" }, select: moduleSelect },
       },
     });
@@ -76,9 +79,226 @@ export class CurriculumService {
 
     return {
       ...toPathwaySummary(row),
-      summary: row.summary,
+      description: row.description,
       modules: row.modules.map(toModuleSummary),
     };
+  }
+
+  async createPathway(
+    user: AuthenticatedUser,
+    input: PathwayInput & { title: string; summary: string },
+  ): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const others = await this.prisma.pathway.findMany({ select: { slug: true, sequence: true } });
+
+    const created = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.pathway.create({
+          data: {
+            title: input.title,
+            slug: slugFor(input.title, "pathway", new Set(others.map((item) => item.slug))),
+            summary: input.summary.trim(),
+            description: clean(input.description) ?? null,
+            level: input.level ?? "FOUNDATION",
+            sequence: nextSequence(others),
+            status: "DRAFT",
+          },
+          select: pathwaySelect,
+        });
+
+        await audit(tx, user.userId, "pathway.created", "Pathway", row.id);
+
+        return row;
+      })
+      .catch(rethrowSlugTaken);
+
+    return toPathwaySummary(created);
+  }
+
+  async updatePathway(
+    user: AuthenticatedUser,
+    pathwayId: string,
+    input: PathwayInput,
+  ): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+    const data: Prisma.PathwayUpdateInput = {};
+
+    if (input.title !== undefined && input.title !== current.title) {
+      data.title = input.title;
+
+      if (slugFollowsTitle(current)) {
+        const others = await this.prisma.pathway.findMany({
+          where: { id: { not: pathwayId } },
+          select: { slug: true },
+        });
+        const slug = slugFor(input.title, "pathway", new Set(others.map((item) => item.slug)));
+
+        if (slug !== current.slug) {
+          data.slug = slug;
+        }
+      }
+    }
+
+    // A summary is required, so an empty one is ignored rather than clearing it.
+    const summary = input.summary?.trim();
+
+    if (summary && summary !== current.summary) {
+      data.summary = summary;
+    }
+
+    const description = clean(input.description);
+
+    if (description !== undefined && description !== current.description) {
+      data.description = description;
+    }
+
+    if (input.level !== undefined && input.level !== current.level) {
+      data.level = input.level;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return toPathwaySummary(current);
+    }
+
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.pathway.update({
+          where: { id: pathwayId },
+          data,
+          select: pathwaySelect,
+        });
+
+        await audit(tx, user.userId, "pathway.updated", "Pathway", pathwayId, {
+          fields: Object.keys(data),
+        });
+
+        return row;
+      })
+      .catch(rethrowSlugTaken);
+
+    return toPathwaySummary(updated);
+  }
+
+  async movePathway(
+    user: AuthenticatedUser,
+    pathwayId: string,
+    direction: MoveDirection,
+  ): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+    const siblings = await this.prisma.pathway.findMany({
+      where: { archivedAt: null },
+      orderBy: [{ sequence: "asc" }, { id: "asc" }],
+      select: { id: true, sequence: true },
+    });
+    const changes = reorder(siblings, pathwayId, direction);
+
+    if (changes.length === 0) {
+      return toPathwaySummary(current);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const change of changes) {
+        await tx.pathway.update({
+          where: { id: change.id },
+          data: { sequence: change.sequence },
+        });
+      }
+
+      await audit(tx, user.userId, "pathway.moved", "Pathway", pathwayId, { direction });
+    });
+
+    return toPathwaySummary(await this.findPathway(pathwayId));
+  }
+
+  async publishPathway(user: AuthenticatedUser, pathwayId: string): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+
+    if (current.archivedAt) {
+      throw archived("pathway");
+    }
+
+    if (!current.modules.some((item) => item.status === "PUBLISHED" && !item.archivedAt)) {
+      throw new BadRequestException({
+        code: "PATHWAY_EMPTY",
+        message: "Publish at least one of this pathway's modules first, so learners have something to open.",
+      });
+    }
+
+    if (current.status === "PUBLISHED") {
+      return toPathwaySummary(current);
+    }
+
+    return toPathwaySummary(
+      await this.changePathway(user, pathwayId, "pathway.published", {
+        status: "PUBLISHED",
+        publishedAt: current.publishedAt ?? new Date(),
+      }),
+    );
+  }
+
+  async unpublishPathway(user: AuthenticatedUser, pathwayId: string): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+
+    if (current.status !== "PUBLISHED") {
+      return toPathwaySummary(current);
+    }
+
+    await this.assertNobodyPartWay(pathwayId, "unpublished");
+
+    return toPathwaySummary(
+      await this.changePathway(user, pathwayId, "pathway.unpublished", { status: "DRAFT" }),
+    );
+  }
+
+  async archivePathway(user: AuthenticatedUser, pathwayId: string): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+
+    if (current.archivedAt) {
+      return toPathwaySummary(current);
+    }
+
+    await this.assertNobodyPartWay(pathwayId, "archived");
+
+    return toPathwaySummary(
+      await this.changePathway(user, pathwayId, "pathway.archived", {
+        archivedAt: new Date(),
+        status: "DRAFT",
+      }),
+    );
+  }
+
+  async restorePathway(user: AuthenticatedUser, pathwayId: string): Promise<AuthoringPathwaySummaryView> {
+    await this.access.assertCanAuthor(user);
+
+    const current = await this.findPathway(pathwayId);
+
+    if (!current.archivedAt) {
+      return toPathwaySummary(current);
+    }
+
+    // Back at the end of the catalogue: its old place may belong to another now.
+    const others = await this.prisma.pathway.findMany({
+      where: { id: { not: pathwayId } },
+      select: { sequence: true },
+    });
+
+    return toPathwaySummary(
+      await this.changePathway(user, pathwayId, "pathway.restored", {
+        archivedAt: null,
+        sequence: nextSequence(others),
+      }),
+    );
   }
 
   // ─── Modules ──────────────────────────────────────────────────────────────
@@ -584,6 +804,62 @@ export class CurriculumService {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
+  private async findPathway(pathwayId: string) {
+    const row = await this.prisma.pathway.findUnique({
+      where: { id: pathwayId },
+      select: { ...pathwaySelect, description: true },
+    });
+
+    if (!row) {
+      throw notFound("pathway");
+    }
+
+    return row;
+  }
+
+  private changePathway(
+    user: AuthenticatedUser,
+    pathwayId: string,
+    action: string,
+    data: Prisma.PathwayUpdateInput,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.pathway.update({ where: { id: pathwayId }, data, select: pathwaySelect });
+
+      await audit(tx, user.userId, action, "Pathway", pathwayId);
+
+      return row;
+    });
+  }
+
+  /**
+   * Unpublishing or archiving a pathway hides every module and lesson beneath
+   * it, so neither is allowed while anyone is still working through it: an
+   * enrolment invited or active on any of its cohorts. A module can be
+   * withdrawn freely; that only shortens a pathway.
+   *
+   * An archived cohort doesn't count: its learners no longer see it, and its
+   * institution can no longer withdraw them, so counting it would block the
+   * pathway for good.
+   */
+  private async assertNobodyPartWay(pathwayId: string, outcome: "unpublished" | "archived") {
+    const partWay = await this.prisma.enrolment.count({
+      where: {
+        status: { in: ["INVITED", "ACTIVE"] },
+        cohort: { pathwayId, archivedAt: null },
+      },
+    });
+
+    if (partWay > 0) {
+      throw new ConflictException({
+        code: "PATHWAY_IN_USE",
+        message:
+          `Learners are still working through this pathway. It can be ${outcome} once ` +
+          "each of them has completed it or been withdrawn.",
+      });
+    }
+  }
+
   private async findModule(moduleId: string) {
     const row = await this.prisma.pathwayModule.findUnique({
       where: { id: moduleId },
@@ -670,7 +946,20 @@ export class CurriculumService {
 
 const countedSelect = { status: true, archivedAt: true } as const;
 
-const pathwaySelect = { id: true, slug: true, title: true, status: true } as const;
+const pathwayFields = {
+  id: true,
+  slug: true,
+  title: true,
+  summary: true,
+  level: true,
+  sequence: true,
+  status: true,
+  publishedAt: true,
+  archivedAt: true,
+} as const;
+
+/** A pathway with what its summary counts: its modules' state. */
+const pathwaySelect = { ...pathwayFields, modules: { select: countedSelect } } as const;
 
 const moduleSelect = {
   id: true,
@@ -734,20 +1023,21 @@ function countOf(items: Counted[]) {
   return { all: live.length, published: live.filter((item) => item.status === "PUBLISHED").length };
 }
 
-function toPathwaySummary(row: {
-  id: string;
-  slug: string;
-  title: string;
-  status: PublishStatus;
-  modules: Counted[];
-}): AuthoringPathwaySummaryView {
+type PathwayFieldsRow = Prisma.PathwayGetPayload<{ select: typeof pathwayFields }>;
+
+function toPathwaySummary(row: PathwayFieldsRow & { modules: Counted[] }): AuthoringPathwaySummaryView {
   const counts = countOf(row.modules);
 
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
+    summary: row.summary,
+    level: row.level,
+    sequence: row.sequence,
     status: row.status,
+    publishedAt: row.publishedAt,
+    archivedAt: row.archivedAt,
     moduleCount: counts.all,
     publishedModuleCount: counts.published,
   };

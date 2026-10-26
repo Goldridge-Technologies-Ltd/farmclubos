@@ -90,8 +90,8 @@ export const academy = {
     completing: "Saving…",
     completed: "You have completed this lesson.",
     notEnrolled:
-      "You are not enrolled on this pathway, so nothing is recorded against your " +
-      "account. Your institution enrols you onto a cohort.",
+      "You have not started this pathway, so nothing is recorded against your account. " +
+      "Start it to save your progress.",
     /*
       The seeded lessons are outlines: a title and a summary, with no body
       written yet. Saying so plainly is the point — a blank page would read as
@@ -123,7 +123,7 @@ export const academy = {
     finish: "Finish the lesson",
     saving: "Saving…",
     notEnrolled:
-      "You are not enrolled on this pathway, so your place in this lesson is not saved.",
+      "You have not started this pathway, so your place in this lesson is not saved.",
     complete: {
       title: "Lesson complete",
       description: "Every scene is done, and your progress is saved.",
@@ -131,11 +131,32 @@ export const academy = {
     end: {
       title: "End of this lesson",
       description:
-        "You are not enrolled on this pathway, so nothing was recorded. Your institution " +
-        "enrols you onto a cohort.",
+        "You have not started this pathway, so nothing was recorded. Start it to save " +
+        "your progress.",
     },
     nextLesson: (title: string) => `Next: ${title}`,
     review: "Go back over it",
+  },
+
+  /**
+   * Starting a pathway on one's own. Anyone may: it saves their progress and
+   * quiz results, at their own pace, with no institution involved.
+   */
+  start: {
+    heading: "Start this pathway",
+    description:
+      "Learn it at your own pace. Your progress and assessment results are saved to your " +
+      "account as you go.",
+    action: "Start this pathway",
+    starting: "Starting…",
+    /** Under a module's assessments, for someone who has not started the pathway. */
+    forAssessments: "Start this pathway to take its assessments.",
+    progressHeading: "Your progress",
+    through: "through this pathway",
+    next: (lesson: string) => `Next: ${lesson}`,
+    continue: "Continue",
+    finished: "You have completed every lesson in this pathway.",
+    journey: "See your journey",
   },
 
   assessment: {

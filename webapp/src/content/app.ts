@@ -105,6 +105,9 @@ export const homeScreen = {
     cohort: (name: string) => `Cohort: ${name}`,
     cohortClosed: (name: string) =>
       `Cohort: ${name}. It has closed to new learners; you can still finish.`,
+    selfPaced: "Self-paced: you are taking this pathway on your own.",
+    selfPacedClosed:
+      "Self-paced. This pathway has closed to new learners; you can still finish.",
     through: "through this pathway",
     // Only name the module when it adds something: a module's opening lesson
     // often shares its title.
@@ -115,10 +118,10 @@ export const homeScreen = {
     journey: "See your journey",
   },
   notEnrolled: {
-    title: "You are not enrolled on a pathway yet",
+    title: "You have not started a pathway yet",
     description:
-      "Your institution enrols you onto a cohort. Until then you can browse the " +
-      "Academy; once you are enrolled, your pathway and progress appear here.",
+      "Start any pathway in the Academy and learn at your own pace; it appears here " +
+      "with your progress. A pathway your institution enrols you on appears here too.",
     action: "Browse the Academy",
   },
   content: {
@@ -151,15 +154,18 @@ export const journeyScreen = {
   description:
     "Every module and lesson in your pathway, and how far you have come in each.",
   notEnrolled: {
-    title: "You are not enrolled on a pathway yet",
+    title: "You have not started a pathway yet",
     description:
-      "Your institution enrols you onto a cohort. Once that happens, your " +
-      "pathway and everything you complete will be listed here.",
+      "Start a pathway from the Academy, or be enrolled on one by your institution, and " +
+      "everything you complete will be listed here.",
     action: "Browse the Academy",
   },
   cohort: (name: string) => `Cohort: ${name}`,
   cohortClosed: (name: string) =>
     `Cohort: ${name}. It has closed to new learners; you can still finish.`,
+  selfPaced: "Self-paced: you are taking this pathway on your own.",
+  selfPacedClosed:
+    "Self-paced. This pathway has closed to new learners; you can still finish.",
   through: "through this pathway",
   moduleProgress: (done: number, total: number) =>
     `${done} of ${total} ${total === 1 ? "lesson" : "lessons"} complete`,

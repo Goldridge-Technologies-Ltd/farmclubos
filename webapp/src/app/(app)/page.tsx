@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { homeScreen } from "@/content/app";
 import { myJourney } from "@/lib/api/academy";
-import { finishingAfterClose, nextLesson } from "@/lib/journey";
+import { cohortLine, nextLesson } from "@/lib/journey";
 import {
   appNavigation,
   canAdministerPlatform,
@@ -55,11 +55,7 @@ export default async function HomePage() {
 
       {current ? (
         <Panel
-          description={
-            finishingAfterClose(current)
-              ? homeScreen.continue.cohortClosed(current.cohort.name)
-              : homeScreen.continue.cohort(current.cohort.name)
-          }
+          description={cohortLine(current, homeScreen.continue)}
           title={current.pathway.title}
         >
           {/* Where they are, what is next, then the way to it — in reading order. */}

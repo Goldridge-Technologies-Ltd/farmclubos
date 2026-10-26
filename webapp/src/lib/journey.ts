@@ -33,3 +33,25 @@ export function nextLesson(journey: Journey): NextLesson | null {
 export function finishingAfterClose(journey: Journey): boolean {
   return isCohortClosed(journey.cohort.status) && journey.status !== "COMPLETED";
 }
+
+type CohortCopy = {
+  cohort: (name: string) => string;
+  cohortClosed: (name: string) => string;
+  selfPaced: string;
+  selfPacedClosed: string;
+};
+
+/**
+ * The line saying how the learner is taking a pathway: with their cohort, or
+ * at their own pace for one they started on their own — never named as a
+ * cohort, since they joined no intake. Either says when it has closed.
+ */
+export function cohortLine(journey: Journey, copy: CohortCopy): string {
+  const closed = finishingAfterClose(journey);
+
+  if (journey.cohort.selfPaced) {
+    return closed ? copy.selfPacedClosed : copy.selfPaced;
+  }
+
+  return closed ? copy.cohortClosed(journey.cohort.name) : copy.cohort(journey.cohort.name);
+}

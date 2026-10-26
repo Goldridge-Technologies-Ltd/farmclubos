@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../api/client";
-import type { Attempt, LessonCompletion, SceneCompletion } from "../api/contracts";
+import type { Attempt, LessonCompletion, SceneCompletion, StartedPathway } from "../api/contracts";
+import { replaceAccessToken } from "../session";
 import { safeRedirectPath } from "../session-cookies";
 import { text, toFormState, type FormState } from "./form-state";
 
@@ -19,6 +20,33 @@ import { text, toFormState, type FormState } from "./form-state";
   A file marked "use server" may export only async functions; the shared types
   live in ./form-state.
 */
+
+/**
+ * Starts a pathway on one's own, then goes on to `next`. Anyone may: it makes
+ * them an independent learner, and the API moves the session there if it was
+ * elsewhere, since that is where their progress is recorded. Every screen
+ * reads the session's institution, so none of them may be reused.
+ */
+export async function startPathway(_previous: FormState, formData: FormData): Promise<FormState> {
+  const pathwaySlug = text(formData, "pathwaySlug");
+  const next = safeRedirectPath(text(formData, "next"));
+
+  try {
+    const started = await apiRequest<StartedPathway>(
+      `/api/academy/pathways/${encodeURIComponent(pathwaySlug)}/start`,
+      { method: "POST" },
+    );
+
+    if (started.session) {
+      await replaceAccessToken(started.session.accessToken, started.session.accessTokenExpiresAt);
+    }
+  } catch (error) {
+    return toFormState(error, []);
+  }
+
+  revalidatePath("/", "layout");
+  redirect(next);
+}
 
 /** Records a lesson as done and refreshes what the screens show. */
 export async function completeLesson(

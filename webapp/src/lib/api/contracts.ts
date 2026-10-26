@@ -65,6 +65,15 @@ export type SwitchedInstitution = {
   institutionRole: InstitutionRole;
 };
 
+/** What starting a pathway on one's own gave. */
+export type StartedPathway = {
+  enrolmentId: string;
+  /** ACTIVE, or COMPLETED for a pathway already finished. */
+  status: EnrolmentStatus;
+  /** A new access token when the session moved to independent learning. */
+  session: SwitchedInstitution | null;
+};
+
 /** What accepting an invitation gives: a place in an institution, or on the content team. */
 export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
 

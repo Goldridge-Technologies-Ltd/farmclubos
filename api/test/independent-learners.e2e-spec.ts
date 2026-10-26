@@ -6,6 +6,7 @@ import type {
   ApiSuccessResponse,
 } from "../src/common/http/api-response.js";
 import { IndependentLearnersModule } from "../src/modules/independent-learners/independent-learners.module.js";
+import { SelfEnrolmentService } from "../src/modules/independent-learners/self-enrolment.service.js";
 import { SignupService } from "../src/modules/independent-learners/signup.service.js";
 import { createTestApp } from "./support/create-test-app.js";
 
@@ -22,12 +23,17 @@ const fn = (): AsyncMock => jest.fn<(...args: unknown[]) => Promise<unknown>>();
 */
 describe("Independent learners (e2e)", () => {
   let app: INestApplication;
+  let signAccessToken: (claims: object) => Promise<string>;
   const signups = { signUp: fn() };
+  const enrolments = { start: fn() };
 
   beforeAll(async () => {
-    ({ app } = await createTestApp({
+    ({ app, signAccessToken } = await createTestApp({
       imports: [IndependentLearnersModule],
-      overrides: [{ provide: SignupService, useValue: signups }],
+      overrides: [
+        { provide: SignupService, useValue: signups },
+        { provide: SelfEnrolmentService, useValue: enrolments },
+      ],
     }));
   });
 
@@ -62,6 +68,30 @@ describe("Independent learners (e2e)", () => {
 
       expect(asFailure(response.body).error.code).toBe("VALIDATION_FAILED");
       expect(signups.signUp).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /api/academy/pathways/:pathwaySlug/start", () => {
+    it("needs a session", async () => {
+      await request(server()).post("/api/academy/pathways/foundation/start").expect(401);
+      expect(enrolments.start).not.toHaveBeenCalled();
+    });
+
+    it("starts the pathway in the path for the signed-in caller", async () => {
+      const started = { enrolmentId: "enrolment-1", status: "ACTIVE", session: null };
+      enrolments.start.mockResolvedValue(started);
+      const token = await signAccessToken({ sub: "user-1", institutionId: null });
+
+      const response = await request(server())
+        .post("/api/academy/pathways/foundation/start")
+        .set("Authorization", `Bearer ${token}`)
+        .expect(200);
+
+      expect(asSuccess(response.body).data).toEqual(started);
+      expect(enrolments.start).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1" }),
+        "foundation",
+      );
     });
   });
 });

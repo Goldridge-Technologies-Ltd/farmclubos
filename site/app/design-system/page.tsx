@@ -16,6 +16,7 @@ import { IconDisc } from "@farmclub/design-system/IconDisc";
 import type { DiscTone } from "@farmclub/design-system/IconDisc";
 import { Logo } from "@farmclub/design-system/Logo";
 import { Notice } from "@farmclub/design-system/Notice";
+import { PasswordInput } from "@farmclub/design-system/PasswordInput";
 import { PageHero } from "@/components/ui/PageHero";
 import { ProgressBar } from "@farmclub/design-system/ProgressBar";
 import { SectionIntro } from "@/components/ui/SectionIntro";
@@ -550,9 +551,14 @@ export default function DesignSystemPage() {
                 )}
               </Field>
 
-              <Field label="With a hint" name="ds-password" hint="At least 10 characters.">
+              <Field label="Password, with a hint (PasswordInput)" name="ds-password" hint="At least 10 characters.">
                 {({ id, describedBy }) => (
-                  <input aria-describedby={describedBy} className={fieldClass} id={id} type="password" />
+                  <PasswordInput
+                    aria-describedby={describedBy}
+                    hideLabel="Hide password"
+                    id={id}
+                    showLabel="Show password"
+                  />
                 )}
               </Field>
 

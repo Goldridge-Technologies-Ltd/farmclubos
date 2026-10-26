@@ -22,6 +22,7 @@ export const iconNames = [
   // page furniture
   "target",
   "eye",
+  "eye-off",
   "values",
   "check",
   "arrow-right",
@@ -141,6 +142,12 @@ const strokePaths: Partial<Record<IconName, string[]>> = {
   eye: [
     "M2.4 12S6 5.6 12 5.6 21.6 12 21.6 12 18 18.4 12 18.4 2.4 12 2.4 12z",
     "M12 15.3a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z",
+  ],
+  // The eye, struck through: what a "hide password" control shows.
+  "eye-off": [
+    "M2.4 12S6 5.6 12 5.6 21.6 12 21.6 12 18 18.4 12 18.4 2.4 12 2.4 12z",
+    "M12 15.3a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z",
+    "M4 4l16 16",
   ],
   values: [
     "M6.4 3.2h11.2l3.4 6L12 20.8 3 9.2z",

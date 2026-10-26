@@ -55,7 +55,11 @@ export type AuthContent = {
   hints: {
     newPassword: string;
   };
+  /** What each password field's show/hide button says to a screen reader. */
+  passwordToggles: Record<"password" | "newPassword" | "confirmPassword", PasswordToggle>;
 };
+
+type PasswordToggle = { showLabel: string; hideLabel: string };
 
 /** How each role reads to the person being invited. */
 export const roleLabels: Record<string, string> = {
@@ -150,5 +154,14 @@ export const authContent: AuthContent = {
 
   hints: {
     newPassword: "At least 10 characters. Length matters more than symbols.",
+  },
+
+  passwordToggles: {
+    password: { showLabel: "Show password", hideLabel: "Hide password" },
+    newPassword: { showLabel: "Show new password", hideLabel: "Hide new password" },
+    confirmPassword: {
+      showLabel: "Show the confirmed password",
+      hideLabel: "Hide the confirmed password",
+    },
   },
 };

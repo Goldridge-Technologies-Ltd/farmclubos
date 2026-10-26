@@ -6,6 +6,7 @@ import { Button } from "@farmclub/design-system/Button";
 import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
 import { Notice } from "@farmclub/design-system/Notice";
+import { PasswordInput } from "@farmclub/design-system/PasswordInput";
 import { FormStatus } from "@/components/form/FormStatus";
 import { signIn } from "@/lib/actions/auth";
 import { idleFormState } from "@/lib/actions/form-state";
@@ -55,15 +56,14 @@ export function SignInForm({ next, afterReset }: { next: string; afterReset: boo
         required
       >
         {({ id, describedBy, invalid }) => (
-          <input
+          <PasswordInput
+            {...authContent.passwordToggles.password}
             aria-describedby={describedBy}
             aria-invalid={invalid}
             autoComplete="current-password"
-            className={fieldClass}
             id={id}
             name="password"
             required
-            type="password"
           />
         )}
       </Field>

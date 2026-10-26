@@ -295,6 +295,7 @@ The source files document the props. This section says when to use each componen
 | `SectionLabel` | Every eyebrow: `gold` (default) on light, `dark` on deep green, `light` for green text | Hand-styled uppercase text |
 | `Logo` | The brand mark (§9) | Images of the logo |
 | `Field` | Every form field: label, optional hint, control and error, with the ids wired (§11). The control is a render function receiving `{ id, describedBy, invalid }` | Wiring `aria-describedby` by hand; wrapping a checkbox, whose label surrounds its control |
+| `PasswordInput` | Every password field, inside `Field`: `fieldClass` plus a show/hide button (`eye` / `eye-off`). Pass `showLabel` and `hideLabel` from the app's copy, naming the field when a form has two ("Show new password"). Spellcheck stays off, and submitting masks it again | A bare `type="password"` input; a visible "Show" text link beside the label instead |
 | `Notice` | The four status treatments (§11) as `tone="info" \| "busy" \| "success" \| "error"`, with an optional `title` | Adding a `role`: a form's own `role="status"` region wraps it |
 | `Skeleton` | Loading placeholders, `variant="text" \| "block"`. Always `aria-hidden` | A spinner; announcing each bar separately |
 | `ProgressBar` | Progress through a pathway, module or cohort. Shows the figure as text beside the bar (§12) | Any figure that is not real platform data (§13) |
@@ -313,7 +314,7 @@ Every form says plainly what happens on submit. The website is static-first and 
 
 - **Field anatomy:** use `<Field>`. It renders the label (`text-xs font-semibold text-farm-green-950`), the required marker (`<span aria-hidden="true" className="text-farm-green-700"> *</span>`), an optional hint, the control, and the error — which sits *outside* the label, so a screen reader announces it once. It hands the control `{ id, describedBy, invalid }`, so no call site wires `aria-describedby` itself. A checkbox is the exception: its label wraps its control, so it keeps its own markup. Forms say "Fields marked * are required." (copy lives with the app's content).
 - **Required fields** carry the native `required` attribute. Forms keep `noValidate` and validate on submit.
-- **Controls** use `fieldClass` from `@farmclub/design-system/form-classes`. Focus, invalid and disabled states are built in. Textareas add `min-h-36 py-3 leading-6`; checkboxes use `accent-farm-green-800`.
+- **Controls** use `fieldClass` from `@farmclub/design-system/form-classes`. Focus, invalid and disabled states are built in. Password fields use `PasswordInput`, which wraps it. Textareas add `min-h-36 py-3 leading-6`; checkboxes use `accent-farm-green-800`.
 - **Submit buttons** use `<Button type="submit">`, with `busy` while work is in progress; the submit handler also returns early while busy, because Enter in a field still submits.
 - **Status messages** use `<Notice>` inside one always-mounted `<div role="status">`; swap its content instead of mounting new live regions. `Notice` sets no role of its own for that reason. Field errors keep `role="alert"`, which `Field` adds.
 

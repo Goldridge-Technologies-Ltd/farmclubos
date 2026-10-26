@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@farmclub/design-system/Button";
 import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
+import { PasswordInput } from "@farmclub/design-system/PasswordInput";
 import { FormStatus } from "@/components/form/FormStatus";
 import { acceptInvite } from "@/lib/actions/auth";
 import { idleFormState } from "@/lib/actions/form-state";
@@ -78,15 +79,14 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
         required
       >
         {({ id, describedBy, invalid }) => (
-          <input
+          <PasswordInput
+            {...authContent.passwordToggles.newPassword}
             aria-describedby={describedBy}
             aria-invalid={invalid}
             autoComplete="new-password"
-            className={fieldClass}
             id={id}
             name="password"
             required
-            type="password"
           />
         )}
       </Field>

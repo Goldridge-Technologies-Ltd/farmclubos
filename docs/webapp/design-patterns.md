@@ -63,6 +63,8 @@ every one needs the busy, error and success states in
 - Map the API's error `code` to the field it belongs to, so a
   `CURRENT_PASSWORD_INCORRECT` lands under the password field rather than in a
   banner.
+- Every password field is a `PasswordInput`, so people can check what they
+  typed. Its button labels live in `content/auth.ts` (`passwordToggles`).
 
 ### A refused submission keeps what was typed
 

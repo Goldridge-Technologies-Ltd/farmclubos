@@ -15,6 +15,7 @@
     "./IconDisc": "./components/IconDisc.tsx",
     "./Logo": "./components/Logo.tsx",
     "./Notice": "./components/Notice.tsx",
+    "./PasswordInput": "./components/PasswordInput.tsx",
     "./ProgressBar": "./components/ProgressBar.tsx",
     "./SectionLabel": "./components/SectionLabel.tsx",
     "./Skeleton": "./components/Skeleton.tsx",

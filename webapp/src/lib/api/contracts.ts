@@ -68,9 +68,12 @@ export type SwitchedInstitution = {
 /** What accepting an invitation gives: a place in an institution, or on the content team. */
 export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
 
+/** SIGNUP: a link someone sent themselves by signing up, to learn on their own. */
+export type InviteLookupKind = InviteKind | "SIGNUP";
+
 export type InviteLookup = {
   email: string;
-  kind: InviteKind;
+  kind: InviteLookupKind;
   /** Null for the content team. */
   role: InstitutionRole | null;
   /** ISO 8601. */

@@ -156,6 +156,22 @@ export class EnvironmentVariables {
   @Max(86400)
   PASSWORD_RESET_THROTTLE_WINDOW_SECONDS = 3600;
 
+  /**
+   * Sign-up requests allowed per email in the window, so the form cannot be
+   * used to flood someone's inbox. Each one sends an email.
+   */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  SIGNUP_MAX_REQUESTS = 5;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(60)
+  @Max(86400)
+  SIGNUP_THROTTLE_WINDOW_SECONDS = 3600;
+
   /** How long an invitation link stays usable. Defaults to seven days. */
   @Type(() => Number)
   @IsInt()

@@ -6,11 +6,24 @@ import { Field } from "@farmclub/design-system/Field";
 import { fieldClass } from "@farmclub/design-system/form-classes";
 import { PasswordInput } from "@farmclub/design-system/PasswordInput";
 import { FormStatus } from "@/components/form/FormStatus";
+import { TermsNotice } from "@/components/form/TermsNotice";
 import { acceptInvite } from "@/lib/actions/auth";
 import { idleFormState } from "@/lib/actions/form-state";
 import { authContent } from "@/content/auth";
 
-export function AcceptInviteForm({ token, email }: { token: string; email: string }) {
+/**
+ * Creates the account an invitation is for. `signingUp` is someone who sent
+ * themselves the link: they agree to the terms by finishing, so they are shown.
+ */
+export function AcceptInviteForm({
+  token,
+  email,
+  signingUp = false,
+}: {
+  token: string;
+  email: string;
+  signingUp?: boolean;
+}) {
   const [state, action, pending] = useActionState(acceptInvite, idleFormState);
   const content = authContent.acceptInvite;
 
@@ -96,6 +109,8 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
       </Button>
 
       <p className="type-caption text-farm-muted">{authContent.requiredNote}</p>
+
+      {signingUp ? <TermsNotice /> : null}
     </form>
   );
 }

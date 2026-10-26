@@ -59,6 +59,26 @@ const inviteRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+/** Someone signing themselves up: nobody invited them, into FARMCLUB's home for them. */
+const home = {
+  id: "home-1",
+  name: "FARMCLUB Independent Learners",
+  slug: "farmclub-independent-learners",
+  kind: "INDEPENDENT_LEARNERS",
+  status: "ACTIVE",
+  archivedAt: null,
+};
+
+const signupRow = (overrides: Record<string, unknown> = {}) =>
+  inviteRow({
+    institutionId: "home-1",
+    institution: home,
+    email: "newcomer@example.com",
+    invitedById: null,
+    invitedBy: null,
+    ...overrides,
+  });
+
 /** An invitation onto the content team: no institution, a platform role instead. */
 const teamInviteRow = (overrides: Record<string, unknown> = {}) =>
   inviteRow({
@@ -74,7 +94,7 @@ describe("InvitesService", () => {
   let service: InvitesService;
   let access: { assertCanManage: AsyncMock };
   let auth: { startSession: AsyncMock };
-  let mail: { sendInvite: AsyncMock };
+  let mail: { sendInvite: AsyncMock; sendSignup: AsyncMock };
   let passwords: { hash: AsyncMock };
   let prisma: {
     invite: Record<"findUnique" | "findFirst" | "findMany" | "count" | "create" | "update" | "updateMany", AsyncMock>;
@@ -88,7 +108,7 @@ describe("InvitesService", () => {
   beforeEach(async () => {
     access = { assertCanManage: fn() };
     auth = { startSession: fn() };
-    mail = { sendInvite: fn() };
+    mail = { sendInvite: fn(), sendSignup: fn() };
     passwords = { hash: fn() };
     prisma = {
       invite: {
@@ -108,6 +128,7 @@ describe("InvitesService", () => {
 
     access.assertCanManage.mockResolvedValue({ institution, isPlatformAdmin: false });
     mail.sendInvite.mockResolvedValue("SENT");
+    mail.sendSignup.mockResolvedValue("SENT");
     passwords.hash.mockResolvedValue("$argon2id$hash");
     prisma.invite.create.mockImplementation((args) =>
       Promise.resolve(inviteRow((args as { data: Record<string, unknown> }).data)),
@@ -265,6 +286,22 @@ describe("InvitesService", () => {
       expect(resent.emailStatus).toBe("SENT");
     });
 
+    it("sends someone who signed up themselves the sign-up email, not an invitation", async () => {
+      access.assertCanManage.mockResolvedValue({ institution: home, isPlatformAdmin: true });
+      prisma.invite.findFirst.mockResolvedValue(signupRow());
+      prisma.invite.update.mockResolvedValue(signupRow({ tokenHash: "hash:fresh-token" }));
+
+      await service.resend(admin, "home-1", "invite-1");
+
+      expect(mail.sendSignup).toHaveBeenCalledWith({
+        to: "newcomer@example.com",
+        institutionId: "home-1",
+        expiresInDays: 7,
+        finishUrl: "http://localhost:3001/accept-invite?token=fresh-token",
+      });
+      expect(mail.sendInvite).not.toHaveBeenCalled();
+    });
+
     it.each(["ACCEPTED", "REVOKED"])("refuses to resend an invite that is %s", async (status) => {
       prisma.invite.findFirst.mockResolvedValue(inviteRow({ status }));
 
@@ -360,6 +397,35 @@ describe("InvitesService", () => {
       });
     });
 
+    /*
+      Someone signing up chose nothing to join, so the home FARMCLUB keeps for
+      them is not named to them.
+    */
+    it("describes a sign-up without naming the institution behind it", async () => {
+      prisma.invite.findUnique.mockResolvedValue(signupRow());
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.lookup("raw-token")).resolves.toEqual({
+        email: "newcomer@example.com",
+        kind: "SIGNUP",
+        role: "LEARNER",
+        expiresAt: expect.any(Date),
+        accountExists: false,
+        institution: null,
+      });
+    });
+
+    it.each([
+      ["has lapsed", { expiresAt: new Date(Date.now() - HOUR) }, "INVITE_EXPIRED"],
+      ["was replaced by a newer one", { status: "REVOKED" }, "INVITE_REVOKED"],
+    ])("tells someone whose sign-up link %s to sign up again", async (_, overrides, code) => {
+      prisma.invite.findUnique.mockResolvedValue(signupRow(overrides));
+
+      await expect(service.lookup("raw-token")).rejects.toMatchObject({
+        response: { code, message: expect.stringContaining("sign up again") },
+      });
+    });
+
     it("records an invite as EXPIRED the first time a lapsed one is presented", async () => {
       prisma.invite.findUnique.mockResolvedValue(inviteRow({ expiresAt: new Date(Date.now() - HOUR) }));
 
@@ -415,6 +481,31 @@ describe("InvitesService", () => {
         },
       });
       expect(auth.startSession).toHaveBeenCalledWith("user-new", "institution-1", client);
+    });
+
+    it("records that someone signing up accepted the terms, and how they joined", async () => {
+      prisma.invite.findUnique.mockResolvedValue(signupRow());
+
+      await service.accept(body, client);
+
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: "newcomer@example.com",
+          firstName: "Tunde",
+          lastName: "Bello",
+          passwordHash: "$argon2id$hash",
+          emailVerifiedAt: expect.any(Date),
+          termsAcceptedAt: expect.any(Date),
+        },
+      });
+      expect(prisma.learnerProfile.create).toHaveBeenCalledWith({
+        data: {
+          userId: "user-new",
+          state: "EXPLORER",
+          stateChanges: { create: { toState: "EXPLORER", reason: "Signed up on their own" } },
+        },
+      });
+      expect(auth.startSession).toHaveBeenCalledWith("user-new", "home-1", client);
     });
 
     it("creates no learner profile for a staff role", async () => {
@@ -531,6 +622,21 @@ describe("InvitesService", () => {
         response: { code: "ALREADY_MEMBER" },
       });
       expect(prisma.invite.updateMany).not.toHaveBeenCalled();
+    });
+
+    /*
+      A sign-up link only ever goes to an address with no account. Should one
+      exist by the time it is used, there is nothing to join: starting a
+      pathway makes anyone an independent learner.
+    */
+    it("sends an account that follows a sign-up link back to the Academy, using nothing", async () => {
+      prisma.invite.findUnique.mockResolvedValue(signupRow({ email: "learner@example.com" }));
+
+      await expect(service.join(learner, "raw-token")).rejects.toMatchObject({
+        response: { code: "ACCOUNT_EXISTS" },
+      });
+      expect(prisma.invite.updateMany).not.toHaveBeenCalled();
+      expect(prisma.membership.upsert).not.toHaveBeenCalled();
     });
 
     it("puts a signed-in account on the content team, beside whatever it belongs to", async () => {

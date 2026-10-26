@@ -5,6 +5,12 @@ import type { MembershipSummary } from "../auth/auth.types.js";
 /** What accepting an invitation gives: a place in an institution, or on the content team. */
 export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
 
+/**
+ * What an invitation is, to the page that opens it: SIGNUP is one someone
+ * sent themselves by signing up, which makes them an independent learner.
+ */
+export type InviteLookupKind = InviteKind | "SIGNUP";
+
 export type InviteView = {
   id: string;
   email: string;
@@ -26,13 +32,17 @@ export type IssuedInviteView = InviteView & {
 
 export type InviteLookupView = {
   email: string;
-  kind: InviteKind;
+  kind: InviteLookupKind;
   /** The institution role; null for the content team. */
   role: InstitutionRole | null;
   expiresAt: Date;
   /** True when the invitee should sign in and join, rather than create an account. */
   accountExists: boolean;
-  /** Null for the content team, which belongs to no institution. */
+  /**
+   * Null for the content team, which belongs to no institution, and for a
+   * sign-up: someone who chose nothing to join is not told the name of the
+   * home FARMCLUB keeps for them.
+   */
   institution: { id: string; name: string } | null;
 };
 

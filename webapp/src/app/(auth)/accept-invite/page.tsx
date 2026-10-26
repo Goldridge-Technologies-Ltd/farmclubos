@@ -44,6 +44,36 @@ export default async function AcceptInvitePage({
   // An invitation is for an institution, or for the content team, which has none.
   const { institution } = invite;
   const contentTeam = authContent.acceptInvite.contentTeam;
+  const signUp = authContent.acceptInvite.signUp;
+
+  /*
+    A link someone sent themselves by signing up. It names no institution:
+    they chose nothing to join. Should the address have an account by now,
+    there is nothing to join either — starting a pathway does that — so they
+    are sent to sign in and on to the Academy.
+  */
+  if (invite.kind === "SIGNUP") {
+    if (invite.accountExists) {
+      return (
+        <>
+          <AuthFormHeader
+            description={signUp.alreadyHaveAccount}
+            heading={authContent.acceptInvite.alreadyHaveAccount.heading}
+          />
+          <ButtonLink className="w-full" href="/sign-in?next=%2Facademy" icon="none">
+            {authContent.acceptInvite.alreadyHaveAccount.signInLabel}
+          </ButtonLink>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <AuthFormHeader description={signUp.description} heading={signUp.heading} />
+        <AcceptInviteForm email={invite.email} signingUp token={token} />
+      </>
+    );
+  }
 
   /*
     The email already has an account, so this is someone joining a second

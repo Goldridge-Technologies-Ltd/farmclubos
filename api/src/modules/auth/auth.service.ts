@@ -47,7 +47,7 @@ const PASSWORD_RESET_SCOPE = "password-reset";
   whole building out of the product. It is here to bound a spray across many
   accounts from a single source, which only needs a ceiling, not a tight one.
 */
-const ADDRESS_LIMIT_MULTIPLIER = 10;
+export const ADDRESS_LIMIT_MULTIPLIER = 10;
 
 /** Thrown inside a rotation when a concurrent refresh has already rotated. */
 class RotationRaceLost extends Error {}

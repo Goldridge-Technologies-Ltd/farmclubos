@@ -150,8 +150,10 @@ variables differ.
   `enable_row_level_security` migration: enable RLS, add no policy, and revoke
   from `anon` and `authenticated`. The API connects as the owner, which
   bypasses RLS, so it is unaffected.
-- `src/generated/prisma` is generated and gitignored. `type-check` and
-  `prebuild` run `prisma generate` first, so a fresh clone works.
+- `src/generated/prisma` is generated and gitignored. `dev`, `type-check`
+  and `prebuild` run `prisma generate` first, so a fresh clone works.
+  `prisma migrate dev` doesn't generate in Prisma 7, so after a schema change
+  restart `dev` or run `npx prisma generate`.
 - Columns that would read as real platform figures if seeded —
   `Pathway.estimatedHours`, `Lesson.durationMinutes`, `Cohort.capacity`,
   `ExperienceSite.capacity`, `ReportSnapshot.payload` — stay null in every

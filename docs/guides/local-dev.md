@@ -203,8 +203,11 @@ npm run db:studio  --workspace api    # browse the data
 ```
 
 `prisma generate` writes the client into `api/src/generated/prisma`, which is
-gitignored. `type-check` and `prebuild` run it first, so a fresh clone works
-before anything is generated — and it needs no database connection.
+gitignored. `dev`, `type-check` and `prebuild` run it first, so a fresh clone
+works before anything is generated — and it needs no database connection.
+`db:migrate` does not run it: Prisma 7 stopped generating on `migrate dev`. So
+after pulling a schema change, restart `npm run dev:api` rather than leaving it
+running, or the API compiles against the old client.
 
 ### Your first platform admin
 

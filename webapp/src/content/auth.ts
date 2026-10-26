@@ -18,9 +18,25 @@ export type AuthContent = {
   signIn: AuthScreen & {
     forgotPassword: string;
     afterReset: string;
-    noAccount: string;
+    newHere: string;
+    createAccount: string;
+    invited: string;
   };
   forgotPassword: AuthScreen & { backToSignIn: string };
+  signUp: AuthScreen & {
+    sent: string;
+    haveAccount: string;
+    signIn: string;
+  };
+  /** Under the forms that create an account for someone signing themselves up. */
+  terms: {
+    lead: string;
+    termsOfService: { label: string; href: string };
+    and: string;
+    privacyPolicy: { label: string; href: string };
+    /** Read after each link; not shown. */
+    newTab: string;
+  };
   resetPassword: AuthScreen & { expired: string };
   acceptInvite: {
     loading: string;
@@ -29,6 +45,8 @@ export type AuthContent = {
     description: (institution: string, role: string) => string;
     /** An invitation onto the content team, which belongs to no institution. */
     contentTeam: { heading: string; description: string; joinDescription: string };
+    /** A link someone sent themselves by signing up: no institution is named. */
+    signUp: { heading: string; description: string; alreadyHaveAccount: string };
     submitLabel: string;
     busyLabel: string;
     alreadyHaveAccount: {
@@ -74,14 +92,39 @@ export const authContent: AuthContent = {
 
   signIn: {
     heading: "Sign in",
-    description: "Use the email your institution invited you with.",
+    description: "Use the email you signed up or were invited with.",
     submitLabel: "Sign in",
     busyLabel: "Signing in…",
     forgotPassword: "Forgotten your password?",
     // Also shown to a new platform administrator, whose emailed link set a first password.
     afterReset: "Your password is saved. Sign in with it.",
-    noAccount:
-      "Accounts are created by invitation. Ask your institution's administrator to invite you.",
+    newHere: "New to FARMCLUB OS?",
+    createAccount: "Create an account",
+    invited: "Invited by an institution? Use the link in your invitation email instead.",
+  },
+
+  signUp: {
+    heading: "Create your account",
+    description:
+      "Enter your email and we will send you a link to finish setting up your account. " +
+      "You can then start any pathway in the Academy and learn at your own pace.",
+    submitLabel: "Send the link",
+    busyLabel: "Sending…",
+    // The same whether or not the address has an account; the email says which.
+    sent: "Check your email for a link to finish creating your account.",
+    haveAccount: "Already have an account?",
+    signIn: "Sign in",
+  },
+
+  terms: {
+    lead: "By creating an account, you agree to the",
+    termsOfService: {
+      label: "Terms of Service",
+      href: "https://farmclub-os.com/terms-of-service",
+    },
+    and: "and",
+    privacyPolicy: { label: "Privacy Policy", href: "https://farmclub-os.com/privacy-policy" },
+    newTab: "(opens in a new tab)",
   },
 
   forgotPassword: {
@@ -124,6 +167,14 @@ export const authContent: AuthContent = {
         "You have been invited to join the FARMCLUB OS content team, which builds the Academy for every institution. Choose a password to finish setting up your account.",
       joinDescription:
         "Sign in with this email, and you can join the content team that builds the Academy.",
+    },
+    signUp: {
+      heading: "Finish creating your account",
+      description:
+        "Add your name and choose a password. You can then start any pathway in the Academy " +
+        "and learn at your own pace.",
+      alreadyHaveAccount:
+        "This email already has an account. Sign in, then start any pathway from the Academy.",
     },
     submitLabel: "Create my account",
     busyLabel: "Creating…",

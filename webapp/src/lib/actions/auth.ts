@@ -7,6 +7,7 @@ import { forwardedClientAddress } from "../api/forwarded-address";
 import type { AuthSession, InviteJoined, SwitchedInstitution } from "../api/contracts";
 import { endSession, readRefreshToken, replaceAccessToken, startSession } from "../session";
 import { safeRedirectPath } from "../session-cookies";
+import { authContent } from "@/content/auth";
 import { keepValues, missingValues, text, toFormState, type FormState } from "./form-state";
 
 /*
@@ -167,6 +168,34 @@ export async function joinWithInvite(
   }
 
   redirect(joined.kind === "CONTENT_TEAM" ? "/content/academy" : "/");
+}
+
+/**
+ * Asks for a sign-up link. The API answers the same whether or not the
+ * address has an account, and so does this: an address that has one is
+ * emailed a way to sign in instead.
+ */
+export async function signUp(_previous: FormState, formData: FormData): Promise<FormState> {
+  const email = text(formData, "email");
+  const missing = missingValues({ email });
+  const keep = (state: FormState) => keepValues(state, formData, ["email"]);
+
+  if (missing) {
+    return keep(missing);
+  }
+
+  try {
+    await apiRequest("/api/auth/signup", {
+      method: "POST",
+      authenticated: false,
+      body: { email },
+      clientAddress: await forwardedClientAddress(),
+    });
+  } catch (error) {
+    return keep(toFormState(error, ["email"]));
+  }
+
+  return { status: "success", message: authContent.signUp.sent };
 }
 
 export async function requestPasswordReset(

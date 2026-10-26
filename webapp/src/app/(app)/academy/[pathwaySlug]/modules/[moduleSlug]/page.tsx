@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { academy } from "@/content/academy";
 import { StartAttemptForm } from "@/components/learning/StartAttemptForm";
+import { StartPathwayForm } from "@/components/learning/StartPathwayForm";
 import { getModule, myJourney } from "@/lib/api/academy";
 
 type PageProps = { params: Promise<{ pathwaySlug: string; moduleSlug: string }> };
@@ -137,6 +138,14 @@ export default async function ModulePage({ params }: PageProps) {
               </li>
             ))}
           </ul>
+        )}
+
+        {/* An attempt is recorded against an enrolment: starting gives them one. */}
+        {isEnrolled || pathwayModule.assessments.length === 0 ? null : (
+          <div className="mt-6 grid gap-3 border-t border-farm-border pt-5">
+            <p className="type-body-sm text-farm-muted">{academy.start.forAssessments}</p>
+            <StartPathwayForm next={moduleHref} pathwaySlug={pathwaySlug} />
+          </div>
         )}
       </Panel>
     </div>

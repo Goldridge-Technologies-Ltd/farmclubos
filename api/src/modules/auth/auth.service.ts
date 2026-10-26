@@ -11,7 +11,7 @@ import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js"
 import { normalizeEmail } from "../../common/utils/normalize-email.js";
 import { webappLink } from "../../common/utils/webapp-link.js";
 import type { AuthSession, User } from "../../generated/prisma/client.js";
-import type { InstitutionRole } from "../../generated/prisma/enums.js";
+import type { InstitutionKind, InstitutionRole } from "../../generated/prisma/enums.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import { MailService } from "../../lib/mail/mail.service.js";
 import {
@@ -32,7 +32,7 @@ import { TokenService } from "./token.service.js";
 type ActiveMembership = {
   institutionId: string;
   role: InstitutionRole;
-  institution: { id: string; name: string; slug: string };
+  institution: { id: string; name: string; slug: string; kind: InstitutionKind };
 };
 
 const LOGIN_SCOPE = "login";
@@ -47,7 +47,7 @@ const PASSWORD_RESET_SCOPE = "password-reset";
   whole building out of the product. It is here to bound a spray across many
   accounts from a single source, which only needs a ceiling, not a tight one.
 */
-const ADDRESS_LIMIT_MULTIPLIER = 10;
+export const ADDRESS_LIMIT_MULTIPLIER = 10;
 
 /** Thrown inside a rotation when a concurrent refresh has already rotated. */
 class RotationRaceLost extends Error {}
@@ -550,7 +550,7 @@ export class AuthService {
       select: {
         institutionId: true,
         role: true,
-        institution: { select: { id: true, name: true, slug: true } },
+        institution: { select: { id: true, name: true, slug: true, kind: true } },
       },
       orderBy: [{ joinedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     });
@@ -678,5 +678,6 @@ function toMembershipSummary(membership: ActiveMembership): MembershipSummary {
     institutionName: membership.institution.name,
     institutionSlug: membership.institution.slug,
     role: membership.role,
+    independentLearners: membership.institution.kind === "INDEPENDENT_LEARNERS",
   };
 }

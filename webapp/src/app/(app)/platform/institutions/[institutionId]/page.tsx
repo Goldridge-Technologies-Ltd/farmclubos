@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Badge } from "@farmclub/design-system/Badge";
+import { Notice } from "@farmclub/design-system/Notice";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InviteActions } from "@/components/institution/InviteActions";
 import { InviteAdministratorForm } from "@/components/platform/InviteAdministratorForm";
@@ -69,6 +70,10 @@ export default async function InstitutionPage({ params }: PageProps) {
         />
 
         <ActionOutcomeMessage />
+
+        {institution.kind === "INDEPENDENT_LEARNERS" ? (
+          <Notice tone="info">{platformContent.independentLearners.note}</Notice>
+        ) : null}
 
         <Panel description={copy.administrators.description} title={copy.administrators.title}>
           {administrators.length === 0 ? (

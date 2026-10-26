@@ -10,6 +10,7 @@ import { MarkCompleteForm } from "@/components/learning/MarkCompleteForm";
 import { NotesView } from "@/components/learning/NotesView";
 import { SceneHeading } from "@/components/learning/SceneHeading";
 import { SceneOutline } from "@/components/learning/SceneOutline";
+import { StartPathwayForm } from "@/components/learning/StartPathwayForm";
 import { VideoPlayer } from "@/components/learning/VideoPlayer";
 import { FocusOnMount } from "@/components/ui/FocusOnMount";
 import { Panel } from "@/components/ui/Panel";
@@ -80,7 +81,10 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
               lessonId={lesson.id}
             />
           ) : (
-            <Notice tone="info">{academy.lesson.notEnrolled}</Notice>
+            <div className="grid gap-4">
+              <Notice tone="info">{academy.lesson.notEnrolled}</Notice>
+              <StartPathwayForm next={lessonHref} pathwaySlug={pathwaySlug} />
+            </div>
           )}
         </Panel>
         {lessonNavigation}
@@ -125,6 +129,12 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
                   {copy.review}
                 </ButtonLink>
               </div>
+              {/* Started now, the lesson begins again so its scenes are recorded. */}
+              {standing.enrolled ? null : (
+                <div className="mt-6 border-t border-farm-border pt-5">
+                  <StartPathwayForm next={`${lessonHref}?scene=1`} pathwaySlug={pathwaySlug} />
+                </div>
+              )}
             </Panel>
           </FocusOnMount>
         ) : (
@@ -134,6 +144,7 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
             index={index}
             lessonHref={lessonHref}
             moveFocus={query.scene !== undefined}
+            pathwaySlug={pathwaySlug}
             scenes={scenes}
           />
         )}
@@ -160,12 +171,15 @@ function Scene({
   enrolled,
   lessonHref,
   moveFocus,
+  pathwaySlug,
 }: {
   scenes: LessonDetail["scenes"];
   index: number;
   done: ReadonlySet<string>;
   enrolled: boolean;
   lessonHref: string;
+  /** For starting the pathway, which is what saves a place in its lessons. */
+  pathwaySlug: string;
   /** Whether the learner moved here from another scene, rather than opening the lesson. */
   moveFocus: boolean;
 }) {
@@ -187,7 +201,10 @@ function Scene({
       {enrolled ? (
         <ProgressBar label={copy.through} value={Math.round((done.size / scenes.length) * 100)} />
       ) : (
-        <Notice tone="info">{copy.notEnrolled}</Notice>
+        <div className="grid gap-4">
+          <Notice tone="info">{copy.notEnrolled}</Notice>
+          <StartPathwayForm next={`${lessonHref}?scene=${index + 1}`} pathwaySlug={pathwaySlug} />
+        </div>
       )}
 
       {scene.video ? <VideoPlayer transcript={scene.transcript} video={scene.video} /> : null}

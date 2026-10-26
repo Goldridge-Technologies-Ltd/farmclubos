@@ -328,6 +328,36 @@ refresh stays in it. It then goes home — the page they were on may belong to
 the institution they just left — and the menu, open "for this route and
 institution", closes itself as the institution changes.
 
+FARMCLUB's home for people learning on their own is never named to a learner:
+the top bar, the menu and the profile call it "Independent learning"
+(`membershipName` in `src/lib/memberships.ts`). Screens for the staff who run
+it use its real name.
+
+### Learning on your own
+
+Anyone can create an account and start any published pathway, with no
+institution involved (`api/AGENTS.md` says how the API records them).
+
+- **`/sign-up` asks only for an email.** The answer is the same whatever the
+  address, so, as on *Forgotten your password*, the form goes once it is
+  given. The emailed link opens `/accept-invite`, whose sign-up version
+  names no institution: the person chose nothing to join. An address that
+  already has an account is sent to sign in, and on to the Academy.
+- **Both forms say what signing up agrees to** with `TermsNotice`, linking the
+  public site's Terms of Service and Privacy Policy. They open in a new tab,
+  so the form is not lost, and say so to a screen reader.
+- **`StartPathwayForm` starts a pathway**, wherever not having started it
+  would otherwise be a dead end: the pathway's page, which shows the
+  learner's progress and next lesson instead once they have; the lesson
+  player's "not started" notices; and under a module's assessments. The
+  action replaces the access-token cookie when the API moved the session to
+  independent learning, revalidates the whole layout, and returns to the page
+  it was pressed on, which now shows the pathway as started. A refusal stays
+  on the form, in the API's words.
+- **A pathway started this way is "self-paced", never a cohort.** Home and My
+  Journey take the line from `cohortLine()` in `src/lib/journey.ts`, which
+  never shows the cohort's own name.
+
 ### Running the platform
 
 `/platform/institutions` is where a platform administrator adds an
@@ -437,7 +467,8 @@ beside it in `SceneOutline`: ticks for those finished, and
 - **Continue records the scene and moves on.** For an enrolled learner it is
   a form posting to a Server Action, which redirects to the next scene, or to
   `?completed=1` after the last. Back, and Continue for someone not enrolled,
-  are plain links: there is nothing to record.
+  are plain links: there is nothing to record. Someone not enrolled is offered
+  *Start this pathway* where the progress bar would be.
 - **Progress counts scenes, never time watched.** Nothing tracks the video.
 - **A video plays with its captions on**, when it has them, and its
   transcript in a `<details>` beneath. Without captions it has neither. The

@@ -29,6 +29,7 @@ import type {
 } from "./dto/invite-request.dto.js";
 import type {
   InviteJoinedView,
+  InviteLookupKind,
   InviteLookupView,
   InviteView,
   IssuedInviteView,
@@ -54,6 +55,22 @@ type InstitutionInvite = Invite & {
 
 function isInstitutionInvite(invite: UsableInvite): invite is InstitutionInvite {
   return invite.institution !== null && invite.role !== null;
+}
+
+/**
+ * One someone sent themselves by signing up (SignupService): nobody invited
+ * them, and it makes them a learner in FARMCLUB's home for independent ones.
+ */
+function isSignup(invite: { invitedById: string | null }): boolean {
+  return invite.invitedById === null;
+}
+
+function kindOf(invite: UsableInvite): InviteLookupKind {
+  if (isSignup(invite)) {
+    return "SIGNUP";
+  }
+
+  return isInstitutionInvite(invite) ? "INSTITUTION" : "CONTENT_TEAM";
 }
 
 /** The role an institution invitation carries, which the check guarantees. */
@@ -299,13 +316,14 @@ export class InvitesService {
 
     return {
       email: invite.email,
-      kind: isInstitutionInvite(invite) ? "INSTITUTION" : "CONTENT_TEAM",
+      kind: kindOf(invite),
       role: invite.role,
       expiresAt: invite.expiresAt,
       accountExists: account !== null,
-      institution: invite.institution
-        ? { id: invite.institution.id, name: invite.institution.name }
-        : null,
+      institution:
+        invite.institution && !isSignup(invite)
+          ? { id: invite.institution.id, name: invite.institution.name }
+          : null,
     };
   }
 
@@ -313,7 +331,8 @@ export class InvitesService {
    * Accepts an invite for someone with no account yet: creates the account,
    * already email-verified — following the link proves the address — and signs
    * them in, to the institution that invited them or, for the content team,
-   * to no institution at all.
+   * to no institution at all. Someone signing up agreed to the terms on the
+   * form that sent the link, and their account records when.
    */
   async accept(input: AcceptInviteDto, client: ClientContext): Promise<AuthSessionResult> {
     const invite = await this.loadUsable(input.token);
@@ -337,6 +356,7 @@ export class InvitesService {
             lastName: input.lastName,
             passwordHash,
             emailVerifiedAt: now,
+            ...(isSignup(invite) ? { termsAcceptedAt: now } : {}),
             ...(invite.platformRole ? { platformRole: invite.platformRole } : {}),
           },
         });
@@ -387,6 +407,18 @@ export class InvitesService {
       throw inviteNotFound();
     }
 
+    /*
+      A sign-up link only goes to an address with no account. If one has been
+      made since, there is nothing to join: starting a pathway from the
+      Academy is what makes anyone an independent learner.
+    */
+    if (isSignup(invite)) {
+      throw new ConflictException({
+        code: "ACCOUNT_EXISTS",
+        message: "You already have an account. Start any pathway from the Academy to learn on your own.",
+      });
+    }
+
     if (!isInstitutionInvite(invite)) {
       return this.joinContentTeam(user, invite, account.platformRole);
     }
@@ -419,6 +451,7 @@ export class InvitesService {
         institutionName: invite.institution.name,
         institutionSlug: invite.institution.slug,
         role: invite.role,
+        independentLearners: invite.institution.kind === "INDEPENDENT_LEARNERS",
       },
     };
   }
@@ -473,7 +506,10 @@ export class InvitesService {
     if (invite.status === "REVOKED") {
       throw new GoneException({
         code: "INVITE_REVOKED",
-        message: `This invitation has been withdrawn. Ask ${whoToAsk(invite)} for a new one.`,
+        message: isSignup(invite)
+          ? "This link has been replaced by a newer one. Use the link in the most recent " +
+            "email, or sign up again."
+          : `This invitation has been withdrawn. Ask ${whoToAsk(invite)} for a new one.`,
       });
     }
 
@@ -484,7 +520,9 @@ export class InvitesService {
 
       throw new GoneException({
         code: "INVITE_EXPIRED",
-        message: `This invitation has expired. Ask ${whoToAsk(invite)} to send it again.`,
+        message: isSignup(invite)
+          ? "This link has expired. Please sign up again for a new one."
+          : `This invitation has expired. Ask ${whoToAsk(invite)} to send it again.`,
       });
     }
 
@@ -538,7 +576,10 @@ export class InvitesService {
           userId,
           state: "EXPLORER",
           stateChanges: {
-            create: { toState: "EXPLORER", reason: "Joined through an invitation" },
+            create: {
+              toState: "EXPLORER",
+              reason: isSignup(invite) ? "Signed up on their own" : "Joined through an invitation",
+            },
           },
         },
       });
@@ -587,6 +628,20 @@ export class InvitesService {
     token: string,
   ): Promise<EmailDeliveryStatus> {
     const ttlHours = this.config.getOrThrow<number>("INVITE_TTL_HOURS");
+    const expiresInDays = Math.max(1, Math.round(ttlHours / 24));
+    const link = webappLink(this.config.getOrThrow<string>("WEBAPP_URL"), "accept-invite", {
+      token,
+    });
+
+    // Resent from the home's own screens: it is still their sign-up.
+    if (!invite.invitedBy) {
+      return this.mail.sendSignup({
+        to: invite.email,
+        institutionId: institution.id,
+        expiresInDays,
+        finishUrl: link,
+      });
+    }
 
     return this.mail.sendInvite({
       to: invite.email,
@@ -594,10 +649,8 @@ export class InvitesService {
       institutionName: institution.name,
       inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
       role: institutionRoleOf(invite),
-      expiresInDays: Math.max(1, Math.round(ttlHours / 24)),
-      acceptUrl: webappLink(this.config.getOrThrow<string>("WEBAPP_URL"), "accept-invite", {
-        token,
-      }),
+      expiresInDays,
+      acceptUrl: link,
     });
   }
 

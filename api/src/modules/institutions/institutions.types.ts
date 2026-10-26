@@ -1,4 +1,5 @@
 import type {
+  InstitutionKind,
   InstitutionRole,
   InstitutionStatus,
   InstitutionType,
@@ -9,6 +10,8 @@ export type InstitutionView = {
   slug: string;
   name: string;
   type: InstitutionType;
+  /** INDEPENDENT_LEARNERS for FARMCLUB's home for people who signed up themselves. */
+  kind: InstitutionKind;
   status: InstitutionStatus;
   contactEmail: string;
   contactPhone: string | null;

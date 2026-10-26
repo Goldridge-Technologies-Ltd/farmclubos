@@ -117,6 +117,34 @@ variables differ.
   is the platform administrator's side, checked against the database: list,
   invite, resend, revoke, and remove, which only sets the role back to `NONE`.
   The account, its memberships and its work stay.
+- **People can learn on their own, as members of a home FARMCLUB runs for
+  them.** One institution of kind `INDEPENDENT_LEARNERS` holds everyone
+  learning without an institution (`src/modules/independent-learners/`). A
+  partial unique index allows only one; `IndependentLearnersService` makes it
+  the first time it is needed, so it is never seeded, and its details cannot
+  be edited (409 `HOME_INSTITUTION_FIXED`). Each pathway has one self-paced
+  cohort there (`Cohort.selfPaced`, one per pathway by another partial unique
+  index), made when its first independent learner starts it. An independent
+  learner's progress and attempts are therefore an enrolment's like anyone
+  else's, and every rule above holds for them unchanged.
+  - *Signing up* (`SignupService`, `POST /auth/signup`) is an invitation
+    someone sends themselves: an `Invite` into the home with no inviter. It
+    answers the same whatever the address and issues after answering; an
+    address that has an account is emailed a way to sign in instead.
+    Accepting it is the ordinary `InvitesService.accept`, which also records
+    `User.termsAcceptedAt`. `join` refuses one, since starting a pathway is
+    what makes an existing account an independent learner.
+  - *Starting a pathway* (`SelfEnrolmentService`,
+    `POST /academy/pathways/:pathwaySlug/start`) is open to anyone signed in.
+    It makes them a learner in the home, enrols them on the self-paced cohort
+    or reactivates their withdrawn enrolment there, and moves the session to
+    the home, returning a fresh access token. It refuses a pathway the caller
+    takes with an institution (409 `ENROLLED_WITH_INSTITUTION`), a closed
+    self-paced cohort (409 `PATHWAY_NOT_TAKING_LEARNERS`), and a suspended
+    membership in the home (403 `MEMBERSHIP_SUSPENDED`).
+  - A learner never sees the home's name or a self-paced cohort's:
+    `MembershipSummary.independentLearners` and `Cohort.selfPaced` tell the
+    web app to say "independent learning" and "self-paced" instead.
 - **Platform administrators are made only on the server**, by
   `npm run admin:add` (`src/cli/add-platform-admin.ts`), never through a
   route. `PlatformAdminsService` (`src/modules/platform-admins/`) makes an

@@ -3,6 +3,10 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service.js";
 import { MAIL_TRANSPORT, type MailTransport } from "./mail-transport.js";
 import {
+  renderAccountExists,
+  type AccountExistsEmailInput,
+} from "./templates/account-exists.template.js";
+import {
   renderContentTeamInvite,
   type ContentTeamInviteEmailInput,
 } from "./templates/content-team-invite.template.js";
@@ -20,6 +24,7 @@ import {
   type PlatformAdminWelcomeEmailInput,
 } from "./templates/platform-admin-welcome.template.js";
 import type { RenderedEmail } from "./templates/rendered-email.js";
+import { renderSignup, type SignupEmailInput } from "./templates/signup.template.js";
 
 export type EmailDeliveryStatus = "SENT" | "FAILED";
 
@@ -99,6 +104,26 @@ export class MailService {
       to: input.to,
       template: "platform-admin-welcome",
       content: renderPlatformAdminWelcome(input),
+      userId: input.userId,
+    });
+  }
+
+  sendSignup(input: SignupEmailInput & { to: string; institutionId: string }): Promise<EmailDeliveryStatus> {
+    return this.deliver({
+      to: input.to,
+      template: "signup",
+      content: renderSignup(input),
+      institutionId: input.institutionId,
+    });
+  }
+
+  sendAccountExists(
+    input: AccountExistsEmailInput & { to: string; userId: string },
+  ): Promise<EmailDeliveryStatus> {
+    return this.deliver({
+      to: input.to,
+      template: "account-exists",
+      content: renderAccountExists(input),
       userId: input.userId,
     });
   }

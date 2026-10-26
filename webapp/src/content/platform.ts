@@ -31,6 +31,15 @@ export const platformContent = {
     SUSPENDED: "Suspended",
   },
 
+  /** Marks FARMCLUB's own home for people who signed up themselves. */
+  independentLearners: {
+    badge: "Independent learners",
+    note:
+      "FARMCLUB OS runs this institution for people who signed up on their own. " +
+      "Its details are fixed. To see and manage its learners, invite someone from " +
+      "your team as its administrator: they switch to it and use its Institution screens.",
+  },
+
   list: {
     eyebrow: "Platform",
     heading: "Institutions",

@@ -63,6 +63,12 @@ pathways and their lessons are built, from videos and notes, and
 **Platform → Content team** is
 where you invite the content managers who build them with you.
 
+Anyone can also create an account at `/sign-up` and start any published
+pathway on their own. They learn as members of an institution FARMCLUB runs
+for them, which appears under **Platform → Institutions** as FARMCLUB
+Independent Learners: invite someone from your team as its administrator to
+see and manage them.
+
 ## Quality checks
 
 Each command runs in every workspace; add `--workspace <name>` for one.
@@ -161,6 +167,10 @@ npm run start --workspace api
   On Render, run it from the service's Shell on a paid instance, or from your
   own machine on a Free one, which has no shell. See
   [Running it on Render](docs/guides/local-dev.md#running-it-on-render).
+- **Sign-up.** Anyone can sign up from the sign-in page, and the link to
+  finish comes by email, so check that email reaches people before telling
+  anyone. The sign-up forms link the public site's Terms of Service and
+  Privacy Policy, which need to cover the app first.
 - **HTTPS.** Serve the API over HTTPS, since the web app sends session tokens
   to it across the internet. If a reverse proxy fronts it, have the proxy
   append to the `X-Forwarded-For` header the web app sends rather than

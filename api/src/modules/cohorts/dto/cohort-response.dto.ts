@@ -53,6 +53,12 @@ export class CohortSummaryDto implements CohortSummaryView {
   @ApiProperty({ type: String, nullable: true, format: "date" })
   endsOn: string | null;
 
+  @ApiProperty({
+    description:
+      "The always-open cohort independent learners join by starting the pathway themselves.",
+  })
+  selfPaced: boolean;
+
   @ApiProperty({ type: CohortPathwayDto })
   pathway: CohortPathwayDto;
 }

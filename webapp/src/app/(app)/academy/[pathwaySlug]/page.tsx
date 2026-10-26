@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@farmclub/design-system/Badge";
+import { ButtonLink } from "@farmclub/design-system/ButtonLink";
 import { EmptyState } from "@farmclub/design-system/EmptyState";
 import { Icon } from "@farmclub/design-system/Icon";
+import { ProgressBar } from "@farmclub/design-system/ProgressBar";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { StartPathwayForm } from "@/components/learning/StartPathwayForm";
 import { Panel } from "@/components/ui/Panel";
 import { academy } from "@/content/academy";
-import { getPathway } from "@/lib/api/academy";
+import { getPathway, myJourney } from "@/lib/api/academy";
+import { nextLesson } from "@/lib/journey";
 
 type PageProps = { params: Promise<{ pathwaySlug: string }> };
 
@@ -18,9 +22,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: pathway.title, description: pathway.summary };
 }
 
+/*
+  One pathway, and the way into it: where the learner has got to and what is
+  next, or — for anyone who has not started it — the way to start it on their
+  own. A pathway with nothing published in it yet offers neither.
+*/
 export default async function PathwayPage({ params }: PageProps) {
   const { pathwaySlug } = await params;
-  const pathway = await getPathway(pathwaySlug);
+  const [pathway, journeys] = await Promise.all([getPathway(pathwaySlug), myJourney()]);
+  const journey = journeys.find((item) => item.pathway.slug === pathway.slug);
+  const next = journey ? nextLesson(journey) : null;
+  const start = academy.start;
 
   return (
     <div className="app-stack">
@@ -30,6 +42,22 @@ export default async function PathwayPage({ params }: PageProps) {
         description={pathway.summary}
         heading={pathway.title}
       />
+
+      {pathway.modules.length === 0 ? null : journey ? (
+        <Panel title={start.progressHeading}>
+          <ProgressBar label={start.through} value={journey.progressPercent} />
+          <p className="mt-4 type-body-sm text-farm-muted">
+            {next ? start.next(next.title) : start.finished}
+          </p>
+          <ButtonLink className="mt-6" href={next?.href ?? "/my-journey"} size="md">
+            {next ? start.continue : start.journey}
+          </ButtonLink>
+        </Panel>
+      ) : (
+        <Panel description={start.description} title={start.heading}>
+          <StartPathwayForm next={`/academy/${pathway.slug}`} pathwaySlug={pathway.slug} />
+        </Panel>
+      )}
 
       {pathway.description ? (
         <Panel>

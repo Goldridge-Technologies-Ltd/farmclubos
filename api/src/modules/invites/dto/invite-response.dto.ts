@@ -4,12 +4,14 @@ import { MembershipSummaryDto } from "../../auth/dto/auth-response.dto.js";
 import type {
   InviteJoinedView,
   InviteKind,
+  InviteLookupKind,
   InviteLookupView,
   InviteView,
   IssuedInviteView,
 } from "../invites.types.js";
 
 const INVITE_KINDS = ["INSTITUTION", "CONTENT_TEAM"];
+const INVITE_LOOKUP_KINDS = [...INVITE_KINDS, "SIGNUP"];
 
 export class InviterDto {
   @ApiProperty({ format: "uuid" })
@@ -51,8 +53,12 @@ export class InviteDto implements InviteView {
   @ApiProperty({ type: String, format: "date-time", nullable: true })
   revokedAt: Date | null;
 
-  @ApiProperty({ type: () => InviterDto })
-  invitedBy: InviterDto;
+  @ApiProperty({
+    type: () => InviterDto,
+    nullable: true,
+    description: "Null for someone who signed up themselves.",
+  })
+  invitedBy: InviterDto | null;
 }
 
 export class IssuedInviteDto extends InviteDto implements IssuedInviteView {
@@ -76,10 +82,12 @@ export class InviteLookupDto implements InviteLookupView {
   email: string;
 
   @ApiProperty({
-    enum: INVITE_KINDS,
-    description: "A place in an institution, or on the content team that builds the Academy.",
+    enum: INVITE_LOOKUP_KINDS,
+    description:
+      "A place in an institution, or on the content team that builds the Academy; SIGNUP " +
+      "for a link someone sent themselves by signing up.",
   })
-  kind: InviteKind;
+  kind: InviteLookupKind;
 
   @ApiProperty({
     enum: InstitutionRole,

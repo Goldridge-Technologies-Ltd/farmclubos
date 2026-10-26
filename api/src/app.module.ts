@@ -13,6 +13,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { CohortsModule } from "./modules/cohorts/cohorts.module.js";
 import { ContentTeamModule } from "./modules/content-team/content-team.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
+import { IndependentLearnersModule } from "./modules/independent-learners/independent-learners.module.js";
 import { InstitutionsModule } from "./modules/institutions/institutions.module.js";
 import { InvitesModule } from "./modules/invites/invites.module.js";
 import { ProgressModule } from "./modules/progress/progress.module.js";
@@ -37,6 +38,7 @@ import { UsersModule } from "./modules/users/users.module.js";
     CohortsModule,
     ContentTeamModule,
     HealthModule,
+    IndependentLearnersModule,
     InstitutionsModule,
     InvitesModule,
     ProgressModule,

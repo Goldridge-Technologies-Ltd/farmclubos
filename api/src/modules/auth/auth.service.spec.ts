@@ -44,10 +44,15 @@ const user = {
   deactivatedAt: null as Date | null,
 };
 
-const membership = (institutionId: string, role = "LEARNER") => ({
+const membership = (institutionId: string, role = "LEARNER", kind = "STANDARD") => ({
   institutionId,
   role,
-  institution: { id: institutionId, name: `Institution ${institutionId}`, slug: institutionId },
+  institution: {
+    id: institutionId,
+    name: `Institution ${institutionId}`,
+    slug: institutionId,
+    kind,
+  },
 });
 
 const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000);
@@ -143,6 +148,7 @@ describe("AuthService", () => {
           institutionName: "Institution institution-1",
           institutionSlug: "institution-1",
           role: "LEARNER",
+          independentLearners: false,
         },
       ]);
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -542,6 +548,18 @@ describe("AuthService", () => {
 
       expect(context.activeInstitutionId).toBe("institution-1");
       expect(context.institutionRole).toBe("LEARNER");
+    });
+
+    it("says which membership is learning independently, so it is never shown as an institution", async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.membership.findMany.mockResolvedValue([
+        membership("institution-1"),
+        membership("home-1", "LEARNER", "INDEPENDENT_LEARNERS"),
+      ]);
+
+      const context = await service.getSessionContext(authenticated);
+
+      expect(context.memberships.map((m) => m.independentLearners)).toEqual([false, true]);
     });
 
     it("ends a session whose account has been deactivated", async () => {

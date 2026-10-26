@@ -36,6 +36,11 @@ export type CohortSummaryView = {
   /** `YYYY-MM-DD`, or null when the institution has not set one. */
   startsOn: string | null;
   endsOn: string | null;
+  /**
+   * The always-open cohort independent learners join by starting the pathway
+   * themselves. Closing it stops new ones starting; those on it can finish.
+   */
+  selfPaced: boolean;
   pathway: CohortPathwayView;
 };
 

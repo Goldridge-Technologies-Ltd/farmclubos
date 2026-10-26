@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { appShell, profileScreen } from "@/content/app";
+import { membershipName } from "@/lib/memberships";
 import { getSessionContext } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -56,7 +57,7 @@ export default async function ProfilePage() {
               className="flex flex-wrap items-baseline justify-between gap-2 rounded-card border border-farm-border p-4"
             >
               <span className="text-sm font-semibold text-farm-green-950">
-                {membership.institutionName}
+                {membershipName(membership)}
               </span>
               <span className="type-caption text-farm-muted">
                 {appShell.roles[membership.role]}

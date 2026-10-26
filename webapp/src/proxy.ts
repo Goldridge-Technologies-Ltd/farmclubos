@@ -15,6 +15,7 @@ import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/session-cookies
 /** Reachable without a session; a signed-in person is sent away from them. */
 const SIGNED_OUT_ROUTES = [
   "/sign-in",
+  "/sign-up",
   "/accept-invite",
   "/forgot-password",
   "/reset-password",

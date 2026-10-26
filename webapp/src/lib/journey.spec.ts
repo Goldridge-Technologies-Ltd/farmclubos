@@ -1,11 +1,11 @@
 import type { Journey } from "./api/contracts";
-import { finishingAfterClose, nextLesson } from "./journey";
+import { cohortLine, finishingAfterClose, nextLesson } from "./journey";
 
 const journey = (modules: Journey["modules"]): Journey => ({
   enrolmentId: "enrolment-1",
   status: "ACTIVE",
   progressPercent: 0,
-  cohort: { id: "cohort-1", name: "September intake", status: "OPEN" },
+  cohort: { id: "cohort-1", name: "September intake", status: "OPEN", selfPaced: false },
   pathway: { id: "pathway-1", slug: "foundation", title: "Foundation" },
   modules,
 });
@@ -78,7 +78,7 @@ describe("finishingAfterClose", () => {
   const closed = (status: Journey["status"]): Journey => ({
     ...journey([]),
     status,
-    cohort: { id: "cohort-1", name: "September intake", status: "COMPLETED" },
+    cohort: { id: "cohort-1", name: "September intake", status: "COMPLETED", selfPaced: false },
   });
 
   it("is true for someone still working through an intake that has closed", () => {
@@ -91,5 +91,32 @@ describe("finishingAfterClose", () => {
 
   it("is false while the intake is open", () => {
     expect(finishingAfterClose(journey([]))).toBe(false);
+  });
+});
+
+/*
+  A pathway someone started on their own is never described as a cohort:
+  they joined no intake, and its name would mean nothing to them.
+*/
+describe("cohortLine", () => {
+  const copy = {
+    cohort: (name: string) => `Cohort: ${name}`,
+    cohortClosed: (name: string) => `Cohort: ${name}, closed`,
+    selfPaced: "Self-paced",
+    selfPacedClosed: "Self-paced, closed",
+  };
+  const taking = (selfPaced: boolean, status: "OPEN" | "COMPLETED"): Journey => ({
+    ...journey([]),
+    cohort: { id: "cohort-1", name: "September intake", status, selfPaced },
+  });
+
+  it("names an institution's cohort", () => {
+    expect(cohortLine(taking(false, "OPEN"), copy)).toBe("Cohort: September intake");
+    expect(cohortLine(taking(false, "COMPLETED"), copy)).toBe("Cohort: September intake, closed");
+  });
+
+  it("calls a pathway started on one's own self-paced, open or closed", () => {
+    expect(cohortLine(taking(true, "OPEN"), copy)).toBe("Self-paced");
+    expect(cohortLine(taking(true, "COMPLETED"), copy)).toBe("Self-paced, closed");
   });
 });

@@ -31,6 +31,11 @@ export type MembershipSummary = {
   institutionName: string;
   institutionSlug: string;
   role: InstitutionRole;
+  /**
+   * FARMCLUB's home for people learning on their own. Screens call it
+   * independent learning and never show it as an institution.
+   */
+  independentLearners: boolean;
 };
 
 /** What `/auth/me` returns: who is signed in, and where they are working. */
@@ -60,12 +65,24 @@ export type SwitchedInstitution = {
   institutionRole: InstitutionRole;
 };
 
+/** What starting a pathway on one's own gave. */
+export type StartedPathway = {
+  enrolmentId: string;
+  /** ACTIVE, or COMPLETED for a pathway already finished. */
+  status: EnrolmentStatus;
+  /** A new access token when the session moved to independent learning. */
+  session: SwitchedInstitution | null;
+};
+
 /** What accepting an invitation gives: a place in an institution, or on the content team. */
 export type InviteKind = "INSTITUTION" | "CONTENT_TEAM";
 
+/** SIGNUP: a link someone sent themselves by signing up, to learn on their own. */
+export type InviteLookupKind = InviteKind | "SIGNUP";
+
 export type InviteLookup = {
   email: string;
-  kind: InviteKind;
+  kind: InviteLookupKind;
   /** Null for the content team. */
   role: InstitutionRole | null;
   /** ISO 8601. */
@@ -196,6 +213,8 @@ export type CohortSummary = {
   /** `YYYY-MM-DD`, or null when the institution has not set one. */
   startsOn: string | null;
   endsOn: string | null;
+  /** The always-open cohort independent learners join by starting the pathway. */
+  selfPaced: boolean;
   pathway: {
     id: string;
     slug: string;
@@ -251,8 +270,11 @@ export type Journey = {
   enrolmentId: string;
   status: EnrolmentStatus;
   progressPercent: number;
-  /** A closed intake takes nobody new; its learners can still finish. */
-  cohort: { id: string; name: string; status: CohortStatus };
+  /**
+   * A closed intake takes nobody new; its learners can still finish. A
+   * self-paced one is a pathway the learner started on their own.
+   */
+  cohort: { id: string; name: string; status: CohortStatus; selfPaced: boolean };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgress[];
 };
@@ -363,7 +385,8 @@ export type Invite = {
   status: InviteStatus;
   expiresAt: string;
   createdAt: string;
-  invitedBy: { id: string; firstName: string; lastName: string };
+  /** Null for someone who signed up themselves. */
+  invitedBy: { id: string; firstName: string; lastName: string } | null;
 };
 
 /** FAILED means the invite exists but its email did not go: resend it. */
@@ -392,7 +415,8 @@ export type ContentTeamInvite = {
   expiresAt: string;
   /** ISO 8601. */
   createdAt: string;
-  invitedBy: { id: string; firstName: string; lastName: string };
+  /** Null for someone who signed up themselves. */
+  invitedBy: { id: string; firstName: string; lastName: string } | null;
 };
 
 export type IssuedContentTeamInvite = ContentTeamInvite & { emailStatus: "SENT" | "FAILED" };
@@ -435,11 +459,16 @@ export type InstitutionType =
 
 export type InstitutionStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
 
+/** INDEPENDENT_LEARNERS is FARMCLUB's own home for people who signed up themselves. */
+export type InstitutionKind = "STANDARD" | "INDEPENDENT_LEARNERS";
+
 export type Institution = {
   id: string;
   slug: string;
   name: string;
   type: InstitutionType;
+  /** The independent learners' home cannot be edited. */
+  kind: InstitutionKind;
   status: InstitutionStatus;
   contactEmail: string;
   contactPhone: string | null;

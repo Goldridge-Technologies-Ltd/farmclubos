@@ -18,6 +18,9 @@
   - The Academy catalogue (Pathway, PathwayModule, Lesson, Assessment,
     Competency, CredentialTemplate) is authored by FARMCLUB and shared by every
     institution, so it has no `institutionId`.
+  - People who sign up on their own, rather than being invited, belong to one
+    institution FARMCLUB runs for them (InstitutionKind INDEPENDENT_LEARNERS),
+    so their progress obeys the same tenancy rules as everyone else's.
 
   Content guardrail (AGENTS.md): estimatedHours, durationMinutes, capacity and
   ReportSnapshot.payload are columns whose seeded values would read as real
@@ -53,6 +56,15 @@ enum InstitutionType {
   OTHER
 }
 
+/// What an institution is to the platform. Every partner is STANDARD. The one
+/// INDEPENDENT_LEARNERS institution is FARMCLUB's own home for people who
+/// signed up themselves; a partial unique index in the migrations allows only
+/// one, and the API makes it the first time it is needed.
+enum InstitutionKind {
+  STANDARD
+  INDEPENDENT_LEARNERS
+}
+
 enum InstitutionStatus {
   PENDING
   ACTIVE
@@ -85,6 +97,7 @@ model Institution {
   slug         String            @unique
   name         String
   type         InstitutionType
+  kind         InstitutionKind   @default(STANDARD)
   status       InstitutionStatus @default(PENDING)
   contactEmail String
   contactPhone String?
@@ -126,6 +139,9 @@ model User {
   lastName        String
   platformRole    PlatformRole @default(NONE)
   emailVerifiedAt DateTime?
+  /// When they accepted the Terms of Service and Privacy Policy by signing up
+  /// themselves. Null for an account made by invitation.
+  termsAcceptedAt DateTime?
   lastLoginAt     DateTime?
   /// Users are never hard-deleted: credentials and attendance reference them.
   deactivatedAt   DateTime?
@@ -200,7 +216,8 @@ model Invite {
   tokenHash     String          @unique
   status        InviteStatus    @default(PENDING)
   expiresAt     DateTime
-  invitedById   String          @db.Uuid
+  /// Null when the person asked for it themselves, by signing up.
+  invitedById   String?         @db.Uuid
   acceptedAt    DateTime?
   acceptedById  String?         @db.Uuid
   revokedAt     DateTime?
@@ -208,7 +225,7 @@ model Invite {
   updatedAt     DateTime        @updatedAt
 
   institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  invitedBy   User         @relation("InviteInvitedBy", fields: [invitedById], references: [id])
+  invitedBy   User?        @relation("InviteInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
   acceptedBy  User?        @relation("InviteAcceptedBy", fields: [acceptedById], references: [id])
 
   @@index([institutionId, email])
@@ -683,6 +700,9 @@ model Cohort {
   endsOn        DateTime?    @db.Date
   /// Never seeded: see the guardrail note at the top of this file.
   capacity      Int?
+  /// The always-open cohort a pathway's independent learners join when they
+  /// start it themselves. A partial unique index allows one per pathway.
+  selfPaced     Boolean      @default(false)
   archivedAt    DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

@@ -1,9 +1,11 @@
+import { renderAccountExists } from "./account-exists.template.js";
 import { renderContentTeamInvite } from "./content-team-invite.template.js";
 import { escapeHtml } from "./escape-html.js";
 import { renderInvite } from "./invite.template.js";
 import { renderPasswordChanged } from "./password-changed.template.js";
 import { renderPasswordReset } from "./password-reset.template.js";
 import { renderPlatformAdminWelcome } from "./platform-admin-welcome.template.js";
+import { renderSignup } from "./signup.template.js";
 
 describe("escapeHtml", () => {
   it("neutralises every character that can open markup or an attribute", () => {
@@ -165,5 +167,57 @@ describe("renderPasswordChanged", () => {
 
     expect(email.text).toContain("signed out on your other devices");
     expect(email.text).not.toContain("every device");
+  });
+});
+
+describe("renderSignup", () => {
+  const base = {
+    finishUrl: "http://localhost:3001/accept-invite?token=abc123",
+    expiresInDays: 7,
+  };
+
+  it("asks the person to finish creating their account, naming no institution", () => {
+    const email = renderSignup(base);
+
+    expect(email.subject).toBe("Finish creating your FARMCLUB OS account");
+    expect(email.text).toContain("choose a password");
+    expect(email.text).not.toContain("Independent Learners");
+  });
+
+  it("carries the link in both parts, and says when it expires", () => {
+    const email = renderSignup(base);
+
+    expect(email.html).toContain('href="http://localhost:3001/accept-invite?token=abc123"');
+    expect(email.text).toContain("http://localhost:3001/accept-invite?token=abc123");
+    expect(email.text).toContain("expires in 7 days");
+  });
+
+  it("says nothing happens unless the link is used", () => {
+    expect(renderSignup(base).text).toContain("no account is made unless the link is used");
+  });
+});
+
+describe("renderAccountExists", () => {
+  const base = {
+    firstName: "Ada",
+    signInUrl: "http://localhost:3001/sign-in",
+  };
+
+  it("tells the owner the address already has an account, and how to sign in", () => {
+    const email = renderAccountExists(base);
+
+    expect(email.subject).toBe("You already have a FARMCLUB OS account");
+    expect(email.text).toContain("Hi Ada,");
+    expect(email.html).toContain('href="http://localhost:3001/sign-in"');
+  });
+
+  it("reassures them that nothing changed", () => {
+    expect(renderAccountExists(base).text).toContain("Nothing has changed on your account.");
+  });
+
+  it("escapes the name in the HTML", () => {
+    const email = renderAccountExists({ ...base, firstName: "<b>Ada</b>" });
+
+    expect(email.html).not.toContain("<b>Ada</b>");
   });
 });

@@ -300,6 +300,7 @@ export class ProgressService {
             id: true,
             name: true,
             status: true,
+            selfPaced: true,
             pathway: {
               select: {
                 id: true,
@@ -382,6 +383,7 @@ export class ProgressService {
           id: enrolment.cohort.id,
           name: enrolment.cohort.name,
           status: enrolment.cohort.status,
+          selfPaced: enrolment.cohort.selfPaced,
         },
         pathway: enrolment.cohort.pathway,
         modules,

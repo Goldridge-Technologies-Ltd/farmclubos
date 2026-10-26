@@ -42,6 +42,13 @@ export class MembershipSummaryDto implements MembershipSummary {
 
   @ApiProperty({ enum: InstitutionRole, enumName: "InstitutionRole" })
   role: InstitutionRole;
+
+  @ApiProperty({
+    description:
+      "True for FARMCLUB's home for people learning on their own: show it as independent " +
+      "learning, not as an institution.",
+  })
+  independentLearners: boolean;
 }
 
 export class SessionContextDto implements SessionContext {

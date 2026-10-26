@@ -94,6 +94,9 @@ export default async function InstitutionsPage({ searchParams }: PageProps) {
                       </p>
                     </div>
                     <span className="inline-flex items-center gap-3">
+                      {institution.kind === "INDEPENDENT_LEARNERS" ? (
+                        <Badge tone="info">{platformContent.independentLearners.badge}</Badge>
+                      ) : null}
                       <Badge tone={institution.status === "ACTIVE" ? "success" : "warning"}>
                         {platformContent.statuses[institution.status]}
                       </Badge>

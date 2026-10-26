@@ -5,7 +5,7 @@ const journey = (modules: Journey["modules"]): Journey => ({
   enrolmentId: "enrolment-1",
   status: "ACTIVE",
   progressPercent: 0,
-  cohort: { id: "cohort-1", name: "September intake", status: "OPEN" },
+  cohort: { id: "cohort-1", name: "September intake", status: "OPEN", selfPaced: false },
   pathway: { id: "pathway-1", slug: "foundation", title: "Foundation" },
   modules,
 });
@@ -78,7 +78,7 @@ describe("finishingAfterClose", () => {
   const closed = (status: Journey["status"]): Journey => ({
     ...journey([]),
     status,
-    cohort: { id: "cohort-1", name: "September intake", status: "COMPLETED" },
+    cohort: { id: "cohort-1", name: "September intake", status: "COMPLETED", selfPaced: false },
   });
 
   it("is true for someone still working through an intake that has closed", () => {

@@ -211,6 +211,7 @@ describe("ProgressService", () => {
         id: "cohort-1",
         name: "September intake",
         status: "OPEN",
+        selfPaced: false,
         pathway: {
           id: "pathway-1",
           slug: "foundation",
@@ -277,8 +278,20 @@ describe("ProgressService", () => {
         id: "cohort-1",
         name: "September intake",
         status: "COMPLETED",
+        selfPaced: false,
       });
       expect(journey.status).toBe("ACTIVE");
+    });
+
+    it("says when the learner started the pathway on their own, at their own pace", async () => {
+      prisma.enrolment.findMany.mockResolvedValue([
+        { ...enrolmentRow, cohort: { ...enrolmentRow.cohort, selfPaced: true } },
+      ]);
+      prisma.lessonProgress.findMany.mockResolvedValue([]);
+
+      const [journey] = await service.myJourney(learner);
+
+      expect(journey.cohort.selfPaced).toBe(true);
     });
 
     it("returns nothing for someone with no active institution", async () => {

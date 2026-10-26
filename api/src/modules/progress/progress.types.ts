@@ -41,7 +41,13 @@ export type JourneyView = {
    * The intake's status too: a closed one takes nobody new, but its learners
    * can still finish, and should be told which it is.
    */
-  cohort: { id: string; name: string; status: CohortStatus };
+  cohort: {
+    id: string;
+    name: string;
+    status: CohortStatus;
+    /** Started by the learner on their own: a screen says "self-paced", not a cohort name. */
+    selfPaced: boolean;
+  };
   pathway: { id: string; slug: string; title: string };
   modules: ModuleProgressView[];
 };

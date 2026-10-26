@@ -273,7 +273,9 @@ export class ContentTeamService {
 
     return this.mail.sendContentTeamInvite({
       to: invite.email,
-      inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
+      inviterName: invite.invitedBy
+        ? `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`
+        : "The FARMCLUB OS team",
       expiresInDays: Math.max(1, Math.round(ttlHours / 24)),
       acceptUrl: webappLink(this.config.getOrThrow<string>("WEBAPP_URL"), "accept-invite", {
         token,

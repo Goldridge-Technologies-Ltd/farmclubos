@@ -21,7 +21,8 @@ export type ContentTeamInviteView = {
   status: InviteStatus;
   expiresAt: Date;
   createdAt: Date;
-  invitedBy: { id: string; firstName: string; lastName: string };
+  /** Always someone for the content team; the column allows none for sign-ups. */
+  invitedBy: { id: string; firstName: string; lastName: string } | null;
 };
 
 export type IssuedContentTeamInviteView = ContentTeamInviteView & {

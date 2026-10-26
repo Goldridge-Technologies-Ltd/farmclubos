@@ -458,6 +458,7 @@ const cohortSelect = {
   deliveryMode: true,
   startsOn: true,
   endsOn: true,
+  selfPaced: true,
   pathway: { select: { id: true, slug: true, title: true, summary: true, level: true } },
 } as const;
 
@@ -477,6 +478,7 @@ const enrolmentSelect = {
       deliveryMode: true,
       startsOn: true,
       endsOn: true,
+      selfPaced: true,
       pathway: {
         select: { id: true, slug: true, title: true, summary: true, level: true },
       },

@@ -1,5 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { InstitutionStatus, InstitutionType, InstitutionRole } from "../../../generated/prisma/enums.js";
+import {
+  InstitutionKind,
+  InstitutionRole,
+  InstitutionStatus,
+  InstitutionType,
+} from "../../../generated/prisma/enums.js";
 import type { InstitutionView, MemberView, RemovedMemberView } from "../institutions.types.js";
 
 export class InstitutionDto implements InstitutionView {
@@ -14,6 +19,15 @@ export class InstitutionDto implements InstitutionView {
 
   @ApiProperty({ enum: InstitutionType, enumName: "InstitutionType" })
   type: InstitutionType;
+
+  @ApiProperty({
+    enum: InstitutionKind,
+    enumName: "InstitutionKind",
+    description:
+      "INDEPENDENT_LEARNERS for the one institution FARMCLUB runs for people who signed up " +
+      "on their own. Its details cannot be changed.",
+  })
+  kind: InstitutionKind;
 
   @ApiProperty({ enum: InstitutionStatus, enumName: "InstitutionStatus" })
   status: InstitutionStatus;

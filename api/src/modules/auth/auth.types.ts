@@ -14,6 +14,11 @@ export type MembershipSummary = {
   institutionName: string;
   institutionSlug: string;
   role: InstitutionRole;
+  /**
+   * True for FARMCLUB's home for people learning on their own, which a screen
+   * should call independent learning rather than name as an institution.
+   */
+  independentLearners: boolean;
 };
 
 export type AuthSessionResult = {

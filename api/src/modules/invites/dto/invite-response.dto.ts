@@ -51,8 +51,12 @@ export class InviteDto implements InviteView {
   @ApiProperty({ type: String, format: "date-time", nullable: true })
   revokedAt: Date | null;
 
-  @ApiProperty({ type: () => InviterDto })
-  invitedBy: InviterDto;
+  @ApiProperty({
+    type: () => InviterDto,
+    nullable: true,
+    description: "Null for someone who signed up themselves.",
+  })
+  invitedBy: InviterDto | null;
 }
 
 export class IssuedInviteDto extends InviteDto implements IssuedInviteView {

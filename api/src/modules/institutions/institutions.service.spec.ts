@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PaginatedResult } from "../../common/http/api-response.js";
@@ -25,6 +25,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   slug: "greenfield-technical-college",
   name: "Greenfield Technical College",
   type: "TECHNICAL_COLLEGE",
+  kind: "STANDARD",
   status: "ACTIVE",
   contactEmail: "office@greenfield.example.com",
   contactPhone: null,
@@ -172,6 +173,15 @@ describe("InstitutionsService", () => {
       expect(result).toBeInstanceOf(PaginatedResult);
       expect(result.pagination).toEqual({ page: 2, pageSize: 10, totalItems: 21, totalPages: 3 });
     });
+
+    it("says which institution is FARMCLUB's home for independent learners", async () => {
+      prisma.institution.findMany.mockResolvedValue([row(), row({ kind: "INDEPENDENT_LEARNERS" })]);
+      prisma.institution.count.mockResolvedValue(2);
+
+      const result = await service.list(admin, { page: 1, pageSize: 10 });
+
+      expect(result.items.map((item) => item.kind)).toEqual(["STANDARD", "INDEPENDENT_LEARNERS"]);
+    });
   });
 
   describe("update", () => {
@@ -193,6 +203,22 @@ describe("InstitutionsService", () => {
       await expect(
         service.update(admin, "institution-1", { type: "UNIVERSITY" }),
       ).rejects.toThrow(ForbiddenException);
+      expect(prisma.institution.update).not.toHaveBeenCalled();
+    });
+
+    // FARMCLUB runs the independent learners' home itself.
+    it("refuses any change to the independent learners' home", async () => {
+      access.assertCanManage.mockResolvedValue({
+        institution: row({ kind: "INDEPENDENT_LEARNERS" }),
+        isPlatformAdmin: true,
+      });
+
+      const attempt = service.update(admin, "institution-1", { name: "Renamed" });
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictException);
+      await expect(attempt).rejects.toMatchObject({
+        response: { code: "HOME_INSTITUTION_FIXED" },
+      });
       expect(prisma.institution.update).not.toHaveBeenCalled();
     });
 

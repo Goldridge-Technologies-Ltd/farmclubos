@@ -47,8 +47,8 @@ export class ContentTeamInviteDto implements ContentTeamInviteView {
   @ApiProperty({ type: String, format: "date-time" })
   createdAt: Date;
 
-  @ApiProperty({ type: () => InviterDto })
-  invitedBy: InviterDto;
+  @ApiProperty({ type: () => InviterDto, nullable: true })
+  invitedBy: InviterDto | null;
 }
 
 export class IssuedContentTeamInviteDto

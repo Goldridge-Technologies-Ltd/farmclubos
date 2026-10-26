@@ -419,6 +419,7 @@ export class InvitesService {
         institutionName: invite.institution.name,
         institutionSlug: invite.institution.slug,
         role: invite.role,
+        independentLearners: invite.institution.kind === "INDEPENDENT_LEARNERS",
       },
     };
   }
@@ -592,7 +593,9 @@ export class InvitesService {
       to: invite.email,
       institutionId: institution.id,
       institutionName: institution.name,
-      inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
+      inviterName: invite.invitedBy
+        ? `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`
+        : "FARMCLUB OS",
       role: institutionRoleOf(invite),
       expiresInDays: Math.max(1, Math.round(ttlHours / 24)),
       acceptUrl: webappLink(this.config.getOrThrow<string>("WEBAPP_URL"), "accept-invite", {

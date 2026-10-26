@@ -509,6 +509,7 @@ describe("InvitesService", () => {
           institutionName: "Greenfield Technical College",
           institutionSlug: "greenfield-technical-college",
           role: "LEARNER",
+          independentLearners: false,
         },
       });
       expect(prisma.membership.upsert).toHaveBeenCalled();

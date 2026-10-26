@@ -35,6 +35,8 @@ export const appShell = {
     account: "Your account",
     signedInAs: "Signed in as",
     noInstitution: "No institution yet",
+    /** Where someone who signed up on their own is learning. */
+    independentLearning: "Independent learning",
     signOut: "Sign out",
     /** Where a platform administrator who belongs to no institution is working. */
     platform: "Platform administration",

@@ -221,7 +221,23 @@ export class InstitutionsService {
     institutionId: string,
     input: UpdateInstitutionDto,
   ): Promise<InstitutionView> {
-    const { isPlatformAdmin } = await this.access.assertCanManage(user, institutionId);
+    const { institution: current, isPlatformAdmin } = await this.access.assertCanManage(
+      user,
+      institutionId,
+    );
+
+    /*
+      FARMCLUB runs the independent learners' home itself: its name, type and
+      contact details are FARMCLUB's, not something an edit form changes.
+    */
+    if (current.kind === "INDEPENDENT_LEARNERS") {
+      throw new ConflictException({
+        code: "HOME_INSTITUTION_FIXED",
+        message:
+          "FARMCLUB OS runs this institution for independent learners, so its details cannot " +
+          "be changed.",
+      });
+    }
 
     if (input.type !== undefined && !isPlatformAdmin) {
       throw new ForbiddenException({
@@ -291,6 +307,7 @@ export function toInstitutionView(institution: Institution): InstitutionView {
     slug: institution.slug,
     name: institution.name,
     type: institution.type,
+    kind: institution.kind,
     status: institution.status,
     contactEmail: institution.contactEmail,
     contactPhone: institution.contactPhone,

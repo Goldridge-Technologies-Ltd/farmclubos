@@ -69,6 +69,12 @@ class JourneyCohortDto {
     description: "COMPLETED or CANCELLED: closed to new learners, but open to finish.",
   })
   status: CohortStatus;
+
+  @ApiProperty({
+    description:
+      "Started by the learner on their own: show it as self-paced, not by the cohort's name.",
+  })
+  selfPaced: boolean;
 }
 
 class JourneyPathwayDto {

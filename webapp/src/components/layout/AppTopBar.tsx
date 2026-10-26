@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@farmclub/design-system/Logo";
 import { appShell } from "@/content/app";
 import type { SessionContext } from "@/lib/api/contracts";
+import { membershipName } from "@/lib/memberships";
 import type { NavGroup } from "@/lib/navigation";
 import { AppMobileNav } from "./AppMobileNav";
 import { UserMenu } from "./UserMenu";
@@ -26,13 +27,13 @@ export function AppTopBar({
     (item) => item.institutionId === session.activeInstitutionId,
   );
   // Belonging to no institution is normal for the platform's own people.
-  const institution =
-    membership?.institutionName ??
-    (session.user.platformRole === "PLATFORM_ADMIN"
+  const institution = membership
+    ? membershipName(membership)
+    : session.user.platformRole === "PLATFORM_ADMIN"
       ? appShell.menu.platform
       : session.user.platformRole === "CONTENT_MANAGER"
         ? appShell.menu.contentTeam
-        : appShell.menu.noInstitution);
+        : appShell.menu.noInstitution;
   const role = session.institutionRole ?? session.user.platformRole;
 
   return (
@@ -59,7 +60,7 @@ export function AppTopBar({
           institution={institution}
           institutions={session.memberships.map((item) => ({
             id: item.institutionId,
-            name: item.institutionName,
+            name: membershipName(item),
           }))}
           name={name}
           role={appShell.roles[role]}

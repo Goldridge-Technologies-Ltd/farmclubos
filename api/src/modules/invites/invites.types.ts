@@ -15,7 +15,8 @@ export type InviteView = {
   createdAt: Date;
   acceptedAt: Date | null;
   revokedAt: Date | null;
-  invitedBy: { id: string; firstName: string; lastName: string };
+  /** Null for someone who signed up themselves. */
+  invitedBy: { id: string; firstName: string; lastName: string } | null;
 };
 
 export type IssuedInviteView = InviteView & {

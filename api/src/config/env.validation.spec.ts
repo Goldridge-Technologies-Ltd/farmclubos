@@ -122,6 +122,61 @@ describe("validate", () => {
       expect(config.SMTP_SECURE).toBe(true);
     });
 
+    it("requires ZEPTOMAIL_API_KEY when the zeptomail driver is chosen", () => {
+      expect(() => validate({ ...required, MAIL_DRIVER: "zeptomail" })).toThrow(
+        /ZEPTOMAIL_API_KEY/,
+      );
+    });
+
+    it("accepts the zeptomail driver with its key, sending to the US data centre by default", () => {
+      const config = validate({
+        ...required,
+        MAIL_DRIVER: "zeptomail",
+        ZEPTOMAIL_API_KEY: "wSsVR61-key",
+      });
+
+      expect(config.MAIL_DRIVER).toBe(MailDriver.ZeptoMail);
+      expect(config.ZEPTOMAIL_API_HOST).toBe("cpaas.zoho.com");
+    });
+
+    /*
+      The host is the one a Mail Agent's SMTP/API page shows. Pasting the
+      whole URL, as people do, still finds it.
+    */
+    it("takes the data centre's host from a pasted URL", () => {
+      const config = validate({
+        ...required,
+        MAIL_DRIVER: "zeptomail",
+        ZEPTOMAIL_API_KEY: "wSsVR61-key",
+        ZEPTOMAIL_API_HOST: "https://cpaas.zoho.eu/v1.1/email",
+      });
+
+      expect(config.ZEPTOMAIL_API_HOST).toBe("cpaas.zoho.eu");
+    });
+
+    it("refuses a ZEPTOMAIL_API_HOST that is not a host name", () => {
+      expect(() =>
+        validate({
+          ...required,
+          MAIL_DRIVER: "zeptomail",
+          ZEPTOMAIL_API_KEY: "wSsVR61-key",
+          ZEPTOMAIL_API_HOST: "not a host",
+        }),
+      ).toThrow(/ZEPTOMAIL_API_HOST/);
+    });
+
+    it("accepts the zeptomail driver in production, for hosts that block SMTP", () => {
+      const config = validate({
+        ...required,
+        ...production,
+        ...s3,
+        MAIL_DRIVER: "zeptomail",
+        ZEPTOMAIL_API_KEY: "wSsVR61-key",
+      });
+
+      expect(config.MAIL_DRIVER).toBe(MailDriver.ZeptoMail);
+    });
+
     it("refuses the log driver in production, where it would write tokens to logs", () => {
       expect(() =>
         validate({

@@ -2,6 +2,7 @@ import { Transform, Type, plainToInstance } from "class-transformer";
 import {
   IsBoolean,
   IsEnum,
+  IsFQDN,
   IsInt,
   IsOptional,
   IsString,
@@ -23,6 +24,11 @@ export enum MailDriver {
   /** Writes each email, links included, to the server log. Development only. */
   Log = "log",
   Smtp = "smtp",
+  /**
+   * ZeptoMail's HTTP API — now Zoho CPaaS — for hosts that block outbound
+   * SMTP, as Render's free instances do.
+   */
+  ZeptoMail = "zeptomail",
 }
 
 export enum StorageDriver {
@@ -38,6 +44,10 @@ const usesS3 = (env: EnvironmentVariables) => env.STORAGE_DRIVER === StorageDriv
 /** Environment strings "true"/"false" are both truthy, so parse explicitly. */
 const toBoolean = ({ value }: { value: unknown }) =>
   value === true || value === "true" || value === "1";
+
+/** `https://cpaas.zoho.eu/v1.1/email` becomes `cpaas.zoho.eu`: a pasted URL's host. */
+const toHost = ({ value }: { value: unknown }) =>
+  typeof value === "string" ? value.trim().replace(/^https?:\/\//i, "").split("/")[0] : value;
 
 /*
   The shape of the environment, validated once at boot so a missing or
@@ -216,6 +226,26 @@ export class EnvironmentVariables {
   @Transform(toBoolean)
   @IsBoolean()
   SMTP_SECURE = false;
+
+  /**
+   * A ZeptoMail Mail Agent's Send Mail token (the agent's SMTP/API page, under
+   * API), with or without the `Zoho-enczapikey` prefix it is shown with.
+   */
+  @ValidateIf((env: EnvironmentVariables) => env.MAIL_DRIVER === MailDriver.ZeptoMail)
+  @IsString()
+  @MinLength(1)
+  ZEPTOMAIL_API_KEY?: string;
+
+  /**
+   * The API host of the data centre the ZeptoMail account is in, which
+   * follows the Zoho domain it was registered on: cpaas.zoho.com (US),
+   * cpaas.zoho.eu, cpaas.zoho.in, cpaas.zoho.com.au, cpaas.zoho.jp or
+   * cpaas.zoho.com.cn. A pasted URL is reduced to its host.
+   */
+  @ValidateIf((env: EnvironmentVariables) => env.MAIL_DRIVER === MailDriver.ZeptoMail)
+  @Transform(toHost)
+  @IsFQDN()
+  ZEPTOMAIL_API_HOST = "cpaas.zoho.com";
 
   /*
     Where lesson videos, captions and images are kept. "local" keeps them in a

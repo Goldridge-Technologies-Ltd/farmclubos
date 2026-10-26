@@ -145,9 +145,12 @@ npm run start --workspace api
   [`docs/guides/local-dev.md`](docs/guides/local-dev.md#file-storage).
 - **Environment.** `NODE_ENV=production` turns Swagger off. Set `WEBAPP_URL`
   to the web app's public `https://` address — it is what links in emails
-  point to, and production refuses anything else — and `MAIL_DRIVER=smtp`
-  with the `SMTP_*` settings: production refuses the `log` driver, which would
-  print invitation and reset links to the logs.
+  point to, and production refuses anything else — and a driver that sends
+  for real: production refuses `log`, which would print invitation and reset
+  links to the logs. Use `MAIL_DRIVER=smtp` with the `SMTP_*` settings, or,
+  where the host blocks outbound SMTP as Render's free instances do,
+  `MAIL_DRIVER=zeptomail` with `ZEPTOMAIL_API_KEY` and `ZEPTOMAIL_API_HOST`,
+  which sends over HTTPS.
 - **First deploy.** On a new database, `npm run db:seed --workspace api` loads
   the MVP plan's three pathways and their modules as a starting catalogue; the
   content team can also build pathways in the app, so the seed is optional.

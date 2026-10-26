@@ -4,6 +4,7 @@ import { Test } from "@nestjs/testing";
 import { PrismaService } from "../database/prisma.service.js";
 import { LogMailTransport } from "./drivers/log-mail.transport.js";
 import { SmtpMailTransport } from "./drivers/smtp-mail.transport.js";
+import { ZeptoMailTransport } from "./drivers/zeptomail.transport.js";
 import { MAIL_TRANSPORT } from "./mail-transport.js";
 import { MailModule } from "./mail.module.js";
 
@@ -38,5 +39,9 @@ describe("MailModule", () => {
 
   it("hands MailService the SMTP transport when MAIL_DRIVER is smtp", async () => {
     await expect(transportFor("smtp")).resolves.toBeInstanceOf(SmtpMailTransport);
+  });
+
+  it("hands MailService the ZeptoMail transport when MAIL_DRIVER is zeptomail", async () => {
+    await expect(transportFor("zeptomail")).resolves.toBeInstanceOf(ZeptoMailTransport);
   });
 });

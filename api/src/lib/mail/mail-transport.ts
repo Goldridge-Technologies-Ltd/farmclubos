@@ -9,7 +9,8 @@ export type OutgoingMail = {
 
 /**
  * A way of delivering mail. The implementation is chosen once, at boot, from
- * MAIL_DRIVER: `log` in development, `smtp` everywhere else.
+ * MAIL_DRIVER: `log` in development; `smtp`, or `zeptomail` where outbound
+ * SMTP is blocked, everywhere else.
  */
 export interface MailTransport {
   send(mail: OutgoingMail): Promise<{ messageId: string }>;

@@ -142,12 +142,14 @@ one exists and fill in your own values.
 | `API_BASE_URL` | `webapp/.env.local` | Where the web app reaches the API: its origin only, without `/api`. **Server-only**, not `NEXT_PUBLIC_`: the browser never calls the API. Defaults to nothing — the app fails with a clear message if it is unset. Deployed on Vercel, it is the API's public `https://` address, set in the project's environment variables. |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`, `SEED_ADMIN_LAST_NAME` | `api/.env` | Seed only — the API never reads them. Create the first platform admin; the names are optional. See below. |
 | `WEBAPP_URL` | `api/.env` | Base URL that links in emails point to — the web app, never the API. Defaults to `http://localhost:3001`. **Production refuses anything but an `https://` address**, so a missing one stops the API rather than emailing links to localhost. `storage:setup` also allows it in the bucket's CORS rule. |
-| `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real. **Production refuses `log`**, which would put invite and reset links in the logs. |
-| `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. |
+| `MAIL_DRIVER` | `api/.env` | `log` (default) writes each email, links included, to the API console. `smtp` sends for real through any SMTP server. `zeptomail` sends for real through ZeptoMail's HTTP API, for hosts that block outbound SMTP, as Render's free instances do. **Production refuses `log`**, which would put invite and reset links in the logs. |
+| `MAIL_FROM` | `api/.env` | The sender. Defaults to `FARMCLUB OS <no-reply@farmclubos.com>`. With `zeptomail`, it must be on a domain the Mail Agent has verified. |
 | `SMTP_HOST` | `api/.env` | Required when `MAIL_DRIVER=smtp`. |
 | `SMTP_PORT` | `api/.env` | Defaults to `587`. |
 | `SMTP_USER`, `SMTP_PASSWORD` | `api/.env` | Optional; omit both for an SMTP server without authentication, such as Mailpit. |
 | `SMTP_SECURE` | `api/.env` | `true` for implicit TLS (usually port 465); `false` (default) upgrades with STARTTLS. |
+| `ZEPTOMAIL_API_KEY` | `api/.env` | Required when `MAIL_DRIVER=zeptomail`: a Mail Agent's Send Mail token, from the agent's *SMTP/API* page under *API*. It works with or without the `Zoho-enczapikey` prefix ZeptoMail shows it with. |
+| `ZEPTOMAIL_API_HOST` | `api/.env` | The API host of the data centre the ZeptoMail account is in, which follows the Zoho domain it was registered on: `cpaas.zoho.com` (US, the default), `cpaas.zoho.eu`, `cpaas.zoho.in`, `cpaas.zoho.com.au`, `cpaas.zoho.jp` or `cpaas.zoho.com.cn`. A pasted URL is reduced to its host. ZeptoMail is now Zoho CPaaS; these are its hosts. |
 | `STORAGE_DRIVER` | `api/.env` | Where lesson media is kept: `local` (default), a folder the API serves itself, or `s3`, S3-compatible storage with the settings below. **Production requires `s3`.** See [File storage](#file-storage). |
 | `STORAGE_LOCAL_DIR` | `api/.env` | The `local` driver's folder, relative to `api/`. Defaults to `.storage`, which is gitignored. |
 | `STORAGE_LOCAL_PUBLIC_URL` | `api/.env` | Where the browser reaches `local` files. Defaults to `http://localhost:<PORT>/<API_GLOBAL_PREFIX>/storage`; set it to reach them from another device. |

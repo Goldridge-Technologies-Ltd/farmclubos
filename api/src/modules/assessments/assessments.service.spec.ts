@@ -391,6 +391,19 @@ describe("AssessmentsService", () => {
     });
   });
 
+  /*
+    A learner who has finished every lesson still takes, and retakes, its
+    quizzes: the module page offers them, so the API must accept them.
+  */
+  describe("a learner who has finished the pathway", () => {
+    it("can still take its quizzes", async () => {
+      await service.getAssessment(learner, "assessment-1").catch(() => undefined);
+
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { status: unknown } }];
+      expect(args.where.status).toEqual({ in: ["INVITED", "ACTIVE", "COMPLETED"] });
+    });
+  });
+
   describe("a member who has been removed", () => {
     it("cannot start or read an assessment", async () => {
       prisma.enrolment.findFirst.mockResolvedValue(null);

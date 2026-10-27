@@ -3,7 +3,7 @@ import { readyScene } from "../academy/scene-readiness.js";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { ProgressStatus } from "../../generated/prisma/enums.js";
-import { ownEnrolment } from "../../common/auth/own-enrolment.js";
+import { LEARNING_STATUSES, ownEnrolment } from "../../common/auth/own-enrolment.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
 import type {
   JourneyView,
@@ -409,7 +409,7 @@ export class ProgressService {
     return enrolment;
   }
 
-  /** The same, or null for someone with no open enrolment on the pathway. */
+  /** The same, or null for someone with no enrolment on the pathway to learn on. */
   private async findEnrolment(
     user: AuthenticatedUser,
     pathwayId: string,
@@ -421,7 +421,7 @@ export class ProgressService {
     const enrolment = await this.prisma.enrolment.findFirst({
       where: {
         ...ownEnrolment(user.userId, user.institutionId),
-        status: { in: ["INVITED", "ACTIVE"] },
+        status: { in: LEARNING_STATUSES },
         cohort: { pathwayId, archivedAt: null },
       },
       orderBy: { enrolledAt: "desc" },
@@ -498,11 +498,17 @@ export class ProgressService {
 
     await tx.enrolment.update({
       where: { id: enrolmentId },
-      data: {
-        progressPercent,
-        ...(finished ? { status: "COMPLETED", completedAt: now } : {}),
-      },
+      data: { progressPercent },
     });
+
+    // Finished once, on the date it was first finished: going back over the
+    // pathway must not move it, any more than a lesson's.
+    if (finished) {
+      await tx.enrolment.updateMany({
+        where: { id: enrolmentId, status: { not: "COMPLETED" } },
+        data: { status: "COMPLETED", completedAt: now },
+      });
+    }
 
     return progressPercent;
   }

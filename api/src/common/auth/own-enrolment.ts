@@ -1,4 +1,14 @@
 import type { Prisma } from "../../generated/prisma/client.js";
+import type { EnrolmentStatus } from "../../generated/prisma/enums.js";
+
+/**
+ * The enrolments that are still a learner's place on a pathway: invited,
+ * under way or finished. A finished one stays theirs — they go back over its
+ * lessons and retake its quizzes, and the lessons show what they did — while
+ * a withdrawn one does not. Use it with `ownEnrolment()` wherever "the
+ * caller's enrolment" on a pathway is looked up.
+ */
+export const LEARNING_STATUSES: EnrolmentStatus[] = ["INVITED", "ACTIVE", "COMPLETED"];
 
 /**
  * The enrolments a caller may act on as a learner: their own, in the

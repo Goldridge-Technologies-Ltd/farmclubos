@@ -152,8 +152,34 @@ describe("ProgressService", () => {
       const result = await service.completeLesson(learner, "lesson-1");
 
       expect(result.progressPercent).toBe(100);
-      const [args] = tx.enrolment.update.mock.calls[0] as [{ data: { status?: string } }];
-      expect(args.data.status).toBe("COMPLETED");
+      expect(tx.enrolment.updateMany).toHaveBeenCalledWith({
+        where: { id: "enrolment-1", status: { not: "COMPLETED" } },
+        data: { status: "COMPLETED", completedAt: expect.any(Date) },
+      });
+    });
+
+    /*
+      A learner who finished may go back over the pathway. Doing so must not
+      move the date they finished it, any more than a lesson's.
+    */
+    it("keeps the date the pathway was first finished when it is gone back over", async () => {
+      counts(1, 1, 21, 21);
+
+      await service.completeLesson(learner, "lesson-1");
+
+      expect(tx.enrolment.update).toHaveBeenCalledWith({
+        where: { id: "enrolment-1" },
+        data: { progressPercent: 100 },
+      });
+    });
+
+    it("lets a learner who has finished the pathway go back over it", async () => {
+      counts(1, 1, 21, 21);
+
+      await service.completeLesson(learner, "lesson-1");
+
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { status: unknown } }];
+      expect(args.where.status).toEqual({ in: ["INVITED", "ACTIVE", "COMPLETED"] });
     });
 
     it("is 0% for a pathway with nothing published, not 100%", async () => {
@@ -510,6 +536,22 @@ describe("ProgressService", () => {
         status: "IN_PROGRESS",
         completedSceneIds: ["scene-1", "scene-2"],
       });
+    });
+
+    /*
+      Finishing the pathway completes the enrolment, and it is still theirs: a
+      lesson must show what they did, never tell them nothing was recorded.
+    */
+    it("still counts a learner who has finished the pathway as enrolled on it", async () => {
+      prisma.lessonProgress.findUnique.mockResolvedValue({ status: "COMPLETED" });
+      prisma.sceneProgress.findMany.mockResolvedValue([{ sceneId: "scene-1" }]);
+
+      await expect(service.lessonProgress(learner, "lesson-1")).resolves.toMatchObject({
+        enrolled: true,
+        status: "COMPLETED",
+      });
+      const [args] = prisma.enrolment.findFirst.mock.calls[0] as [{ where: { status: unknown } }];
+      expect(args.where.status).toEqual({ in: ["INVITED", "ACTIVE", "COMPLETED"] });
     });
 
     it("answers someone not enrolled rather than refusing them, since anyone may read a lesson", async () => {

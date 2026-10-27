@@ -55,7 +55,11 @@ variables differ.
   `ProgressService` and `AssessmentsService` both resolve the enrolment from
   the caller, their active institution and the pathway — so a lesson,
   assessment or attempt id is only ever usable by the person it belongs to,
-  and "you are not enrolled" answers 404 rather than 403.
+  and "you are not enrolled" answers 404 rather than 403. A finished
+  enrolment is still theirs (`LEARNING_STATUSES` in
+  `src/common/auth/own-enrolment.ts`): they go back over its lessons and
+  retake its quizzes, and the date they finished never moves. Only a
+  withdrawn one is not.
 - **`progressPercent` is recomputed from rows, never incremented.** An
   increment drifts the moment a lesson is published or a module archived, and
   a progress bar that quietly lies is worse than none.

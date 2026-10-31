@@ -138,6 +138,12 @@ export const platformNavigation: NavItem[] = [
     icon: "handshake",
     description: "Invite the content managers who build the Academy",
   },
+  {
+    label: "System",
+    href: "/platform/system",
+    icon: "rocket",
+    description: "Which version is deployed, and whether the API is ready",
+  },
 ];
 
 /**

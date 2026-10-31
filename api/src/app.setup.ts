@@ -6,7 +6,7 @@ import { toErrorResponse } from "./common/filters/all-exceptions.filter.js";
   Probes stay at the root so a load balancer or container healthcheck does not
   have to know the API's prefix.
 */
-const UNPREFIXED_ROUTES = ["health", "health/ready"];
+const UNPREFIXED_ROUTES = ["health", "health/ready", "health/version"];
 
 /**
  * Call before `app.init()`. Shared by main.ts and the end-to-end specs, so both

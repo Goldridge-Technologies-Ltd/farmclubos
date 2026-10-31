@@ -9,7 +9,7 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { Public } from "../../common/decorators/public.decorator.js";
 import { HealthService } from "./health.service.js";
-import type { LivenessResult, ReadinessResult } from "./health.service.js";
+import type { LivenessResult, ReadinessResult, VersionResult } from "./health.service.js";
 
 // Probes run before anyone signs in: a load balancer has no token.
 @Public()
@@ -28,6 +28,20 @@ export class HealthController {
   @ApiResponse({ status: HttpStatus.OK, description: "The process is up." })
   getLiveness(): LivenessResult {
     return this.health.checkLiveness();
+  }
+
+  @Get("version")
+  @HttpCode(HttpStatus.OK)
+  @CustomMessage("Version reported")
+  @ApiOperation({
+    summary: "Deployed version",
+    description:
+      "The commit and branch this instance was deployed from, so a deployment can be confirmed " +
+      "without the hosting dashboards. Null where the host does not say.",
+  })
+  @ApiResponse({ status: HttpStatus.OK, description: "The deployed commit and branch." })
+  getVersion(): VersionResult {
+    return this.health.version();
   }
 
   @Get("ready")

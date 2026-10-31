@@ -459,6 +459,15 @@ export type InstitutionType =
 
 export type InstitutionStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
 
+/** The commit and branch a service was deployed from; null where its host does not say. */
+export type ServiceVersion = { commit: string | null; branch: string | null };
+
+/** The API's readiness probe: whether it can serve, and each dependency's state. */
+export type Readiness = {
+  status: "ok" | "degraded";
+  checks: Record<string, "ok" | "down">;
+};
+
 /** INDEPENDENT_LEARNERS is FARMCLUB's own home for people who signed up themselves. */
 export type InstitutionKind = "STANDARD" | "INDEPENDENT_LEARNERS";
 

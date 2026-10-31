@@ -182,6 +182,27 @@ export class EnvironmentVariables {
   @Max(86400)
   SIGNUP_THROTTLE_WINDOW_SECONDS = 3600;
 
+  /*
+    The deployed commit and branch, reported by GET /health/version. Render
+    sets its RENDER_GIT_* variables on every deploy; any other host sets
+    GIT_COMMIT and GIT_BRANCH, which take precedence. All are optional.
+  */
+  @IsOptional()
+  @IsString()
+  GIT_COMMIT?: string;
+
+  @IsOptional()
+  @IsString()
+  GIT_BRANCH?: string;
+
+  @IsOptional()
+  @IsString()
+  RENDER_GIT_COMMIT?: string;
+
+  @IsOptional()
+  @IsString()
+  RENDER_GIT_BRANCH?: string;
+
   /** How long an invitation link stays usable. Defaults to seven days. */
   @Type(() => Number)
   @IsInt()

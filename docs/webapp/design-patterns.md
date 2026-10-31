@@ -386,6 +386,14 @@ just joined. Nothing needs renewing on removal, because the session context,
 and with it every content screen, comes from `/api/auth/me`, which reads the
 database.
 
+`/platform/system` says which commit the web app and the API were deployed
+from, and whether the API is ready, so a deployment can be confirmed without
+the hosting dashboards. The web app reads its own from Vercel's
+`VERCEL_GIT_*` variables (`webVersion` in `src/lib/version.ts`); the API
+reports its own at `GET /health/version`. A host that sets neither shows "Not
+reported by its host", and an API that does not answer is said to, rather
+than failing the page.
+
 The sidebar and drawer take their role groups as data (`NavGroup[]`) from
 `AppShell`, which decides them on the server. A new role-specific section is a
 new group there, not a new flag threaded through three components.

@@ -686,6 +686,22 @@ export default function DesignSystemPage() {
                   />
                 </div>
               </div>
+              <div>
+                <DemoLabel>Empty state as the page</DemoLabel>
+                <div className="mt-3">
+                  <EmptyState
+                    description="The page you were looking for does not exist, or you no longer have access to it."
+                    icon="search"
+                    title="Page not found"
+                    titleAs="h3"
+                  />
+                </div>
+                <p className="mt-2 type-caption text-farm-muted">
+                  Its title is a paragraph beneath the page&apos;s own heading. When the empty state is
+                  the page, as on a not-found screen, titleAs makes the title a heading: the h1 there,
+                  an h3 under this section.
+                </p>
+              </div>
             </div>
           </div>
         </Block>

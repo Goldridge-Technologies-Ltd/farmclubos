@@ -120,12 +120,18 @@ fetches it again to draw chrome.
 | `Breadcrumbs` | The trail for nested screens. Crumbs are passed in, never derived from the URL |
 | `Panel` | The basic content surface: flat white, hairline border |
 | `AppErrorState` | What an `error.tsx` segment renders |
+| `NotFoundState` | What a `not-found.tsx` renders: the page's `h1`, and no `main` of its own |
 
 Three decisions in there are worth not undoing:
 
 - **`main#main-content` belongs to the route group, not the root layout.** The
   skip link has to jump past the sidebar and the bar to reach the content,
   which it cannot do if one `main` wraps them all. `(auth)` provides its own.
+  So does the root `not-found.tsx`, which renders under the root layout alone
+  for an address that matches nothing. A `notFound()` call, though, renders
+  the nearest `not-found.tsx` inside the layouts above it, so `(app)` has its
+  own without a `main`, and a group whose pages start calling `notFound()`
+  needs one too.
 - **The user menu is a disclosure, not a `role="menu"`.** Menu semantics
   promise arrow-key roving over `menuitem`s, and a `menuitem` may not be a
   form — but signing out must be a form posting to a Server Action, because

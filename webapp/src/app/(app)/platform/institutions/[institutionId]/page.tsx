@@ -15,7 +15,12 @@ import { formatDay } from "@/lib/format";
 
 type PageProps = { params: Promise<{ institutionId: string }> };
 
-export const metadata: Metadata = { title: "Institution" };
+/** Read here as well, so an institution that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getInstitution((await params).institutionId);
+
+  return { title: "Institution" };
+}
 
 /*
   One institution, from the platform's side: its details, who runs it, and

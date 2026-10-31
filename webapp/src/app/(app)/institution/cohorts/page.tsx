@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@farmclub/design-system/Badge";
 import { ButtonLink } from "@farmclub/design-system/ButtonLink";
@@ -10,8 +9,9 @@ import type { CohortListItem } from "@/lib/api/contracts";
 import { listCohorts, managedInstitution } from "@/lib/api/institution";
 import { isCohortClosed } from "@/lib/cohorts";
 import { formatDay } from "@/lib/format";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Cohorts" };
+export const generateMetadata = titleAfter(managedInstitution, "Cohorts");
 
 /*
   The institution's intakes, newest first, each with how many are on it.

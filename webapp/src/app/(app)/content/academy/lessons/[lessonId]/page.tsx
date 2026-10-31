@@ -26,7 +26,12 @@ import { getAuthoringLesson } from "@/lib/api/authoring";
 
 type PageProps = { params: Promise<{ lessonId: string }> };
 
-export const metadata: Metadata = { title: "Lesson" };
+/** Read here as well, so a lesson that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getAuthoringLesson((await params).lessonId);
+
+  return { title: "Lesson" };
+}
 
 /*
   One lesson: its scenes in order, each saying whether it is ready or what it

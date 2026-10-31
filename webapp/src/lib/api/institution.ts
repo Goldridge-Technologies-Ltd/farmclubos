@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { canManageInstitution } from "../navigation";
 import { getSessionContext } from "../session";
 import { apiRequest } from "./client";
@@ -53,16 +54,19 @@ export async function listCohorts(institutionId: string): Promise<CohortListItem
   return apiRequest<CohortListItem[]>(`/api/institutions/${institutionId}/cohorts`);
 }
 
-export async function getCohort(institutionId: string, cohortId: string): Promise<CohortDetail> {
-  try {
-    return await apiRequest<CohortDetail>(
-      `/api/institutions/${institutionId}/cohorts/${encodeURIComponent(cohortId)}`,
-    );
-  } catch (error) {
-    if (isMissingRecord(error)) {
-      notFound();
-    }
+/** Memoised for the request, since the page reads it for its title too. */
+export const getCohort = cache(
+  async (institutionId: string, cohortId: string): Promise<CohortDetail> => {
+    try {
+      return await apiRequest<CohortDetail>(
+        `/api/institutions/${institutionId}/cohorts/${encodeURIComponent(cohortId)}`,
+      );
+    } catch (error) {
+      if (isMissingRecord(error)) {
+        notFound();
+      }
 
-    throw error;
-  }
-}
+      throw error;
+    }
+  },
+);

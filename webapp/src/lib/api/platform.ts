@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { canAdministerPlatform } from "../navigation";
 import { getSessionContext } from "../session";
 import { apiPage, apiRequest, type Page } from "./client";
@@ -45,7 +46,8 @@ export async function listInstitutions(search?: string): Promise<Page<Institutio
   return apiPage<Institution>(`/api/institutions?${query.toString()}`);
 }
 
-export async function getInstitution(institutionId: string): Promise<Institution> {
+/** Memoised for the request, since the page reads it for its title too. */
+export const getInstitution = cache(async (institutionId: string): Promise<Institution> => {
   await assertPlatformAdministrator();
 
   try {
@@ -59,7 +61,7 @@ export async function getInstitution(institutionId: string): Promise<Institution
 
     throw error;
   }
-}
+});
 
 /** Who is on the content team, and the invitations onto it still open. */
 export async function getContentTeam(): Promise<ContentTeam> {

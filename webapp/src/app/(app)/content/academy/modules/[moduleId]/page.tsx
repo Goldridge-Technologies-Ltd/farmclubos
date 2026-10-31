@@ -24,7 +24,12 @@ import { getAuthoringModule } from "@/lib/api/authoring";
 
 type PageProps = { params: Promise<{ moduleId: string }> };
 
-export const metadata: Metadata = { title: "Module" };
+/** Read here as well, so a module that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getAuthoringModule((await params).moduleId);
+
+  return { title: "Module" };
+}
 
 /*
   One module: its lessons in order, a way to add one, its own details, and

@@ -23,7 +23,13 @@ import { formatDay } from "@/lib/format";
 
 type PageProps = { params: Promise<{ cohortId: string }> };
 
-export const metadata: Metadata = { title: "Cohort" };
+/** Read here as well, so a cohort that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { cohortId } = await params;
+  await getCohort((await managedInstitution()).id, cohortId);
+
+  return { title: "Cohort" };
+}
 
 /*
   One intake: who is on it, how far each has got, and running it — enrolling,

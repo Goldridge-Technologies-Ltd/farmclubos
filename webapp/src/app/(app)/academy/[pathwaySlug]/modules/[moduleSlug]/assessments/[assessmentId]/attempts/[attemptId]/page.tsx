@@ -22,7 +22,13 @@ type PageProps = {
   searchParams: Promise<{ submitted?: string }>;
 };
 
-export const metadata: Metadata = { title: "Assessment" };
+/** Read here as well, so an assessment or attempt that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { assessmentId, attemptId } = await params;
+  await Promise.all([getAssessment(assessmentId), getAttempt(attemptId)]);
+
+  return { title: "Assessment" };
+}
 
 /*
   One attempt: the questions while it is in progress, the result once it has

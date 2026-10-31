@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { apiRequest } from "./client";
 import type {
   Assessment,
@@ -27,41 +28,39 @@ import { isMissingRecord, isNotFound } from "./errors";
   caching it would be safe in principle, but the client refuses to cache any
   reply that carried a bearer token, and an exception to that rule is how one
   person's data eventually reaches another.
+
+  The reads a page also makes for its title are memoised for the request
+  with React's `cache`, which is not that: it only spares the second call.
+  `fetch` would spare it itself, but the client gives every request its own id.
 */
 
 export async function listPathways(): Promise<PathwaySummary[]> {
   return apiRequest<PathwaySummary[]>("/api/academy/pathways");
 }
 
-export async function getPathway(pathwaySlug: string): Promise<PathwayDetail> {
-  return orNotFound(
-    apiRequest<PathwayDetail>(`/api/academy/pathways/${encode(pathwaySlug)}`),
-  );
-}
+export const getPathway = cache(
+  async (pathwaySlug: string): Promise<PathwayDetail> =>
+    orNotFound(apiRequest<PathwayDetail>(`/api/academy/pathways/${encode(pathwaySlug)}`)),
+);
 
-export async function getModule(
-  pathwaySlug: string,
-  moduleSlug: string,
-): Promise<ModuleDetail> {
-  return orNotFound(
-    apiRequest<ModuleDetail>(
-      `/api/academy/pathways/${encode(pathwaySlug)}/modules/${encode(moduleSlug)}`,
+export const getModule = cache(
+  async (pathwaySlug: string, moduleSlug: string): Promise<ModuleDetail> =>
+    orNotFound(
+      apiRequest<ModuleDetail>(
+        `/api/academy/pathways/${encode(pathwaySlug)}/modules/${encode(moduleSlug)}`,
+      ),
     ),
-  );
-}
+);
 
-export async function getLesson(
-  pathwaySlug: string,
-  moduleSlug: string,
-  lessonSlug: string,
-): Promise<LessonDetail> {
-  return orNotFound(
-    apiRequest<LessonDetail>(
-      `/api/academy/pathways/${encode(pathwaySlug)}/modules/${encode(moduleSlug)}` +
-        `/lessons/${encode(lessonSlug)}`,
+export const getLesson = cache(
+  async (pathwaySlug: string, moduleSlug: string, lessonSlug: string): Promise<LessonDetail> =>
+    orNotFound(
+      apiRequest<LessonDetail>(
+        `/api/academy/pathways/${encode(pathwaySlug)}/modules/${encode(moduleSlug)}` +
+          `/lessons/${encode(lessonSlug)}`,
+      ),
     ),
-  );
-}
+);
 
 /** The caller's own enrolments, in their active institution. */
 export async function listMyEnrolments(): Promise<Enrolment[]> {
@@ -96,13 +95,15 @@ export async function getLessonStanding(lessonId: string): Promise<LessonStandin
   return apiRequest<LessonStanding>(`/api/progress/lessons/${encode(lessonId)}`);
 }
 
-export async function getAssessment(assessmentId: string): Promise<Assessment> {
-  return orMissing(apiRequest<Assessment>(`/api/assessments/${encode(assessmentId)}`));
-}
+export const getAssessment = cache(
+  async (assessmentId: string): Promise<Assessment> =>
+    orMissing(apiRequest<Assessment>(`/api/assessments/${encode(assessmentId)}`)),
+);
 
-export async function getAttempt(attemptId: string): Promise<Attempt> {
-  return orMissing(apiRequest<Attempt>(`/api/assessments/attempts/${encode(attemptId)}`));
-}
+export const getAttempt = cache(
+  async (attemptId: string): Promise<Attempt> =>
+    orMissing(apiRequest<Attempt>(`/api/assessments/attempts/${encode(attemptId)}`)),
+);
 
 /** For reads by an id from the URL, where a malformed id is also not-found. */
 async function orMissing<T>(request: Promise<T>): Promise<T> {

@@ -20,7 +20,12 @@ type PageProps = {
   searchParams: Promise<{ scene?: string }>;
 };
 
-export const metadata: Metadata = { title: "Lesson preview" };
+/** Read here as well, so a lesson that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getLessonPreview((await params).lessonId);
+
+  return { title: "Lesson preview" };
+}
 
 /** A preview records nothing, so no scene is ever ticked off. */
 const NOTHING_DONE: ReadonlySet<string> = new Set();

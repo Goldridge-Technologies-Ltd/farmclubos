@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { ContentRow } from "@/components/authoring/ContentRow";
 import { ContentStatus } from "@/components/authoring/ContentStatus";
 import { MoveButtons } from "@/components/authoring/MoveButtons";
@@ -9,9 +8,10 @@ import { ActionOutcome, ActionOutcomeMessage } from "@/components/ui/ActionOutco
 import { Panel } from "@/components/ui/Panel";
 import { authoringContent } from "@/content/authoring";
 import { createPathway, movePathway, restorePathway } from "@/lib/actions/authoring";
-import { listAuthoringPathways } from "@/lib/api/authoring";
+import { assertContentTeam, listAuthoringPathways } from "@/lib/api/authoring";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Academy content" };
+export const generateMetadata = titleAfter(assertContentTeam, "Academy content");
 
 /*
   The Academy's pathways, in the order learners and institutions see them —

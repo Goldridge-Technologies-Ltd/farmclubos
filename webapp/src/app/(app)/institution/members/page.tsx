@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Badge } from "@farmclub/design-system/Badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InviteActions } from "@/components/institution/InviteActions";
@@ -11,8 +10,9 @@ import { removeMember, resendInvite, revokeInvite } from "@/lib/actions/institut
 import { listMembers, listPendingInvites, managedInstitution } from "@/lib/api/institution";
 import { formatDay } from "@/lib/format";
 import { getSessionContext } from "@/lib/session";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Members" };
+export const generateMetadata = titleAfter(managedInstitution, "Members");
 
 /*
   Who belongs to the institution, and who has been asked to.

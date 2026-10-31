@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Badge } from "@farmclub/design-system/Badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InviteActions } from "@/components/institution/InviteActions";
@@ -12,10 +11,11 @@ import {
   resendContentTeamInvite,
   revokeContentTeamInvite,
 } from "@/lib/actions/platform";
-import { getContentTeam } from "@/lib/api/platform";
+import { assertPlatformAdministrator, getContentTeam } from "@/lib/api/platform";
 import { formatDay } from "@/lib/format";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Content team" };
+export const generateMetadata = titleAfter(assertPlatformAdministrator, "Content team");
 
 /*
   The content team, from the platform's side: who builds the Academy, the

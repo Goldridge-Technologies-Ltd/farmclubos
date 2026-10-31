@@ -25,7 +25,12 @@ import { getAuthoringPathway } from "@/lib/api/authoring";
 
 type PageProps = { params: Promise<{ pathwayId: string }> };
 
-export const metadata: Metadata = { title: "Pathway" };
+/** Read here as well, so a pathway that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getAuthoringPathway((await params).pathwayId);
+
+  return { title: "Pathway" };
+}
 
 /*
   One pathway: its modules in the order learners take them — drafts too — a

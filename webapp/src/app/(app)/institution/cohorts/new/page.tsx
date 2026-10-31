@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CreateCohortForm } from "@/components/institution/CreateCohortForm";
 import { Panel } from "@/components/ui/Panel";
 import { institutionContent } from "@/content/institution";
 import { listPathways } from "@/lib/api/academy";
 import { managedInstitution } from "@/lib/api/institution";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Open a new intake" };
+export const generateMetadata = titleAfter(managedInstitution, "Open a new intake");
 
 export default async function NewCohortPage() {
   const institution = await managedInstitution();

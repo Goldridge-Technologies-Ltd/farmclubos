@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { canAuthorContent } from "../navigation";
 import { getSessionContext } from "../session";
 import { apiRequest } from "./client";
@@ -63,7 +64,7 @@ async function byId<T>(path: string): Promise<T> {
   await assertContentTeam();
 
   try {
-    return await apiRequest<T>(path);
+    return await read<T>(path);
   } catch (error) {
     if (isMissingRecord(error)) {
       notFound();
@@ -76,3 +77,10 @@ async function byId<T>(path: string): Promise<T> {
 function encode(id: string): string {
   return encodeURIComponent(id);
 }
+
+/**
+ * Memoised for the request: a page reads its record for its title as well as
+ * to render it, and `fetch` can't spot the repeat, since the client gives
+ * every request its own id.
+ */
+const read = cache(<T>(path: string): Promise<T> => apiRequest<T>(path));

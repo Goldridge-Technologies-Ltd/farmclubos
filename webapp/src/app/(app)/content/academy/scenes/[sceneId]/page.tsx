@@ -12,7 +12,12 @@ import type { MediaPurpose } from "@/lib/api/contracts";
 
 type PageProps = { params: Promise<{ sceneId: string }> };
 
-export const metadata: Metadata = { title: "Scene" };
+/** Read here as well, so a scene that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await getAuthoringScene((await params).sceneId);
+
+  return { title: "Scene" };
+}
 
 const SLOTS: MediaPurpose[] = ["VIDEO", "CAPTIONS", "POSTER"];
 

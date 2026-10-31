@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@farmclub/design-system/Badge";
 import { Button } from "@farmclub/design-system/Button";
@@ -9,10 +8,11 @@ import { Notice } from "@farmclub/design-system/Notice";
 import { fieldClass } from "@farmclub/design-system/form-classes";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { platformContent } from "@/content/platform";
-import { listInstitutions } from "@/lib/api/platform";
+import { assertPlatformAdministrator, listInstitutions } from "@/lib/api/platform";
 import { formatDay } from "@/lib/format";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Institutions" };
+export const generateMetadata = titleAfter(assertPlatformAdministrator, "Institutions");
 
 type PageProps = { searchParams: Promise<{ search?: string }> };
 

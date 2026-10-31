@@ -184,6 +184,23 @@ response streams, which for us means calling the API from `proxy.ts`, and
 `proxy.ts` must never call the API. The app is `noindex` throughout, so the
 trade is worth taking; don't "fix" it by moving the lookup into the proxy.
 
+**The tab says so too.** Next settles a page's metadata apart from the page,
+so a fixed `metadata` export keeps the page's usual title on its not-found
+screen. Whatever can answer not-found therefore runs again in
+`generateMetadata`:
+
+- A page that reads a record by an id from the URL reads it there as well,
+  then returns its usual title. The read checks the caller's role first.
+- Any other page in a gated section (`content/`, `institution/` or
+  `platform/`) runs its section's role check there, through `titleAfter`
+  (`src/lib/metadata.ts`). The check can't go in the layout's own
+  `generateMetadata`: a not-found thrown there leaves the screen with no title
+  at all.
+
+These reads are memoised for the request with React's `cache`, so the title
+costs no second API call. `fetch` would deduplicate the repeat itself, but the
+client gives every request its own `x-request-id`.
+
 ### Reading the API
 
 Screens never call `apiRequest` directly. Each area gets one module in

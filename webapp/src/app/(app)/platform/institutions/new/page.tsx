@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CreateInstitutionForm } from "@/components/platform/CreateInstitutionForm";
 import { Panel } from "@/components/ui/Panel";
 import { platformContent } from "@/content/platform";
+import { assertPlatformAdministrator } from "@/lib/api/platform";
+import { titleAfter } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "Add an institution" };
+export const generateMetadata = titleAfter(assertPlatformAdministrator, "Add an institution");
 
 export default function NewInstitutionPage() {
   const copy = platformContent.create;

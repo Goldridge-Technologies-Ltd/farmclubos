@@ -7,7 +7,13 @@ import { getCohort, managedInstitution } from "@/lib/api/institution";
 
 type PageProps = { params: Promise<{ cohortId: string }> };
 
-export const metadata: Metadata = { title: "Edit cohort" };
+/** Read here as well, so a cohort that isn't there titles the tab as not found. */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { cohortId } = await params;
+  await getCohort((await managedInstitution()).id, cohortId);
+
+  return { title: "Edit cohort" };
+}
 
 /** An intake's details, for correcting. A closed intake can be edited too. */
 export default async function EditCohortPage({ params }: PageProps) {

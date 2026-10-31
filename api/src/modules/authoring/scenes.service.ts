@@ -9,8 +9,10 @@ import { sceneGaps } from "../academy/scene-readiness.js";
 import { audit, clean, nextSequence, notFound, reorder } from "./authoring.helpers.js";
 import type {
   AuthoringSceneView,
+  LessonPreviewView,
   MediaFileView,
   MoveDirection,
+  PreviewSceneView,
   SceneInput,
   UploadRequestInput,
   UploadTicketView,
@@ -357,6 +359,37 @@ export class ScenesService {
     return this.view(scene.id);
   }
 
+  /**
+   * A whole lesson as learners will see it, scene by scene, for the content
+   * team to go through before publishing. Unlike a learner's view it keeps
+   * the scenes learners would not see yet, each saying what it still needs,
+   * and plays a video before its still image is added. Nothing is recorded.
+   */
+  async previewLesson(user: AuthenticatedUser, lessonId: string): Promise<LessonPreviewView> {
+    await this.access.assertCanAuthor(user);
+
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: previewSelect,
+    });
+
+    if (!lesson) {
+      throw notFound("lesson");
+    }
+
+    return {
+      id: lesson.id,
+      title: lesson.title,
+      summary: lesson.summary,
+      kind: lesson.kind,
+      status: lesson.status,
+      archivedAt: lesson.archivedAt,
+      module: { id: lesson.module.id, title: lesson.module.title },
+      pathway: lesson.module.pathway,
+      scenes: await Promise.all(lesson.scenes.map((scene) => this.toPreviewScene(scene))),
+    };
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private async findScene(sceneId: string) {
@@ -412,6 +445,27 @@ export class ScenesService {
       sizeBytes: asset.sizeBytes,
       uploadedAt: asset.readyAt ?? asset.createdAt,
       url: await this.storage.signDownload(asset.storageKey),
+    };
+  }
+
+  private async toPreviewScene(scene: PreviewSceneRow): Promise<PreviewSceneView> {
+    const { video, captions, poster } = scene;
+
+    return {
+      id: scene.id,
+      kind: scene.kind,
+      title: scene.title,
+      body: scene.body,
+      transcript: scene.transcript,
+      video: video
+        ? {
+            url: await this.storage.signDownload(video.storageKey),
+            contentType: video.contentType,
+            captionsUrl: captions ? await this.storage.signDownload(captions.storageKey) : null,
+            posterUrl: poster ? await this.storage.signDownload(poster.storageKey) : null,
+          }
+        : null,
+      gaps: sceneGaps(scene),
     };
   }
 
@@ -475,8 +529,42 @@ const sceneSelect = {
   },
 } as const;
 
+const previewSelect = {
+  id: true,
+  title: true,
+  summary: true,
+  kind: true,
+  status: true,
+  archivedAt: true,
+  module: {
+    select: {
+      id: true,
+      title: true,
+      pathway: { select: { id: true, slug: true, title: true } },
+    },
+  },
+  // Every scene, in the order learners get them.
+  scenes: {
+    orderBy: { sequence: "asc" },
+    select: {
+      id: true,
+      kind: true,
+      title: true,
+      body: true,
+      transcript: true,
+      videoAssetId: true,
+      captionsAssetId: true,
+      posterAssetId: true,
+      video: { select: { storageKey: true, contentType: true } },
+      captions: { select: { storageKey: true } },
+      poster: { select: { storageKey: true } },
+    },
+  },
+} as const;
+
 type SceneRow = Prisma.LessonSceneGetPayload<{ select: typeof sceneSelect }>;
 type FileRow = Prisma.MediaAssetGetPayload<{ select: typeof fileSelect }>;
+type PreviewSceneRow = Prisma.LessonGetPayload<{ select: typeof previewSelect }>["scenes"][number];
 
 /** A lesson with any video scene is a video lesson; otherwise a text one. */
 async function syncLessonKind(tx: Prisma.TransactionClient, lessonId: string): Promise<void> {

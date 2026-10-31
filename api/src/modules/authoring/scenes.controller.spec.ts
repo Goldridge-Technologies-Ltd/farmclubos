@@ -28,6 +28,7 @@ describe("ScenesController", () => {
     removeScene: fn(),
     requestUpload: fn(),
     completeUpload: fn(),
+    previewLesson: fn(),
   };
 
   beforeEach(async () => {
@@ -61,6 +62,7 @@ describe("ScenesController", () => {
     await controller.completeUpload(author, "asset-1");
     await controller.moveScene(author, "scene-1", { direction: "DOWN" });
     await controller.removeScene(author, "scene-1");
+    await controller.previewLesson(author, "lesson-1");
 
     expect(scenes.createScene).toHaveBeenCalledWith(author, "lesson-1", {
       kind: "VIDEO",
@@ -70,5 +72,6 @@ describe("ScenesController", () => {
     expect(scenes.completeUpload).toHaveBeenCalledWith(author, "asset-1");
     expect(scenes.moveScene).toHaveBeenCalledWith(author, "scene-1", "DOWN");
     expect(scenes.removeScene).toHaveBeenCalledWith(author, "scene-1");
+    expect(scenes.previewLesson).toHaveBeenCalledWith(author, "lesson-1");
   });
 });

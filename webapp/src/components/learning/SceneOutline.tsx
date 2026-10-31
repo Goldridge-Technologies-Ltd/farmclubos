@@ -14,7 +14,9 @@ export function SceneOutline({
   current,
   done,
 }: {
-  scenes: LessonScene[];
+  /** The learner's scenes, or the content team's preview of them. */
+  scenes: Pick<LessonScene, "id" | "title">[];
+  /** Where the lesson is; each scene adds its number to it. */
   lessonHref: string;
   /** Index of the scene on screen, or null on the lesson's end. */
   current: number | null;

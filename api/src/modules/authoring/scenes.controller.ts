@@ -16,11 +16,12 @@ import { ApiEnvelope, ApiErrors } from "../../common/decorators/api-envelope.dec
 import { CurrentUser } from "../../common/decorators/current-user.decorator.js";
 import { CustomMessage } from "../../common/decorators/custom-message.decorator.js";
 import { PlatformRoles } from "../../common/decorators/roles.decorator.js";
-import type { AuthoringSceneView, UploadTicketView } from "./authoring.types.js";
+import type { AuthoringSceneView, LessonPreviewView, UploadTicketView } from "./authoring.types.js";
 import { MoveDto } from "./dto/curriculum-request.dto.js";
 import { CreateSceneDto, UpdateSceneDto, UploadRequestDto } from "./dto/scene-request.dto.js";
 import {
   AuthoringSceneDto,
+  LessonPreviewDto,
   RemovedSceneDto,
   UploadTicketDto,
 } from "./dto/scene-response.dto.js";
@@ -65,6 +66,25 @@ export class ScenesController {
     @Body() body: CreateSceneDto,
   ): Promise<AuthoringSceneView> {
     return this.scenes.createScene(user, lessonId, body);
+  }
+
+  @Get("lessons/:lessonId/preview")
+  @CustomMessage("Lesson preview loaded")
+  @ApiOperation({
+    summary: "A whole lesson as learners will see it, scene by scene",
+    description:
+      "Every scene in learners' order, with signed links to its files. Unlike a learner's view, " +
+      "it keeps the scenes learners would not see yet, each listing what it still needs, and " +
+      "gives a video before its still image is added. Nothing is recorded.",
+  })
+  @ApiParam({ name: "lessonId", format: "uuid" })
+  @ApiEnvelope({ status: HttpStatus.OK, description: "The lesson.", type: LessonPreviewDto })
+  @ApiErrors(UNAUTHORIZED, FORBIDDEN, NOT_FOUND)
+  previewLesson(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("lessonId", ParseUUIDPipe) lessonId: string,
+  ): Promise<LessonPreviewView> {
+    return this.scenes.previewLesson(user, lessonId);
   }
 
   @Get("scenes/:sceneId")

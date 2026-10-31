@@ -167,6 +167,10 @@ variables differ.
   still lacks, and `readyScene` is the same rule as a Prisma `where`. Use
   `readyScene` in every learner-facing query rather than restating it. A
   lesson can be published only with at least one scene, all of them complete.
+  The content team's preview of a whole lesson
+  (`GET /authoring/lessons/:lessonId/preview`) gives it as learners will get
+  it, but with every scene: each carries its `gaps`, a video comes before its
+  still image, and nothing is recorded.
 - **Scene progress counts scenes, never time watched.** `SceneProgress`
   belongs to the enrolment. Finishing every complete scene completes the
   lesson, and a lesson's completion date, once set, never moves.

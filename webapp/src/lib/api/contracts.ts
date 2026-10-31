@@ -583,6 +583,38 @@ export type AuthoringScene = {
   poster: MediaFile | null;
 };
 
+/**
+ * A scene in the content team's preview of a whole lesson: as learners will
+ * see it, and what it still needs before they do.
+ */
+export type PreviewScene = {
+  id: string;
+  kind: SceneKind;
+  title: string;
+  body: string | null;
+  transcript: string | null;
+  /**
+   * Null for a notes scene, and for a video scene with no video yet. Unlike a
+   * learner's, it may have no still image yet.
+   */
+  video: { url: string; contentType: string; captionsUrl: string | null; posterUrl: string | null } | null;
+  /** Empty when learners would see it. */
+  gaps: SceneGap[];
+};
+
+/** A whole lesson as learners will see it, with every scene, ready or not. */
+export type LessonPreview = {
+  id: string;
+  title: string;
+  summary: string | null;
+  kind: LessonKind;
+  status: PublishStatus;
+  archivedAt: string | null;
+  module: { id: string; title: string };
+  pathway: Ref;
+  scenes: PreviewScene[];
+};
+
 /** Where the browser sends one file, straight to storage. */
 export type UploadTicket = {
   assetId: string;

@@ -10,6 +10,7 @@ import type {
   AuthoringPathway,
   AuthoringPathwaySummary,
   AuthoringScene,
+  LessonPreview,
 } from "./contracts";
 import { isMissingRecord } from "./errors";
 
@@ -57,6 +58,10 @@ export async function getAuthoringLesson(lessonId: string): Promise<AuthoringLes
 
 export async function getAuthoringScene(sceneId: string): Promise<AuthoringScene> {
   return byId<AuthoringScene>(`/api/authoring/scenes/${encode(sceneId)}`);
+}
+
+export async function getLessonPreview(lessonId: string): Promise<LessonPreview> {
+  return byId<LessonPreview>(`/api/authoring/lessons/${encode(lessonId)}/preview`);
 }
 
 async function byId<T>(path: string): Promise<T> {

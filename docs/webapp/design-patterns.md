@@ -422,6 +422,15 @@ top bar where an institution's name would be.
 - **Each scene says what it still needs** ("Needs the video and a still
   image"), from the `gaps` the API reports rather than worked out on screen.
   Captions are optional, so never among them; their slot's hint says so.
+- **A whole lesson can be previewed** before it is published. *Preview the
+  lesson*, on the lesson's Scenes panel once it has a scene, opens
+  `/content/academy/lessons/:id/preview`: the lesson one scene at a time with
+  the learner's own `VideoPlayer`, `NotesView`, `SceneHeading` and
+  `SceneOutline`, recording nothing. Unlike the learner's lesson it has every
+  scene. One learners would not see yet says what it still needs, with a link
+  to edit it, and a video plays before its still image is added. Back,
+  Continue and the outline are plain links, and the last scene's *Finish the
+  preview* returns to the lesson.
 
 ### Uploading files
 
@@ -459,7 +468,8 @@ is the `h1` and each scene an `h2`.
 
 A lesson plays one scene at a time, a video or notes, with the scenes listed
 beside it in `SceneOutline`: ticks for those finished, and
-`aria-current="step"` on this one.
+`aria-current="step"` on this one. The content team's preview (see *Building
+the Academy*) is built from the same components.
 
 - **The address names the scene**, counted from 1: `?scene=2`. Without one, an
   enrolled learner resumes at the first scene they have not finished

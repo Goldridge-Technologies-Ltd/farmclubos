@@ -130,6 +130,51 @@ export type AuthoringSceneView = {
   poster: MediaFileView | null;
 };
 
+// ─── A whole lesson, previewed ──────────────────────────────────────────────
+
+/**
+ * A scene's video in a preview. Unlike a learner's, it may lack its still
+ * image, so the content team can watch it before adding one.
+ */
+export type PreviewVideoView = {
+  url: string;
+  contentType: string;
+  /** Null without captions, which are optional. */
+  captionsUrl: string | null;
+  /** Null until the still image is added. */
+  posterUrl: string | null;
+};
+
+/** One scene as learners will see it, and what it still needs before they do. */
+export type PreviewSceneView = {
+  id: string;
+  kind: LessonSceneKind;
+  title: string;
+  body: string | null;
+  transcript: string | null;
+  /** Null for a notes scene, and for a video scene with no video yet. */
+  video: PreviewVideoView | null;
+  /** Empty when learners would see it. */
+  gaps: SceneGap[];
+};
+
+/**
+ * A whole lesson as learners will see it, scene by scene, for the content
+ * team to go through before publishing. It has every scene, in learners'
+ * order, including those learners would not see yet.
+ */
+export type LessonPreviewView = {
+  id: string;
+  title: string;
+  summary: string | null;
+  kind: LessonKind;
+  status: PublishStatus;
+  archivedAt: Date | null;
+  module: { id: string; title: string };
+  pathway: PathwayRefView;
+  scenes: PreviewSceneView[];
+};
+
 export type SceneInput = {
   title?: string;
   /** Null or empty clears it. */

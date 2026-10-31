@@ -435,9 +435,12 @@ As the platform administrator (lesson files need no setup with the default
    plain text whose first line is `WEBVTT`. The preview then plays it as
    learners will see it, with captions and a transcript when it has them.
 3. Add a **Notes** scene and write its notes; *Preview* shows them formatted.
-4. Back on the lesson, *Publish*. It is refused while any scene is missing a
-   file or its text, and says which. Its module must be published too.
-5. As an enrolled learner, open the lesson from its module. *Continue* moves
+4. Back on the lesson, *Preview the lesson* goes through it scene by scene as
+   learners will see it, recording nothing. A scene that isn't ready yet says
+   what it still needs.
+5. *Publish*. It is refused while any scene is missing a file or its text,
+   and says which. Its module must be published too.
+6. As an enrolled learner, open the lesson from its module. *Continue* moves
    through the scenes, finishing them all completes the lesson, and
    */my-journey* shows it.
 

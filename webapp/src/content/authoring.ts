@@ -183,6 +183,7 @@ export const authoringContent = {
     } satisfies Record<SceneGap, string>,
     needs: (gaps: string[]) => `Needs ${listOf(gaps)}`,
     viewInAcademy: "View in the Academy",
+    preview: "Preview the lesson",
     add: {
       title: "Add a scene",
       description: "It's added at the end. Open it next to upload its files or write its notes.",
@@ -202,6 +203,23 @@ export const authoringContent = {
           : `Remove “${title}”? Its notes are deleted, and this can't be undone.`,
       done: (title: string) => `“${title}” is removed.`,
     },
+  },
+
+  /** The whole lesson as learners will see it, scene by scene. */
+  preview: {
+    crumb: "Preview",
+    eyebrow: "Lesson preview",
+    loading: "Loading the preview",
+    about:
+      "This is the lesson as learners see it, one scene at a time. Nothing here is recorded " +
+      "as progress.",
+    empty: "This lesson has no scenes yet, so there's nothing to preview. Add one on the lesson's page.",
+    notReady: {
+      title: "Not ready",
+      description: (gaps: string[]) => `Learners won't see this scene until it has ${listOf(gaps)}.`,
+      edit: "Edit the scene",
+    },
+    finish: "Finish the preview",
   },
 
   scene: {

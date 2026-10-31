@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { NotFoundException } from "@nestjs/common";
+import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { AuthenticatedUser } from "../../common/auth/authenticated-user.js";
 import { PrismaService } from "../../lib/database/prisma.service.js";
@@ -423,6 +423,144 @@ describe("ScenesService", () => {
       expect(scene.captions).toBeNull();
       expect(scene.gaps).toEqual(["POSTER"]);
       expect(scene.pathway).toEqual({ id: "pathway-1", slug: "foundation", title: "Foundation" });
+    });
+  });
+
+  describe("previewLesson", () => {
+    const file = (storageKey: string, contentType = "video/mp4") => ({ storageKey, contentType });
+    const previewScene = (overrides: Record<string, unknown> = {}) => ({
+      id: "scene-1",
+      kind: "VIDEO",
+      title: "Four flows",
+      body: null,
+      transcript: null,
+      videoAssetId: null,
+      captionsAssetId: null,
+      posterAssetId: null,
+      video: null,
+      captions: null,
+      poster: null,
+      ...overrides,
+    });
+    const lessonRow = (scenes: unknown[]) => ({
+      id: "lesson-1",
+      title: "Agriculture as a commercial system",
+      summary: "Why a farm is a business.",
+      kind: "VIDEO",
+      status: "DRAFT",
+      archivedAt: null,
+      module: {
+        id: "module-1",
+        title: "Enterprise Mindset",
+        pathway: { id: "pathway-1", slug: "foundation", title: "Foundation" },
+      },
+      scenes,
+    });
+
+    it("gives every scene in order, each with what it still needs, for the content team only", async () => {
+      prisma.lesson.findUnique.mockResolvedValue(
+        lessonRow([
+          previewScene({
+            body: "What the four flows are.",
+            transcript: "Every farm runs on four flows.",
+            videoAssetId: "asset-1",
+            captionsAssetId: "asset-2",
+            posterAssetId: "asset-3",
+            video: file("lessons/lesson-1/scenes/scene-1/video/a.mp4"),
+            captions: file("lessons/lesson-1/scenes/scene-1/captions/b.vtt", "text/vtt"),
+            poster: file("lessons/lesson-1/scenes/scene-1/poster/c.jpg", "image/jpeg"),
+          }),
+          previewScene({ id: "scene-2", kind: "NOTES", title: "Lesson notes", body: "Read this." }),
+        ]),
+      );
+
+      const preview = await service.previewLesson(author, "lesson-1");
+
+      expect(access.assertCanAuthor).toHaveBeenCalledWith(author);
+      const [args] = prisma.lesson.findUnique.mock.calls[0] as [
+        { where: object; select: { scenes: { orderBy: object } } },
+      ];
+      expect(args.where).toEqual({ id: "lesson-1" });
+      expect(args.select.scenes.orderBy).toEqual({ sequence: "asc" });
+      expect(preview).toMatchObject({
+        id: "lesson-1",
+        title: "Agriculture as a commercial system",
+        summary: "Why a farm is a business.",
+        status: "DRAFT",
+        archivedAt: null,
+        module: { id: "module-1", title: "Enterprise Mindset" },
+        pathway: { id: "pathway-1", slug: "foundation", title: "Foundation" },
+      });
+      expect(preview.scenes).toEqual([
+        {
+          id: "scene-1",
+          kind: "VIDEO",
+          title: "Four flows",
+          body: "What the four flows are.",
+          transcript: "Every farm runs on four flows.",
+          video: {
+            url: "https://storage.example/lessons/lesson-1/scenes/scene-1/video/a.mp4?signed",
+            contentType: "video/mp4",
+            captionsUrl: "https://storage.example/lessons/lesson-1/scenes/scene-1/captions/b.vtt?signed",
+            posterUrl: "https://storage.example/lessons/lesson-1/scenes/scene-1/poster/c.jpg?signed",
+          },
+          gaps: [],
+        },
+        {
+          id: "scene-2",
+          kind: "NOTES",
+          title: "Lesson notes",
+          body: "Read this.",
+          transcript: null,
+          video: null,
+          gaps: [],
+        },
+      ]);
+    });
+
+    it("keeps scenes learners would not see yet, and plays a video before its still image is added", async () => {
+      prisma.lesson.findUnique.mockResolvedValue(
+        lessonRow([
+          previewScene({
+            videoAssetId: "asset-1",
+            video: file("lessons/lesson-1/scenes/scene-1/video/a.mp4"),
+          }),
+          previewScene({ id: "scene-2", title: "Still to film" }),
+          previewScene({ id: "scene-3", kind: "NOTES", title: "Notes to write" }),
+        ]),
+      );
+
+      const preview = await service.previewLesson(author, "lesson-1");
+
+      expect(preview.scenes.map((scene) => [scene.id, scene.gaps])).toEqual([
+        ["scene-1", ["POSTER"]],
+        ["scene-2", ["VIDEO", "POSTER"]],
+        ["scene-3", ["BODY"]],
+      ]);
+      expect(preview.scenes[0].video).toEqual({
+        url: "https://storage.example/lessons/lesson-1/scenes/scene-1/video/a.mp4?signed",
+        contentType: "video/mp4",
+        captionsUrl: null,
+        posterUrl: null,
+      });
+      expect(preview.scenes[1].video).toBeNull();
+    });
+
+    it("is a 404 for a lesson that does not exist", async () => {
+      prisma.lesson.findUnique.mockResolvedValue(null);
+
+      await expect(service.previewLesson(author, "lesson-9")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("looks nothing up for someone the content team has since let go", async () => {
+      access.assertCanAuthor.mockRejectedValue(new ForbiddenException());
+
+      await expect(service.previewLesson(author, "lesson-1")).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.lesson.findUnique).not.toHaveBeenCalled();
     });
   });
 });

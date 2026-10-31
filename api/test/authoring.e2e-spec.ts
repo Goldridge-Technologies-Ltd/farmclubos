@@ -65,6 +65,7 @@ describe("Authoring — modules and lessons (e2e)", () => {
     removeScene: fn(),
     requestUpload: fn(),
     completeUpload: fn(),
+    previewLesson: fn(),
   };
 
   beforeAll(async () => {
@@ -353,6 +354,35 @@ describe("Authoring — modules and lessons (e2e)", () => {
         .expect(200);
 
       expect(asSuccess(response.body)).toMatchObject({ message: "Scene removed", data: { id: SCENE } });
+    });
+
+    it("previews a whole lesson with 200, for the content team only", async () => {
+      scenes.previewLesson.mockResolvedValue({ id: LESSON, scenes: [] });
+
+      const response = await request(server())
+        .get(`/api/authoring/lessons/${LESSON}/preview`)
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .expect(200);
+
+      expect(asSuccess(response.body)).toMatchObject({
+        success: true,
+        message: "Lesson preview loaded",
+        data: { id: LESSON, scenes: [] },
+      });
+      expect(scenes.previewLesson).toHaveBeenCalledWith(
+        expect.objectContaining({ platformRole: "CONTENT_MANAGER" }),
+        LESSON,
+      );
+
+      await request(server())
+        .get(`/api/authoring/lessons/${LESSON}/preview`)
+        .set("authorization", await as("NONE"))
+        .expect(403);
+      await request(server())
+        .get("/api/authoring/lessons/not-a-lesson/preview")
+        .set("authorization", await as("CONTENT_MANAGER"))
+        .expect(400);
+      expect(scenes.previewLesson).toHaveBeenCalledTimes(1);
     });
   });
 

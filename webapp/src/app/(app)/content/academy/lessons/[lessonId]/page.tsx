@@ -30,8 +30,9 @@ export const metadata: Metadata = { title: "Lesson" };
 
 /*
   One lesson: its scenes in order, each saying whether it is ready or what it
-  still needs, a way to add one, its details, and publishing — which needs
-  every scene ready, so what is missing is in plain view above it.
+  still needs, a preview of the whole lesson, a way to add a scene, its
+  details, and publishing — which needs every scene ready, so what is missing
+  is in plain view above it.
 */
 export default async function LessonContentPage({ params }: PageProps) {
   const { lessonId } = await params;
@@ -73,7 +74,22 @@ export default async function LessonContentPage({ params }: PageProps) {
 
         <ActionOutcomeMessage />
 
-        <Panel description={copy.scenesDescription} title={copy.scenesTitle}>
+        <Panel
+          action={
+            lesson.scenes.length > 0 ? (
+              <ButtonLink
+                href={`/content/academy/lessons/${lesson.id}/preview`}
+                icon="none"
+                size="md"
+                variant="secondary"
+              >
+                {copy.preview}
+              </ButtonLink>
+            ) : undefined
+          }
+          description={copy.scenesDescription}
+          title={copy.scenesTitle}
+        >
           {lesson.scenes.length === 0 ? (
             <p className="type-body-sm text-farm-muted">{copy.empty}</p>
           ) : (

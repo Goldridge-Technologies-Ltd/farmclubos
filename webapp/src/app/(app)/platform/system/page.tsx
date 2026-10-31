@@ -4,10 +4,15 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { platformContent } from "@/content/platform";
 import type { Readiness, ServiceVersion } from "@/lib/api/contracts";
-import { getApiReadiness, getApiVersion } from "@/lib/api/platform";
+import { assertPlatformAdministrator, getApiReadiness, getApiVersion } from "@/lib/api/platform";
 import { shortCommit, webVersion } from "@/lib/version";
 
-export const metadata: Metadata = { title: "System" };
+/** Checked here as well, so anyone else gets "Page not found" in the tab too. */
+export async function generateMetadata(): Promise<Metadata> {
+  await assertPlatformAdministrator();
+
+  return { title: "System" };
+}
 
 /*
   The deployment, from the platform's side: which commit each part runs, and

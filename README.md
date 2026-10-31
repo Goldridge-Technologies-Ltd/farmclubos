@@ -184,3 +184,8 @@ npm run start --workspace api
 - **Health check.** Point the host's check at `GET /health/ready`. It answers
   503 while the database is unreachable, so traffic stops going to an instance
   that cannot serve it.
+- **Checking a deployment.** *Platform → System* in the web app shows the
+  commit and branch the web app and the API were deployed from, and whether
+  the API is ready; `GET /health/version` reports the API's on its own. Render
+  and Vercel supply them on every deploy; another host sets `GIT_COMMIT` and
+  `GIT_BRANCH`.

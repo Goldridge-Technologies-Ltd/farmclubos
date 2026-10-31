@@ -120,6 +120,37 @@ export const platformContent = {
       `${count} ${count === 1 ? "member" : "members"} in total, of every role.`,
   },
 
+  system: {
+    eyebrow: "Platform",
+    heading: "System",
+    description:
+      "Which version of FARMCLUB OS is deployed, and whether its API can serve. Use it to " +
+      "confirm a deployment without opening the hosting dashboards.",
+    version: {
+      title: "Deployed version",
+      description:
+        "The commit each part was deployed from, as its host reports it. Compare it with the " +
+        "commit on GitHub.",
+      web: "Web app",
+      api: "API",
+      on: (branch: string) => `on ${branch}`,
+      environments: { production: "production", preview: "preview", development: "development" } as Record<string, string>,
+      notReported: "Not reported by its host",
+      noAnswer: "The API did not answer",
+    },
+    status: {
+      title: "Status",
+      description: "Whether the API can serve requests, and the services it depends on.",
+      ready: "Ready",
+      degraded: "Not ready",
+      unreachable: "Not reachable",
+      checks: { database: "Database" } as Record<string, string>,
+      ok: "Reachable",
+      down: "Unreachable",
+      noAnswer: "The API did not answer. It may be starting up: try again in a minute.",
+    },
+  },
+
   contentTeam: {
     heading: "Content team",
     description:

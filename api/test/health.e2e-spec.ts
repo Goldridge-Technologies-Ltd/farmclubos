@@ -26,7 +26,14 @@ describe("Health (e2e)", () => {
       overrides: [
         { provide: PrismaService, useValue: { isReachable: () => Promise.resolve(!unreachable) } },
       ],
+      env: { RENDER_GIT_COMMIT: "ab8b86b2c4", RENDER_GIT_BRANCH: "main" },
     }));
+  });
+
+  it("GET /health/version answers without a token, outside the API prefix", async () => {
+    const response = await request(app.getHttpServer()).get("/health/version").expect(200);
+
+    expect(asSuccess(response.body).data).toEqual({ commit: "ab8b86b2c4", branch: "main" });
   });
 
   afterAll(async () => {

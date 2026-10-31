@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { canAdministerPlatform } from "../navigation";
 import { getSessionContext } from "../session";
 import { apiPage, apiRequest, type Page } from "./client";
-import type { ContentTeam, Institution } from "./contracts";
-import { isMissingRecord } from "./errors";
+import type { ContentTeam, Institution, Readiness, ServiceVersion } from "./contracts";
+import { isApiError, isMissingRecord } from "./errors";
 
 /*
   The reads behind the platform's own screens.
@@ -66,4 +66,42 @@ export async function getContentTeam(): Promise<ContentTeam> {
   await assertPlatformAdministrator();
 
   return apiRequest<ContentTeam>("/api/content-team");
+}
+
+/* ── The system ──────────────────────────────────────────────────────────
+   Both probes are public, being for load balancers too, so no token goes.
+   An API that does not answer is reported as such rather than failing the
+   page: saying so is what the page is for. */
+
+/** The commit and branch the API was deployed from, or null if it did not answer. */
+export async function getApiVersion(): Promise<ServiceVersion | null> {
+  try {
+    return await apiRequest<ServiceVersion>("/health/version", { authenticated: false });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the API can serve. It answers 503 when a dependency is down, with
+ * the failing checks as the error's details. Null if it did not answer.
+ */
+export async function getApiReadiness(): Promise<Readiness | null> {
+  try {
+    return await apiRequest<Readiness>("/health/ready", { authenticated: false });
+  } catch (error) {
+    if (isApiError(error) && error.code === "NOT_READY" && isChecks(error.details)) {
+      return { status: "degraded", checks: error.details };
+    }
+
+    return null;
+  }
+}
+
+function isChecks(value: unknown): value is Readiness["checks"] {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.values(value).every((state) => state === "ok" || state === "down")
+  );
 }

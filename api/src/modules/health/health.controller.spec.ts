@@ -8,12 +8,13 @@ import { HealthService } from "./health.service.js";
 
 describe("HealthController", () => {
   let controller: HealthController;
-  let service: jest.Mocked<Pick<HealthService, "checkLiveness" | "checkReadiness">>;
+  let service: jest.Mocked<Pick<HealthService, "checkLiveness" | "checkReadiness" | "version">>;
 
   beforeEach(async () => {
     service = {
       checkLiveness: jest.fn(),
       checkReadiness: jest.fn(),
+      version: jest.fn(),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -29,6 +30,12 @@ describe("HealthController", () => {
     service.checkLiveness.mockReturnValue({ status: "ok", uptime: 12 });
 
     expect(controller.getLiveness()).toEqual({ status: "ok", uptime: 12 });
+  });
+
+  it("reports the deployed version as the service gives it", () => {
+    service.version.mockReturnValue({ commit: "ab8b86b2c4", branch: "main" });
+
+    expect(controller.getVersion()).toEqual({ commit: "ab8b86b2c4", branch: "main" });
   });
 
   it("is public, because a load balancer probing it has no token", () => {

@@ -299,7 +299,7 @@ The source files document the props. This section says when to use each componen
 | `Notice` | The four status treatments (§11) as `tone="info" \| "busy" \| "success" \| "error"`, with an optional `title` | Adding a `role`: a form's own `role="status"` region wraps it |
 | `Skeleton` | Loading placeholders, `variant="text" \| "block"`. Always `aria-hidden` | A spinner; announcing each bar separately |
 | `ProgressBar` | Progress through a pathway, module or cohort. Shows the figure as text beside the bar (§12) | Any figure that is not real platform data (§13) |
-| `EmptyState` | A list, dashboard or deferred feature with nothing to show: `IconDisc`, heading, copy and one optional action | A bare blank panel; more than one action |
+| `EmptyState` | A list, dashboard or deferred feature with nothing to show: `IconDisc`, title, copy and one optional action. The title is a `p` beneath the page's heading; `titleAs` makes it a heading when the empty state is the page, such as `h1` on a not-found screen | A bare blank panel; more than one action |
 | `button-classes` | The button recipes behind `Button` and `ButtonLink`, for the rare control that can't use either | Restyling a button inline |
 | `form-classes` | `fieldClass` for inputs, selects and textareas (§11) | Hand-written field styles |
 
@@ -331,7 +331,7 @@ Every form says plainly what happens on submit. The website is static-first and 
 
 ## 12. Accessibility checklist
 
-- **Landmarks:** each app's root layout provides the skip link and `main#main-content` (the site adds `header` and `footer`). Give a section with no visible heading an `aria-label`.
+- **Landmarks:** each app's root layout provides the skip link, and every page has exactly one `main#main-content` for it to reach. The site's root layout provides that too, with `header` and `footer`; in the web app each route group's layout does, so a page rendered inside one never adds another. Give a section with no visible heading an `aria-label`.
 - **Headings:** one `h1` per page, and no skipped levels.
 - **Focus:** never remove the global two-tone `:focus-visible` ring.
 - **Contrast:** text needs 4.5:1, large text and icons 3:1. Check §3.5 before using gold.
@@ -363,7 +363,7 @@ Every Next.js app in the monorepo sets up the same way:
    @import "@farmclub/design-system/theme.css";
    ```
    App-only CSS goes below, sparingly.
-3. **Fonts and landmarks.** The root layout imports `fontVariables` from `@farmclub/design-system/fonts` and puts it on `<html>`, then renders the skip link and `main#main-content`.
+3. **Fonts and landmarks.** The root layout imports `fontVariables` from `@farmclub/design-system/fonts` and puts it on `<html>`, then renders the skip link and `main#main-content`. When route groups frame their content differently, as the web app's do, each group's layout provides the `main` instead.
 4. **Brand files.** `"predev"` and `"prebuild"` run `node ../packages/design-system/scripts/sync-brand.mjs`.
 
 Rules for code inside `packages/design-system/`:

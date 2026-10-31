@@ -11,6 +11,11 @@ import { IconDisc } from "./IconDisc";
 type EmptyStateProps = {
   icon?: IconName;
   title: string;
+  /**
+   * The title's element: a `p` beneath the page's own heading, or a heading
+   * when the empty state is the page, such as `h1` on a not-found screen.
+   */
+  titleAs?: "p" | "h1" | "h2" | "h3";
   description?: string;
   /** A single ButtonLink or Button. Optional: some empty states need no action. */
   action?: ReactNode;
@@ -20,6 +25,7 @@ type EmptyStateProps = {
 export function EmptyState({
   icon,
   title,
+  titleAs: Title = "p",
   description,
   action,
   className = "",
@@ -31,7 +37,9 @@ export function EmptyState({
       {icon ? (
         <IconDisc className="mx-auto" name={icon} tone="pale" />
       ) : null}
-      <p className={`type-title text-farm-green-950 ${icon ? "mt-5" : ""}`.trim()}>{title}</p>
+      <Title className={`type-title text-farm-green-950 ${icon ? "mt-5" : ""}`.trim()}>
+        {title}
+      </Title>
       {description ? (
         <p className="mx-auto mt-3 max-w-md type-body-sm text-farm-muted">{description}</p>
       ) : null}

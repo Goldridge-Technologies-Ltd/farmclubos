@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { ButtonLink } from "@farmclub/design-system/ButtonLink";
-import { EmptyState } from "@farmclub/design-system/EmptyState";
+import { NotFoundState } from "@/components/ui/NotFoundState";
 import { notFoundScreen } from "@/content/app";
 
 export const metadata: Metadata = { title: notFoundScreen.title };
 
+/*
+  An address that matches no route. It renders under the root layout alone,
+  so it provides the `main#main-content` a route group's layout otherwise
+  would. A record that isn't there, inside the app, is `(app)/not-found.tsx`.
+*/
 export default function NotFound() {
   return (
     <main id="main-content" className="mx-auto max-w-md px-5 py-20">
-      <EmptyState
-        action={<ButtonLink href="/">{notFoundScreen.action}</ButtonLink>}
-        description={notFoundScreen.description}
-        icon="search"
-        title={notFoundScreen.title}
-      />
+      <NotFoundState />
     </main>
   );
 }
